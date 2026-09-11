@@ -76,7 +76,6 @@
   "message.doomscroll.broadcast.requested": "Broadcast requested: starts once a video plays",
   "message.doomscroll.broadcast.other_host": "%s is broadcasting; the owner or host can stop it",
   "message.doomscroll.queue.cleared": "Queue cleared",
-  "message.doomscroll.queue.empty_hint": "Queue is empty: add with + in the address box",
   "message.doomscroll.queue.opening": "Opening: %s",
   "message.doomscroll.queue.added": "Added to queue (%s)",
   "message.doomscroll.queue.add_failed": "Could not add to queue",
@@ -98,7 +97,6 @@
   "gui.doomscroll.tablet.history_empty": "No pages visited yet",
   "gui.doomscroll.tablet.chromium_loading": "Preparing Chromium: %s",
   "gui.doomscroll.tablet.device_volume": "Device volume: everyone hears this",
-  "gui.doomscroll.tablet.clear": "Clear",
   "message.doomscroll.bookmark.not_allowed": "This page cannot be bookmarked",
   "message.doomscroll.bookmark.added": "Bookmarked: %s",
   "message.doomscroll.bookmark.removed": "Bookmark removed",
@@ -261,8 +259,6 @@
   "command.doomscroll.list.control": "control",
   "command.doomscroll.list.locked": "locked",
   "message.doomscroll.popup_blocked": "Popup blocked: %s — use /ds popup to really open it",
-  "gui.doomscroll.browser.url_hint": "type an address, press Enter",
-  "gui.doomscroll.browser.go": "Go",
   "message.doomscroll.link.queued": "Queued: %s",
   "message.doomscroll.link.ready": "Ready: %s",
   "message.doomscroll.link.failed": "§c[doomscroll] Could not fetch the video: %s",
@@ -273,8 +269,6 @@
   "command.doomscroll.glow.patches": "%s light patches (%s ms)",
   "command.doomscroll.glow.no_colors": ", no colour map",
   "command.doomscroll.glow.average": ", screen average",
-  "gui.doomscroll.broadcast.page_title": "doomscroll broadcast",
-  "gui.doomscroll.broadcast.waiting": "waiting for the broadcast…",
   "gui.doomscroll.broadcast.unsupported": "receiver not supported",
   "home.doomscroll.sub_screen": "screen",
   "home.doomscroll.search": "Search or type an address",
@@ -419,5 +413,8 @@
   "command.doomscroll.admin.help.cmd.light": "light <0-15>",
   "command.doomscroll.admin.help.cmd.reload": "reload",
   "gui.doomscroll.lcd.broadcast_short": "LIVE %s",
-  "gui.doomscroll.viewers_short": "%s WATCHING"
+  "gui.doomscroll.viewers_short": "%s WATCHING",
+  "home.doomscroll.broadcast_page_title": "doomscroll broadcast",
+  "home.doomscroll.broadcast_waiting": "Waiting for the broadcast",
+  "command.doomscroll.linkparty_off": "/ds play is off: on first use it downloads and installs yt-dlp and ffmpeg from GitHub, and it only works on Windows. Set linkParty to true in config/doomscroll.json to enable it."
 }

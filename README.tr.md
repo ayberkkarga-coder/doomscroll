@@ -117,7 +117,7 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `/ds ytgiris` | Google girişi için Firefox kimliği |
 | `/ds rapor [not]` | baktığın ekranı yöneticilere bildir |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / durum |
-| `/ds play <reels/tiktok linki>` | (eski) yt-dlp + ffmpeg ile indirip yerel oynatıcıda oynatır |
+| `/ds play <reels/tiktok linki>` | (eski, **varsayılan kapalı**) ilk kullanımda GitHub'dan yt-dlp ve ffmpeg indirir, yalnızca Windows'ta çalışır; istemci ayarındaki `linkParty` ile açılır |
 
 ## İstemci ayarları — `config/doomscroll.json`
 | Alan | Varsayılan | |

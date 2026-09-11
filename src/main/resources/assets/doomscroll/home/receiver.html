@@ -1,0 +1,79 @@
+<html lang="{{home.doomscroll.html_lang}}">
+<head>
+<meta charset="utf-8">
+<title>{{home.doomscroll.broadcast_page_title}}</title>
+<style>
+/*__KIT__*/
+html,body{overflow:hidden;width:100%;height:100%}
+body{background:var(--tile-screen) repeat;background-size:64px 64px;display:flex;align-items:center;justify-content:center}
+video{position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;background:#000;image-rendering:auto}
+/* Yayin gelene kadar: kabartma panel icinde bekleme yazisi */
+#m{position:relative;z-index:1;padding:20px 30px;font-size:22px;color:var(--dim);text-align:center;
+  background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
+  box-shadow:inset 2px 2px 0 var(--hi),inset -2px -2px 0 var(--lo);text-shadow:2px 2px 0 var(--sh)}
+#m:before{content:"";display:block;width:26px;height:26px;margin:0 auto 12px;background:var(--faint);
+  -webkit-mask:var(--ic-broadcast) center/contain no-repeat;mask:var(--ic-broadcast) center/contain no-repeat}
+</style>
+</head>
+<body>
+<div id="m">{{home.doomscroll.broadcast_waiting}}</div>
+<video id="v" autoplay playsinline></video>
+<script>
+/*__DATA__*/
+var UNSUPPORTED = (window.__DS || {}).unsupported || 'receiver not supported';
+var v = document.getElementById('v'), m = document.getElementById('m');
+var ms = new MediaSource(); var sb = null, q = [], haveInit = false;
+v.src = URL.createObjectURL(ms);
+ms.addEventListener('sourceopen', function () {
+  try { sb = ms.addSourceBuffer('video/webm;codecs=vp8,opus'); }
+  catch (e) {
+    try { sb = ms.addSourceBuffer('video/webm'); }
+    catch (e2) { m.textContent = UNSUPPORTED; return; }
+  }
+  sb.mode = 'sequence';
+  sb.addEventListener('updateend', pump);
+  console.log('__DS__{"bcinfo":"open"}');
+  pump();
+});
+function pump() {
+  if (!sb || sb.updating || !q.length) return;
+  var it = q.shift();
+  try { sb.appendBuffer(it); } catch (e) { console.log('__DS__{"bcerr":1}'); q = []; }
+}
+function trim() {
+  try {
+    if (sb && !sb.updating && sb.buffered.length) {
+      var s = sb.buffered.start(0), e = sb.buffered.end(sb.buffered.length - 1);
+      if (e - s > 40) sb.remove(s, e - 20);
+    }
+  } catch (e) {}
+}
+window.__dsRecv = function (init, b64) {
+  if (init) haveInit = true;
+  if (!haveInit) return;
+  var bin = atob(b64);
+  var u = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  q.push(u.buffer);
+  pump();
+  m.style.display = 'none';
+};
+setInterval(function () {
+  try {
+    trim();
+    if (v.buffered.length) {
+      var e = v.buffered.end(v.buffered.length - 1);
+      if (e - v.currentTime > 2.5) v.currentTime = e - 0.7;
+      if (v.paused) v.play().catch(function () {});
+    }
+  } catch (e) {}
+}, 500);
+setInterval(function () {
+  try {
+    var be = v.buffered.length ? v.buffered.end(v.buffered.length - 1) : 0;
+    console.log('__DS__{"bct":' + v.currentTime.toFixed(1) + ',"bcb":' + be.toFixed(1) + ',"bcp":' + (v.paused ? 1 : 0) + '}');
+  } catch (e) {}
+}, 1000);
+</script>
+</body>
+</html>

@@ -121,7 +121,7 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `/ds ytlogin` | a Firefox identity for signing in to Google |
 | `/ds report [note]` | report the screen you are looking at to the admins |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / status |
-| `/ds play <reels or tiktok link>` | (legacy) download with yt-dlp + ffmpeg and play in a local player |
+| `/ds play <reels or tiktok link>` | (legacy, **off by default**) downloads yt-dlp and ffmpeg from GitHub on first use and only works on Windows; enable with `linkParty` in the client config |
 
 ## Client settings — `config/doomscroll.json`
 | Field | Default | |

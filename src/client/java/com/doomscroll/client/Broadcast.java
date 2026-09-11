@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -243,22 +242,9 @@ public final class Broadcast {
 
 	// ---------- izleyici ----------
 
-	private static String receiverHtml() {
-		return "<!doctype html><html><head><meta charset=utf-8><title>" + Lang.tr("gui.doomscroll.broadcast.page_title") + "</title><style>html,body{margin:0;background:#000;overflow:hidden;width:100%;height:100%}"
-				+ "video{width:100vw;height:100vh;object-fit:contain;background:#000}#m{position:fixed;left:0;right:0;top:45%;text-align:center;color:#888;font:24px sans-serif}</style></head>"
-				+ "<body><div id=m>" + Lang.tr("gui.doomscroll.broadcast.waiting") + "</div><video id=v autoplay playsinline></video><script>"
-				+ "var v=document.getElementById('v'),m=document.getElementById('m');var ms=new MediaSource();var sb=null,q=[],haveInit=false;v.src=URL.createObjectURL(ms);"
-				+ "ms.addEventListener('sourceopen',function(){try{sb=ms.addSourceBuffer('video/webm;codecs=vp8,opus');}catch(e){try{sb=ms.addSourceBuffer('video/webm');}catch(e2){m.textContent='" + Lang.tr("gui.doomscroll.broadcast.unsupported") + "';return;}}sb.mode='sequence';sb.addEventListener('updateend',pump);console.log('__DS__{\"bcinfo\":\"open\"}');pump();});"
-				+ "function pump(){if(!sb||sb.updating||!q.length)return;var it=q.shift();try{sb.appendBuffer(it);}catch(e){console.log('__DS__{\"bcerr\":1}');q=[];}}"
-				+ "function trim(){try{if(sb&&!sb.updating&&sb.buffered.length){var s=sb.buffered.start(0),e=sb.buffered.end(sb.buffered.length-1);if(e-s>40)sb.remove(s,e-20);}}catch(e){}}"
-				+ "window.__dsRecv=function(init,b64){if(init)haveInit=true;if(!haveInit)return;var bin=atob(b64);var u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);q.push(u.buffer);pump();m.style.display='none';};"
-				+ "setInterval(function(){try{trim();if(v.buffered.length){var e=v.buffered.end(v.buffered.length-1);if(e-v.currentTime>2.5)v.currentTime=e-0.7;if(v.paused)v.play().catch(function(){});}}catch(e){}},500);"
-				+ "setInterval(function(){try{var be=v.buffered.length?v.buffered.end(v.buffered.length-1):0;console.log('__DS__{\"bct\":'+v.currentTime.toFixed(1)+',\"bcb\":'+be.toFixed(1)+',\"bcp\":'+(v.paused?1:0)+'}');}catch(e){}},1000);"
-				+ "</script></body></html>";
-	}
-
+	/** Alici sayfasi artik ayri bir dosya (home/receiver.html) ve ortak cizim dilini kullaniyor. */
 	static String receiverUrl() {
-		return "data:text/html;charset=utf-8," + URLEncoder.encode(receiverHtml(), StandardCharsets.UTF_8).replace("+", "%20");
+		return HomePages.receiverUrl();
 	}
 
 	private static void enterViewer(ScreenBrowsers.Screen s) {

@@ -563,6 +563,10 @@ public class DoomscrollClient implements ClientModInitializer {
 						.then(ClientCommands.literal("play")
 								.then(ClientCommands.argument("url", StringArgumentType.greedyString())
 										.executes(c -> {
+											if (!DoomscrollConfig.get().linkParty) {
+												c.getSource().sendError(Component.translatable("command.doomscroll.linkparty_off"));
+												return 0;
+											}
 											LinkParty.play(StringArgumentType.getString(c, "url"));
 											return 1;
 										})))
@@ -589,10 +593,6 @@ public class DoomscrollClient implements ClientModInitializer {
 						}))
 						.then(ClientCommands.literal("tablet").executes(c -> {
 							openLater(TabletScreen::new);
-							return 1;
-						}))
-						.then(ClientCommands.literal("gui").executes(c -> {
-							openLater(BrowserScreen::new);
 							return 1;
 						}))
 		)));

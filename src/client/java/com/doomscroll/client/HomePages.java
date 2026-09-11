@@ -79,6 +79,15 @@ public final class HomePages {
 			return null;
 		}
 		String path = u.getPath() == null ? "" : u.getPath();
+		if (path.startsWith("/receiver")) {
+			String t = asset("receiver.html");
+			if (t == null) {
+				return null;
+			}
+			JsonObject r = new JsonObject();
+			r.addProperty("unsupported", Lang.tr("gui.doomscroll.broadcast.unsupported"));
+			return page(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(r) + ";");
+		}
 		if (path.startsWith("/consent")) {
 			String t = consentTemplate();
 			if (t == null) {
@@ -225,15 +234,26 @@ public final class HomePages {
 	private static String consentTemplate() {
 		String t = consentTemplate;
 		if (t == null) {
-			try (InputStream in = HomePages.class.getResourceAsStream("/assets/doomscroll/home/consent.html")) {
-				if (in == null) return null;
-				t = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-				consentTemplate = t;
-			} catch (Exception e) {
-				return null;
-			}
+			t = asset("consent.html");
+			consentTemplate = t;
 		}
 		return t;
+	}
+
+	/** home/ altindaki bir sablonu okur (onbelleksiz; cagiranlar kendi onbelleklerini tutar). */
+	@Nullable
+	private static String asset(String name) {
+		try (InputStream in = HomePages.class.getResourceAsStream("/assets/doomscroll/home/" + name)) {
+			return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			Doomscroll.LOGGER.warn("ana sayfa sablonu okunamadi ({}): {}", name, e.toString());
+			return null;
+		}
+	}
+
+	/** Yayin alici sayfasinin adresi (izleyicinin ekrani buna gider). */
+	public static String receiverUrl() {
+		return SCHEME + "home/receiver";
 	}
 
 	/** Sablon: ekran icin home.html (TV menusu), tablet icin home_tablet.html (iPad ana ekrani). */

@@ -76,7 +76,6 @@
   "message.doomscroll.broadcast.requested": "Yayın isteniyor: video oynarken başlar",
   "message.doomscroll.broadcast.other_host": "%s yayında; sahibi/yayıncı durdurabilir",
   "message.doomscroll.queue.cleared": "Sıra temizlendi",
-  "message.doomscroll.queue.empty_hint": "Sıra boş: adres kutusundaki + ile ekle",
   "message.doomscroll.queue.opening": "Açılıyor: %s",
   "message.doomscroll.queue.added": "Sıraya eklendi (%s)",
   "message.doomscroll.queue.add_failed": "Sıraya eklenemedi",
@@ -98,7 +97,6 @@
   "gui.doomscroll.tablet.history_empty": "Henüz gezilen sayfa yok",
   "gui.doomscroll.tablet.chromium_loading": "Chromium hazırlanıyor: %s",
   "gui.doomscroll.tablet.device_volume": "Cihaz sesi: herkes duyar",
-  "gui.doomscroll.tablet.clear": "Temizle",
   "message.doomscroll.bookmark.not_allowed": "Bu sayfa yer imine eklenemez",
   "message.doomscroll.bookmark.added": "Yer imine eklendi: %s",
   "message.doomscroll.bookmark.removed": "Yer iminden çıkarıldı",
@@ -261,8 +259,6 @@
   "command.doomscroll.list.control": "kontrol",
   "command.doomscroll.list.locked": "kilitli",
   "message.doomscroll.popup_blocked": "Popup engellendi: %s — gerçekten açmak için /ds popup",
-  "gui.doomscroll.browser.url_hint": "adres yaz, Enter'a bas",
-  "gui.doomscroll.browser.go": "Git",
   "message.doomscroll.link.queued": "Sıraya alındı: %s",
   "message.doomscroll.link.ready": "Hazır: %s",
   "message.doomscroll.link.failed": "§c[doomscroll] Video alınamadı: %s",
@@ -273,8 +269,6 @@
   "command.doomscroll.glow.patches": "%s ışık yaması (%s ms)",
   "command.doomscroll.glow.no_colors": ", renk haritası yok",
   "command.doomscroll.glow.average": ", ekran ortalaması",
-  "gui.doomscroll.broadcast.page_title": "doomscroll yayın",
-  "gui.doomscroll.broadcast.waiting": "yayın bekleniyor…",
   "gui.doomscroll.broadcast.unsupported": "alıcı desteklenmiyor",
   "home.doomscroll.sub_screen": "ekran",
   "home.doomscroll.search": "Ara ya da adres yaz",
@@ -419,5 +413,8 @@
   "command.doomscroll.admin.help.cmd.light": "isik <0-15>",
   "command.doomscroll.admin.help.cmd.reload": "yenile",
   "gui.doomscroll.lcd.broadcast_short": "YAYIN %s",
-  "gui.doomscroll.viewers_short": "%s İZLEYİCİ"
+  "gui.doomscroll.viewers_short": "%s İZLEYİCİ",
+  "home.doomscroll.broadcast_page_title": "doomscroll yayın",
+  "home.doomscroll.broadcast_waiting": "Yayın bekleniyor",
+  "command.doomscroll.linkparty_off": "/ds play kapalı: bu komut ilk kullanımda GitHub'dan yt-dlp ve ffmpeg indirip kurar ve yalnızca Windows'ta çalışır. Açmak için config/doomscroll.json içinde linkParty ayarını true yap."
 }
