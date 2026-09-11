@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+
+# Gelistirme ciktilari
+run/
+libs/
+backups/
+build-log*.txt
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Isletim sistemi
+.DS_Store
+Thumbs.db
+desktop.ini

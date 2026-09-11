@@ -1,0 +1,28 @@
+{
+	"schemaVersion": 1,
+	"id": "doomscroll",
+	"version": "${version}",
+	"name": "Doomscroll",
+	"description": "Watch Reels, Shorts, TikTok, YouTube and films together on real screens you build in the world. A Chromium browser on a block, with a remote and a tablet.",
+	"authors": ["ayber"],
+	"license": "MIT",
+	"icon": "assets/doomscroll/icon.png",
+	"contact": {
+		"homepage": "https://modrinth.com/mod/doomscroll"
+	},
+	"environment": "*",
+	"entrypoints": {
+		"main": ["com.doomscroll.Doomscroll"],
+		"client": ["com.doomscroll.client.DoomscrollClient"]
+	},
+	"mixins": [
+		{ "config": "doomscroll.client.mixins.json", "environment": "client" }
+	],
+	"depends": {
+		"fabricloader": ">=0.19.0",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"mcef-codec": "*"
+	}
+}

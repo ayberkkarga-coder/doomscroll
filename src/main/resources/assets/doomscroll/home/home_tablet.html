@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="{{home.doomscroll.html_lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{home.doomscroll.tablet_title}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--cell:118px;--row:112px;--icon:64px;--font:Figtree,-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);color:#fff;user-select:none;display:flex;flex-direction:column;position:relative;background:#0b1024}
+/* duvar kagidi: renk bulutlari + hafif tane */
+.wall{position:fixed;inset:0;z-index:-2;background:
+  radial-gradient(48% 62% at 14% 18%,rgba(70,130,255,1) 0%,rgba(70,130,255,0) 70%),
+  radial-gradient(44% 58% at 84% 24%,rgba(190,110,255,.95) 0%,rgba(190,110,255,0) 70%),
+  radial-gradient(60% 55% at 52% 100%,rgba(28,200,205,.9) 0%,rgba(28,200,205,0) 68%),
+  radial-gradient(36% 40% at 72% 78%,rgba(255,120,160,.6) 0%,rgba(255,120,160,0) 70%),
+  radial-gradient(30% 30% at 30% 88%,rgba(255,190,90,.35) 0%,rgba(255,190,90,0) 70%),
+  #0e1530}
+.wall:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.28))}
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.06;mix-blend-mode:soft-light;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* durum cubugu */
+.status{display:flex;justify-content:space-between;align-items:center;padding:8px 22px 0;height:30px;font-size:14px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.4);letter-spacing:.01em}
+.status .date{font-weight:500;opacity:.85;margin-left:10px}
+.status .right{display:flex;align-items:center;gap:8px}
+.status svg{display:block}
+/* spotlight */
+.spot{display:flex;align-items:center;gap:10px;width:min(560px,70%);margin:12px auto 4px;padding:9px 16px;border-radius:15px;background:rgba(255,255,255,.2);backdrop-filter:blur(26px) saturate(1.3);-webkit-backdrop-filter:blur(26px) saturate(1.3);box-shadow:0 4px 18px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.3);transition:background .15s,box-shadow .15s;animation:fade .5s both}
+.spot:focus-within{background:rgba(255,255,255,.3);box-shadow:0 8px 26px rgba(0,0,0,.25),0 0 0 2px rgba(255,255,255,.55)}
+.spot input{flex:1;background:none;border:0;outline:none;color:#fff;font:500 17px var(--font);user-select:text}
+.spot input::placeholder{color:rgba(255,255,255,.85)}
+.spot svg{opacity:.95;flex:none}
+/* izgara */
+.pages{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 26px 0;scrollbar-width:none}
+.pages::-webkit-scrollbar{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--cell),1fr));grid-auto-rows:var(--row);gap:8px 6px;justify-items:center;align-content:start}
+.app{display:flex;flex-direction:column;align-items:center;gap:7px;width:var(--cell);text-decoration:none;color:#fff;position:relative;cursor:pointer;animation:pop .45s cubic-bezier(.2,.9,.3,1.3) both}
+.icon{width:var(--icon);height:var(--icon);border-radius:22.5%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:0 8px 18px rgba(0,0,0,.32),0 1px 0 rgba(255,255,255,.18) inset;font-weight:800;font-size:calc(var(--icon)*.5);transition:transform .12s;border:1px solid rgba(255,255,255,.14)}
+.icon:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 52%,rgba(0,0,0,.08))}
+.icon>*{position:relative;z-index:1}
+.app:hover .icon{transform:scale(1.07)}
+.app:active .icon{transform:scale(.94);filter:brightness(.85)}
+.icon svg{width:56%;height:56%;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.label{font-size:12.5px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.6);max-width:var(--cell);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;letter-spacing:.01em}
+.rm{position:absolute;left:calc(50% - var(--icon)/2 - 8px);top:-8px;width:22px;height:22px;border-radius:50%;background:rgba(235,235,240,.96);color:#222;font-size:13px;font-weight:800;line-height:22px;text-align:center;display:none;box-shadow:0 2px 6px rgba(0,0,0,.35);z-index:2}
+.app:hover .rm{display:block}
+.rm:hover{background:#ff5b5b;color:#fff}
+/* widget'lar */
+.widget{grid-column:span 2;grid-row:span 2;width:100%;height:100%;border-radius:24px;background:rgba(18,22,40,.55);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);box-shadow:0 10px 28px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.16);padding:13px 15px;display:flex;flex-direction:column;overflow:hidden;justify-self:stretch;animation:pop .5s cubic-bezier(.2,.9,.3,1.2) both;border:1px solid rgba(255,255,255,.08)}
+.widget h3{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;opacity:.78;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:700}
+.widget h3 span{cursor:pointer;letter-spacing:0;text-transform:none;font-weight:600;opacity:.9}
+.widget h3 span:hover{text-decoration:underline}
+.widget .rows{display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.wrow{display:flex;align-items:center;gap:9px;padding:5px 6px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:500}
+.wrow:hover{background:rgba(255,255,255,.13)}
+.wrow .dot{width:22px;height:22px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.wrow .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrow .h{font-size:11px;opacity:.6;max-width:40%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.widget .empty{font-size:13px;opacity:.7;padding:8px 4px}
+.clockw{justify-content:space-between;background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06)),rgba(18,22,40,.35)}
+.clockw .big{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.25)}
+.clockw .day{font-size:14px;font-weight:600;opacity:.9;margin-top:6px}
+.clockw .foot{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;opacity:.7}
+/* alt */
+.dots{display:flex;justify-content:center;gap:7px;padding:6px 0 8px}
+.dots span{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4)}
+.dots span.on{background:#fff}
+.dock{margin:0 auto 14px;padding:12px 16px;border-radius:32px;background:rgba(255,255,255,.22);backdrop-filter:blur(34px) saturate(1.4);-webkit-backdrop-filter:blur(34px) saturate(1.4);box-shadow:0 12px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.12);display:flex;gap:18px;animation:fade .6s .1s both}
+.dock .app{width:auto;gap:0;animation:none}
+.dock .label{display:none}
+/* ekle kutusu */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9}
+.ov.on{display:flex}
+.card{width:min(420px,90%);padding:20px 22px;border-radius:20px;background:rgba(30,32,48,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 16px 40px rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.1)}
+.card h4{font-size:17px;font-weight:700;margin-bottom:12px}
+.card input{width:100%;font:500 16px var(--font);padding:10px 12px;margin-bottom:10px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;outline:none;user-select:text}
+.card input:focus{border-color:#fff}
+.card .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.card button{font:600 15px var(--font);padding:8px 16px;border-radius:11px;border:0;cursor:pointer;color:#fff;background:rgba(255,255,255,.14)}
+.card button.ok{background:#fff;color:#111;font-weight:700}
+@keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+body.portrait{--cell:106px;--row:104px;--icon:60px}
+body.portrait .spot{width:80%}
+body.portrait .clockw .big{font-size:40px}
+@media (max-height:700px) and (max-width:900px){body{--cell:98px;--row:96px;--icon:56px}}
+</style>
+</head>
+<body>
+<div class="wall"></div><div class="grain"></div>
+<div class="status">
+  <div class="time"><span id="clock">00:00</span><span class="date" id="date"></span></div>
+  <div class="right">
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="#fff"><path d="M9 11.2a1.7 1.7 0 1 1 0 3.4 1.7 1.7 0 0 1 0-3.4zM5.5 8.3a5 5 0 0 1 7 0l-1.3 1.3a3.2 3.2 0 0 0-4.4 0zM2.2 5a9.6 9.6 0 0 1 13.6 0l-1.3 1.3a7.8 7.8 0 0 0-11 0zM-.1 1.7a13 13 0 0 1 18.2 0l-1.3 1.3a11.2 11.2 0 0 0-15.6 0z"/></svg>
+    <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".6"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><path d="M24 4.5v4a2 2 0 0 0 0-4z" fill="#fff" fill-opacity=".6"/></svg>
+  </div>
+</div>
+<form class="spot" id="search">
+  <svg width="17" height="17" viewBox="0 0 17 17" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="7" cy="7" r="5.2"/><path d="M11 11l4.5 4.5" stroke-linecap="round"/></svg>
+  <input id="q" placeholder="{{home.doomscroll.search_tablet}}" autocomplete="off">
+</form>
+<div class="pages"><div class="grid" id="grid"></div></div>
+<div class="dots"><span class="on"></span><span></span></div>
+<div class="dock" id="dock"></div>
+<div class="ov" id="ov"><form class="card" id="addf"><h4>{{home.doomscroll.add_home}}</h4><input id="an" placeholder="{{home.doomscroll.add_name}}" autocomplete="off"><input id="au" placeholder="{{home.doomscroll.add_url}}" autocomplete="off"><div class="btns"><button type="button" id="ac">{{home.doomscroll.cancel}}</button><button type="submit" class="ok">{{home.doomscroll.add}}</button></div></form></div>
+<script>
+/*__DATA__*/
+(function () {
+  var D = window.__DS || {};
+  function orient() { document.body.classList.toggle('portrait', window.innerHeight > window.innerWidth); }
+  orient();
+  window.addEventListener('resize', orient);
+
+  var G = {
+    play: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4.5v15l12-7.5z"/></svg>',
+    shorts: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="6.5" y="2.5" width="11" height="19" rx="4"/><path d="M10.5 9v6l4.5-3z" fill="#fff" stroke="none"/></svg>',
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="#fff" stroke="none"/></svg>',
+    note: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M13 3v11.2a3.6 3.6 0 1 1-2.2-3.3V3h2.2zm0 0c.3 3 2 4.6 5 5v2.4c-2-.1-3.7-.7-5-1.8z"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M5 3h14v11l-4 4h-3l-3 3v-3H5zm3 3v5h2V6zm5 0v5h2V6z"/></svg>',
+    bolt: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>'
+  };
+  var APPS = [
+    {n: 'YouTube', u: 'https://www.youtube.com/', c: 'linear-gradient(160deg,#ff5148,#c81e1e)', g: 'play'},
+    {n: 'Shorts', u: 'https://www.youtube.com/shorts', c: 'linear-gradient(160deg,#ff3b3b,#a61c1c)', g: 'shorts'},
+    {n: 'Reels', u: 'https://www.instagram.com/reels/', c: 'linear-gradient(135deg,#f9a53c,#e6386c 55%,#8a3ab9)', g: 'camera'},
+    {n: 'TikTok', u: 'https://www.tiktok.com/', c: 'linear-gradient(135deg,#25f4ee 0%,#111 45%,#fe2c55 100%)', g: 'note'},
+    {n: 'Twitch', u: 'https://www.twitch.tv/', c: 'linear-gradient(160deg,#a970ff,#6a2fd6)', g: 'chat'},
+    {n: 'Kick', u: 'https://kick.com/', c: 'linear-gradient(160deg,#53fc18,#2a9d0e)', g: 'bolt'}
+  ];
+  var DOCK = ['YouTube', 'Shorts', 'Reels', 'TikTok', 'Twitch'];
+  var order = 0;
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function host(u) { try { return new URL(u).host.replace(/^www\./, ''); } catch (e) { return u; } }
+  function norm(u) { return (u || '').replace(/\/$/, ''); }
+  function cmd(o) { console.log('__DS__' + JSON.stringify(o)); }
+  function go(u) { location.href = u; }
+  function hue(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+  function stagger(e) { e.style.animationDelay = (60 + order++ * 28) + 'ms'; return e; }
+
+  function iconApp(a) {
+    var w = el('a', 'app');
+    w.href = a.u;
+    var ic = el('div', 'icon');
+    ic.style.background = a.c;
+    ic.innerHTML = G[a.g] || '';
+    w.appendChild(ic);
+    w.appendChild(el('div', 'label', a.n));
+    return w;
+  }
+  function webClip(b) {
+    var w = el('a', 'app');
+    w.href = b.url;
+    var ic = el('div', 'icon');
+    var h = hue(host(b.url));
+    ic.style.background = 'linear-gradient(150deg,hsl(' + h + ',72%,56%),hsl(' + ((h + 40) % 360) + ',70%,36%))';
+    var name = (b.title || host(b.url)).trim();
+    ic.appendChild(el('span', null, name ? name.charAt(0).toUpperCase() : '•'));
+    w.appendChild(ic);
+    w.appendChild(el('div', 'label', b.title || host(b.url)));
+    var rm = el('div', 'rm', '✕');
+    rm.title = '{{js:home.doomscroll.remove}}';
+    rm.onclick = function (ev) { ev.preventDefault(); ev.stopPropagation(); cmd({home: 'unbookmark', url: b.url}); w.remove(); };
+    w.appendChild(rm);
+    return w;
+  }
+
+  var grid = document.getElementById('grid');
+
+  // Saat widget'i
+  var cw = el('div', 'widget clockw');
+  cw.appendChild(el('div', 'foot', '{{js:home.doomscroll.tablet_foot}}'));
+  var mid = el('div');
+  var big = el('div', 'big', '00:00'); big.id = 'bigClock'; mid.appendChild(big);
+  var day = el('div', 'day', ''); day.id = 'bigDate'; mid.appendChild(day);
+  cw.appendChild(mid);
+  cw.appendChild(el('div', 'foot', '{{js:home.doomscroll.tablet_rotate}}'));
+  grid.appendChild(stagger(cw));
+
+  // Gecmis widget'i
+  var wd = el('div', 'widget');
+  var h3 = el('h3', null, '{{js:home.doomscroll.history}}');
+  var clear = el('span', null, '{{js:home.doomscroll.clear}}');
+  h3.appendChild(clear);
+  wd.appendChild(h3);
+  var rows = el('div', 'rows');
+  clear.onclick = function () { cmd({home: 'clearHistory'}); rows.innerHTML = ''; rows.appendChild(el('div', 'empty', '{{js:home.doomscroll.history_cleared}}')); };
+  var hist = (D.history || []).slice(0, 6);
+  if (!hist.length) rows.appendChild(el('div', 'empty', '{{js:home.doomscroll.history_empty}}'));
+  hist.forEach(function (it) {
+    var r = el('div', 'wrow');
+    var d = el('span', 'dot', (it.title || host(it.url)).charAt(0).toUpperCase());
+    d.style.background = 'hsl(' + hue(host(it.url)) + ',60%,45%)';
+    r.appendChild(d);
+    r.appendChild(el('span', 't', it.title || host(it.url)));
+    r.appendChild(el('span', 'h', host(it.url)));
+    r.onclick = function () { go(it.url); };
+    rows.appendChild(r);
+  });
+  wd.appendChild(rows);
+  grid.appendChild(stagger(wd));
+
+  APPS.forEach(function (a) { grid.appendChild(stagger(iconApp(a))); });
+  (D.channels || []).forEach(function (c) {
+    var known = APPS.some(function (a) { return norm(a.u) === norm(c.url); });
+    if (!known) grid.appendChild(stagger(webClip({title: c.name, url: c.url})));
+  });
+  (D.bookmarks || []).forEach(function (b) {
+    var dup = APPS.some(function (a) { return norm(a.u) === norm(b.url); });
+    if (!dup) grid.appendChild(stagger(webClip(b)));
+  });
+
+  // + Ekle
+  var addBtn = el('a', 'app');
+  addBtn.href = '#';
+  var addIc = el('div', 'icon');
+  addIc.style.background = 'rgba(255,255,255,.16)';
+  addIc.style.boxShadow = 'inset 0 0 0 2px rgba(255,255,255,.5)';
+  addIc.appendChild(el('span', null, '+'));
+  addBtn.appendChild(addIc);
+  addBtn.appendChild(el('div', 'label', '{{js:home.doomscroll.add}}'));
+  addBtn.onclick = function (ev) { ev.preventDefault(); openAdd(); };
+  grid.appendChild(stagger(addBtn));
+  function onAdded(n, u) { grid.insertBefore(webClip({title: n, url: u}), addBtn); }
+
+  var ov = document.getElementById('ov');
+  function openAdd() { ov.classList.add('on'); document.getElementById('an').value = ''; document.getElementById('au').value = ''; setTimeout(function () { document.getElementById('an').focus(); }, 30); }
+  function closeAdd() { ov.classList.remove('on'); }
+  document.getElementById('ac').onclick = closeAdd;
+  ov.onclick = function (ev) { if (ev.target === ov) closeAdd(); };
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ov.classList.contains('on')) closeAdd(); });
+  document.getElementById('addf').onsubmit = function (ev) {
+    ev.preventDefault();
+    var u = document.getElementById('au').value.trim();
+    if (!u) return;
+    if (u.indexOf('://') < 0) u = 'https://' + u;
+    var n = document.getElementById('an').value.trim() || host(u);
+    cmd({home: 'add', name: n, url: u});
+    onAdded(n, u);
+    closeAdd();
+  };
+
+  var dock = document.getElementById('dock');
+  DOCK.forEach(function (n) {
+    var a = APPS.filter(function (x) { return x.n === n; })[0];
+    if (a) dock.appendChild(iconApp(a));
+  });
+
+  document.getElementById('search').onsubmit = function (ev) {
+    ev.preventDefault();
+    var q = document.getElementById('q').value.trim();
+    if (!q) return;
+    var isUrl = /^[a-z]+:\/\//i.test(q) || (q.indexOf('.') > 0 && q.indexOf(' ') < 0);
+    if (isUrl) go(q.indexOf('://') < 0 ? 'https://' + q : q);
+    else go('https://www.google.com/search?q=' + encodeURIComponent(q));
+  };
+
+  var DAYS = ['{{js:home.doomscroll.day.0}}', '{{js:home.doomscroll.day.1}}', '{{js:home.doomscroll.day.2}}', '{{js:home.doomscroll.day.3}}', '{{js:home.doomscroll.day.4}}', '{{js:home.doomscroll.day.5}}', '{{js:home.doomscroll.day.6}}'];
+  var MONTHS = ['{{js:home.doomscroll.month.0}}', '{{js:home.doomscroll.month.1}}', '{{js:home.doomscroll.month.2}}', '{{js:home.doomscroll.month.3}}', '{{js:home.doomscroll.month.4}}', '{{js:home.doomscroll.month.5}}', '{{js:home.doomscroll.month.6}}', '{{js:home.doomscroll.month.7}}', '{{js:home.doomscroll.month.8}}', '{{js:home.doomscroll.month.9}}', '{{js:home.doomscroll.month.10}}', '{{js:home.doomscroll.month.11}}'];
+  function clock() {
+    var d = new Date();
+    var t = (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+    var dayS = DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    document.getElementById('clock').textContent = t;
+    document.getElementById('date').textContent = dayS;
+    document.getElementById('bigClock').textContent = t;
+    document.getElementById('bigDate').textContent = dayS;
+  }
+  clock();
+  setInterval(clock, 10000);
+})();
+</script>
+</body>
+</html>

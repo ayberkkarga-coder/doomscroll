@@ -1,0 +1,4 @@
+{
+  "screen": { "sounds": [ { "name": "doomscroll:screen", "stream": true } ] },
+  "tablet": { "sounds": [ { "name": "doomscroll:tablet", "stream": true } ] }
+}

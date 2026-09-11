@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="{{home.doomscroll.html_lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>doomscroll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080d;--ink:#f4f1ea;--muted:#8d90a3;--accent:#ff4d2e;--accent2:#ffb347;--card:#15171f;--safe:5vw;--display:Unbounded,Manrope,"Segoe UI",sans-serif;--body:Manrope,"Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow-x:hidden;overflow-y:auto;user-select:none;position:relative;scrollbar-width:none}
+body::-webkit-scrollbar{display:none}
+/* atmosfer: sol ustten sicak, sag alttan soguk isik + film tanesi */
+.atmo{position:fixed;inset:0;z-index:-2;background:radial-gradient(70% 60% at 6% 0%,rgba(255,77,46,.30),transparent 62%),radial-gradient(55% 50% at 100% 100%,rgba(64,86,255,.22),transparent 60%),linear-gradient(180deg,#0c0e16 0%,#07080d 100%)}
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.08;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+/* ust cubuk */
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px var(--safe) 0;animation:rise .6s both}
+.brand{font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;white-space:nowrap}
+.brand em{font-style:normal;color:var(--accent)}
+.brand small{font-family:var(--body);font-weight:700;color:var(--muted);font-size:11px;letter-spacing:.28em;text-transform:uppercase}
+.search{flex:1;max-width:520px;display:flex;align-items:center;gap:12px;padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);transition:border-color .15s,background .15s}
+.search:focus-within{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.1)}
+.search input{flex:1;background:none;border:0;outline:none;color:var(--ink);font:600 16px var(--body);user-select:text}
+.search input::placeholder{color:var(--muted)}
+.search svg{flex:none;opacity:.8}
+.clock{font-family:var(--display);font-weight:500;font-size:34px;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.clock span{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-right:14px;vertical-align:middle}
+/* hero */
+.hero{display:flex;margin:20px var(--safe) 0;height:auto;min-height:33vh;border-radius:26px;position:relative;overflow:hidden;background:linear-gradient(115deg,#221533 0%,#2b1220 45%,#0f1a2e 100%);align-items:flex-end;padding:30px 36px;box-shadow:0 30px 60px rgba(0,0,0,.45);animation:rise .7s .06s both;cursor:pointer;text-decoration:none;color:var(--ink)}
+.hero .bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.6;filter:saturate(1.25) contrast(1.05);transform:scale(1.03);transition:transform 6s ease-out}
+.hero:hover .bg{transform:scale(1.08)}
+.hero .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,8,13,.94) 0%,rgba(7,8,13,.55) 55%,rgba(7,8,13,.1) 100%),linear-gradient(0deg,rgba(7,8,13,.7),transparent 60%)}
+.hero .body{position:relative;max-width:62%}
+.kicker{font-size:11px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--accent2);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.kicker i{display:inline-block;width:26px;height:2px;background:var(--accent2)}
+.hero h1{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.4vw,42px);letter-spacing:-.025em;line-height:1.04}
+.hero p{margin-top:10px;color:#c9cbd6;font-size:15px;font-weight:600;max-width:52ch}
+.cta{display:inline-flex;align-items:center;gap:10px;margin-top:18px;padding:12px 22px;border-radius:999px;background:var(--ink);color:#111;font-weight:800;font-size:15px;text-decoration:none;transition:transform .15s,box-shadow .15s}
+.hero:hover .cta{transform:translateY(-2px);box-shadow:0 0 0 3px #fff,0 14px 30px rgba(0,0,0,.45)}
+.cta svg{width:14px;height:14px}
+.hero .num{position:absolute;right:30px;top:24px;font-family:var(--display);font-weight:900;font-size:64px;line-height:1;color:rgba(255,255,255,.08);letter-spacing:-.05em}
+/* raylar */
+.row{padding:0 var(--safe);margin-top:22px;animation:rise .7s both}
+.row:nth-of-type(2){animation-delay:.12s}.row:nth-of-type(3){animation-delay:.18s}.row:nth-of-type(4){animation-delay:.24s}
+.row h2{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.row h2 b{color:var(--ink);font-weight:800;margin-left:8px;letter-spacing:.1em}
+.rail{display:flex;gap:14px;padding:6px 8px 16px;margin:0 -8px;overflow-x:auto;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail.fit .tile{flex:1 1 0;min-width:128px}
+.tile{flex:none;width:214px;height:122px;border-radius:18px;position:relative;overflow:hidden;color:#fff;text-decoration:none;display:flex;flex-direction:column;justify-content:flex-end;padding:14px 16px;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.01em;box-shadow:0 12px 26px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.14);transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s;cursor:pointer}
+.tile:hover{transform:scale(1.06);box-shadow:0 0 0 3px #fff,0 22px 46px rgba(0,0,0,.55);z-index:2}
+.tile:after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.14),transparent 45%,rgba(0,0,0,.25))}
+.tile>*{position:relative;z-index:1}
+.tile .glyph{position:absolute;right:14px;top:12px;width:36px;height:36px;opacity:.95;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.tile small{display:block;font-family:var(--body);font-weight:600;font-size:12px;opacity:.75;margin-top:3px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .x{position:absolute;left:12px;top:10px;font-family:var(--body);font-size:13px;font-weight:800;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.45);opacity:0;transition:opacity .12s}
+.tile:hover .x{opacity:.9}
+.tile .x:hover{background:#c0392b}
+.tile.add{background:transparent;border:2px dashed rgba(255,255,255,.28);box-shadow:none;align-items:center;justify-content:center;color:var(--muted);font-size:15px;gap:4px}
+.tile.add:after{display:none}
+.tile.add b{font-size:34px;font-weight:500;line-height:1}
+.tile.add:hover{color:#fff;border-color:#fff;transform:scale(1.04);box-shadow:none}
+/* sira kartlari */
+.card{flex:none;width:214px;text-decoration:none;color:var(--ink);cursor:pointer;position:relative;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.card:hover{transform:scale(1.06);z-index:2}
+.card .poster{height:120px;border-radius:16px;background:linear-gradient(135deg,#2a2f4a,#161826);background-size:cover;background-position:center;box-shadow:0 12px 26px rgba(0,0,0,.4);position:relative;overflow:hidden;transition:box-shadow .18s}
+.card:hover .poster{box-shadow:0 0 0 3px #fff,0 22px 46px rgba(0,0,0,.55)}
+.card .poster:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.55),transparent 55%)}
+.card .n{position:absolute;left:10px;top:8px;z-index:1;font-family:var(--display);font-weight:900;font-size:13px;padding:3px 9px;border-radius:8px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px)}
+.card .play{position:absolute;right:10px;bottom:8px;z-index:1;width:30px;height:30px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center}
+.card .play svg{width:12px;height:12px;margin-left:2px}
+.card .t{margin-top:9px;font-weight:700;font-size:14px;line-height:1.3;max-height:2.6em;overflow:hidden;padding:0 2px}
+.card .h{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:3px;padding:0 2px}
+.card .x{position:absolute;right:10px;top:8px;z-index:2;font-size:13px;font-weight:800;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.55);opacity:0;transition:opacity .12s}
+.card:hover .x{opacity:.95}
+.card .x:hover{background:#c0392b}
+.empty{color:var(--muted);font-weight:600;font-size:14px;padding:10px 2px 18px}
+.foot{padding:10px var(--safe) 30px;color:#4d5062;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+/* iletisim kutusu */
+.ov{position:fixed;inset:0;background:rgba(4,5,9,.72);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;z-index:9}
+.ov.on{display:flex}
+.dlg{width:min(460px,90%);padding:26px 28px;border-radius:22px;background:#15171f;border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 70px rgba(0,0,0,.6)}
+.dlg h4{font-family:var(--display);font-size:18px;font-weight:700;margin-bottom:16px;letter-spacing:-.01em}
+.dlg input{width:100%;font:600 16px var(--body);padding:12px 14px;margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;outline:none;user-select:text}
+.dlg input:focus{border-color:#fff}
+.dlg .btns{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.dlg button{font:800 14px var(--body);padding:10px 18px;border-radius:999px;border:0;cursor:pointer;color:#fff;background:rgba(255,255,255,.1)}
+.dlg button.ok{background:var(--ink);color:#111}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (max-width:900px){.clock{font-size:26px}.hero .body{max-width:80%}.tile{width:180px;height:104px}}
+</style>
+</head>
+<body>
+<div class="atmo"></div><div class="grain"></div>
+
+<div class="top">
+  <div class="brand">doom<em>scroll</em><small id="sub">{{home.doomscroll.sub_screen}}</small></div>
+  <form class="search" id="search">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2"><circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5 15 15" stroke-linecap="round"/></svg>
+    <input id="q" placeholder="{{home.doomscroll.search}}" autocomplete="off">
+  </form>
+  <div class="clock"><span id="date"></span><b id="clock">00:00</b></div>
+</div>
+
+<a class="hero" id="hero" href="#">
+  <div class="bg" id="heroBg"></div>
+  <div class="shade"></div>
+  <div class="num" id="heroNum"></div>
+  <div class="body">
+    <div class="kicker"><i></i><span id="kick">doomscroll</span></div>
+    <h1 id="heroTitle">{{home.doomscroll.hero_title}}</h1>
+    <p id="heroText"></p>
+    <span class="cta" id="heroCta"><svg viewBox="0 0 24 24" fill="#111"><path d="M7 4.5v15l12-7.5z"/></svg><span id="heroCtaText">{{home.doomscroll.cta_shorts}}</span></span>
+  </div>
+</a>
+
+<section class="row"><h2>{{home.doomscroll.row_apps}}</h2><div class="rail fit" id="apps"></div></section>
+<section class="row"><h2>{{home.doomscroll.row_channels}}<span id="chCount"></span></h2><div class="rail" id="channels"></div></section>
+<section class="row"><h2>{{home.doomscroll.row_queue}}<span id="qCount"></span></h2><div class="rail" id="queue"></div></section>
+<div class="foot">{{home.doomscroll.foot}}</div>
+
+<div class="ov" id="ov"><form class="dlg" id="addf"><h4>{{home.doomscroll.add_channel}}</h4><input id="an" placeholder="{{home.doomscroll.add_name}}" autocomplete="off"><input id="au" placeholder="{{home.doomscroll.add_url}}" autocomplete="off"><div class="btns"><button type="button" id="ac">{{home.doomscroll.cancel}}</button><button type="submit" class="ok">{{home.doomscroll.add}}</button></div></form></div>
+
+<script>
+/*__DATA__*/
+(function () {
+  var D = window.__DS || {mode: 'screen'};
+  var G = {
+    play: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4.5v15l12-7.5z"/></svg>',
+    shorts: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="6.5" y="2.5" width="11" height="19" rx="4"/><path d="M10.5 9v6l4.5-3z" fill="#fff" stroke="none"/></svg>',
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="#fff" stroke="none"/></svg>',
+    note: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M13 3v11.2a3.6 3.6 0 1 1-2.2-3.3V3h2.2zm0 0c.3 3 2 4.6 5 5v2.4c-2-.1-3.7-.7-5-1.8z"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M5 3h14v11l-4 4h-3l-3 3v-3H5zm3 3v5h2V6zm5 0v5h2V6z"/></svg>',
+    bolt: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>'
+  };
+  var APPS = [
+    {n: 'YouTube', u: 'https://www.youtube.com/', c: 'linear-gradient(135deg,#ff3d2e,#9c1010)', g: 'play', s: '{{js:home.doomscroll.app_youtube}}'},
+    {n: 'Shorts', u: 'https://www.youtube.com/shorts', c: 'linear-gradient(135deg,#ff6a3d,#b3151a 70%)', g: 'shorts', s: '{{js:home.doomscroll.app_shorts}}'},
+    {n: 'Reels', u: 'https://www.instagram.com/reels/', c: 'linear-gradient(135deg,#f9a53c,#e6386c 55%,#8a3ab9)', g: 'camera', s: 'instagram'},
+    {n: 'TikTok', u: 'https://www.tiktok.com/', c: 'linear-gradient(135deg,#25f4ee -20%,#151515 40%,#fe2c55 130%)', g: 'note', s: '{{js:home.doomscroll.app_tiktok}}'},
+    {n: 'Twitch', u: 'https://www.twitch.tv/', c: 'linear-gradient(135deg,#a970ff,#5c16c5)', g: 'chat', s: '{{js:home.doomscroll.app_live}}'},
+    {n: 'Kick', u: 'https://kick.com/', c: 'linear-gradient(135deg,#53fc18,#1f7a0f)', g: 'bolt', s: '{{js:home.doomscroll.app_live}}'}
+  ];
+  var appUrls = {};
+  function norm(u) { return (u || '').replace(/\/$/, ''); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function host(u) { try { return new URL(u).host.replace(/^www\./, ''); } catch (e) { return u; } }
+  function cmd(o) { console.log('__DS__' + JSON.stringify(o)); }
+  function go(u) { location.href = u; }
+  function ytId(u) { var m = /(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/.exec(u || ''); return m ? m[1] : null; }
+  function thumb(u) { var id = ytId(u); return id ? 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg' : null; }
+  function hue(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+
+  function tile(name, url, bg, glyph, sub) {
+    var a = el('a', 'tile');
+    a.href = url;
+    a.style.background = bg;
+    if (glyph) { var g = el('div', 'glyph'); g.innerHTML = glyph; a.appendChild(g); }
+    a.appendChild(document.createTextNode(name));
+    if (sub) a.appendChild(el('small', null, sub));
+    return a;
+  }
+
+  // Uygulamalar
+  var apps = document.getElementById('apps');
+  APPS.forEach(function (a) { appUrls[norm(a.u)] = true; apps.appendChild(tile(a.n, a.u, a.c, G[a.g], a.s)); });
+
+  // Kanallar (+ Ekle sonda, ✕ ile kaldir)
+  var chRail = document.getElementById('channels');
+  var addTile = el('a', 'tile add');
+  addTile.href = '#';
+  addTile.appendChild(el('b', null, '+'));
+  addTile.appendChild(document.createTextNode('{{js:home.doomscroll.add_channel}}'));
+  addTile.onclick = function (ev) { ev.preventDefault(); openAdd(); };
+  chRail.appendChild(addTile);
+  function chanTile(c) {
+    var h = hue(host(c.url));
+    var t = tile(c.name || host(c.url), c.url, 'linear-gradient(135deg,hsl(' + h + ',55%,42%),hsl(' + ((h + 35) % 360) + ',60%,22%))', null, host(c.url));
+    var x = el('span', 'x', '✕');
+    x.title = '{{js:home.doomscroll.remove}}';
+    x.onclick = function (ev) { ev.preventDefault(); ev.stopPropagation(); cmd({home: 'removeChannel', name: c.name || host(c.url)}); t.remove(); updateCounts(); };
+    t.appendChild(x);
+    return t;
+  }
+  var chans = (D.channels || []).filter(function (c) { return !appUrls[norm(c.url)]; });
+  chans.forEach(function (c) { chRail.insertBefore(chanTile(c), addTile); });
+  function onAdded(n, u) { chRail.insertBefore(chanTile({name: n, url: u}), addTile); updateCounts(); }
+  function updateCounts() {
+    var n = chRail.querySelectorAll('.tile:not(.add)').length;
+    document.getElementById('chCount').innerHTML = n ? '<b>' + n + '</b>' : '';
+  }
+  updateCounts();
+
+  // Sira kartlari
+  var q = D.queue || [];
+  var qRail = document.getElementById('queue');
+  document.getElementById('qCount').innerHTML = q.length ? '<b>' + q.length + '{{js:home.doomscroll.videos}}</b>' : '';
+  if (!q.length) {
+    qRail.appendChild(el('div', 'empty', '{{js:home.doomscroll.queue_empty}}'));
+  }
+  q.forEach(function (it, i) {
+    var c = el('a', 'card');
+    c.href = '#';
+    var p = el('div', 'poster');
+    var th = thumb(it.url);
+    if (th) p.style.backgroundImage = 'url(' + th + ')';
+    else { var h = hue(host(it.url)); p.style.background = 'linear-gradient(135deg,hsl(' + h + ',45%,35%),hsl(' + ((h + 40) % 360) + ',50%,18%))'; }
+    p.appendChild(el('span', 'n', String(i + 1)));
+    var pl = el('span', 'play'); pl.innerHTML = '<svg viewBox="0 0 24 24" fill="#111"><path d="M7 4.5v15l12-7.5z"/></svg>';
+    p.appendChild(pl);
+    var x = el('span', 'x', '✕'); x.title = '{{js:home.doomscroll.queue_remove}}';
+    x.onclick = function (ev) { ev.preventDefault(); ev.stopPropagation(); cmd({home: 'qremove', url: it.url}); c.remove(); };
+    p.appendChild(x);
+    c.appendChild(p);
+    c.appendChild(el('div', 't', it.title || host(it.url)));
+    c.appendChild(el('div', 'h', host(it.url)));
+    c.onclick = function (ev) { ev.preventDefault(); cmd({home: 'play', n: i + 1}); };
+    qRail.appendChild(c);
+  });
+
+  // Hero: sirada video varsa onu one cikar, yoksa Shorts'a davet
+  var hero = document.getElementById('hero');
+  if (q.length) {
+    var first = q[0];
+    document.getElementById('kick').textContent = '{{js:home.doomscroll.queue_prefix}}' + q.length + '{{js:home.doomscroll.videos}}';
+    document.getElementById('heroTitle').textContent = first.title || host(first.url);
+    document.getElementById('heroText').textContent = host(first.url) + (q.length > 1 ? '{{js:home.doomscroll.then}}' + (q.length - 1) + '{{js:home.doomscroll.more_videos}}' : '');
+    document.getElementById('heroCtaText').textContent = '{{js:home.doomscroll.cta_play_now}}';
+    document.getElementById('heroNum').textContent = '01';
+    var th0 = thumb(first.url);
+    if (th0) document.getElementById('heroBg').style.backgroundImage = 'url(' + th0 + ')';
+    hero.onclick = function (ev) { ev.preventDefault(); cmd({home: 'play', n: 1}); };
+  } else {
+    var hours = new Date().getHours();
+    document.getElementById('kick').textContent = hours < 6 ? '{{js:home.doomscroll.greet_night}}' : hours < 12 ? '{{js:home.doomscroll.greet_morning}}' : hours < 18 ? '{{js:home.doomscroll.greet_day}}' : '{{js:home.doomscroll.greet_evening}}';
+    document.getElementById('heroTitle').textContent = '{{js:home.doomscroll.hero_title}}';
+    document.getElementById('heroText').textContent = '{{js:home.doomscroll.hero_text}}';
+    document.getElementById('heroCtaText').textContent = '{{js:home.doomscroll.cta_shorts}}';
+    hero.href = 'https://www.youtube.com/shorts';
+  }
+
+  // Ekle kutusu
+  var ov = document.getElementById('ov');
+  function openAdd() { ov.classList.add('on'); document.getElementById('an').value = ''; document.getElementById('au').value = ''; setTimeout(function () { document.getElementById('an').focus(); }, 30); }
+  function closeAdd() { ov.classList.remove('on'); }
+  document.getElementById('ac').onclick = closeAdd;
+  ov.onclick = function (ev) { if (ev.target === ov) closeAdd(); };
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && ov.classList.contains('on')) closeAdd(); });
+  document.getElementById('addf').onsubmit = function (ev) {
+    ev.preventDefault();
+    var u = document.getElementById('au').value.trim();
+    if (!u) return;
+    if (u.indexOf('://') < 0) u = 'https://' + u;
+    var n = document.getElementById('an').value.trim() || host(u);
+    cmd({home: 'add', name: n, url: u});
+    onAdded(n, u);
+    closeAdd();
+  };
+
+  // Arama: adres degilse Google
+  document.getElementById('search').onsubmit = function (ev) {
+    ev.preventDefault();
+    var s = document.getElementById('q').value.trim();
+    if (!s) return;
+    var isUrl = /^[a-z]+:\/\//i.test(s) || (s.indexOf('.') > 0 && s.indexOf(' ') < 0);
+    if (isUrl) go(s.indexOf('://') < 0 ? 'https://' + s : s);
+    else go('https://www.google.com/search?q=' + encodeURIComponent(s));
+  };
+
+  var DAYS = ['{{js:home.doomscroll.day.0}}', '{{js:home.doomscroll.day.1}}', '{{js:home.doomscroll.day.2}}', '{{js:home.doomscroll.day.3}}', '{{js:home.doomscroll.day.4}}', '{{js:home.doomscroll.day.5}}', '{{js:home.doomscroll.day.6}}'];
+  var MONTHS = ['{{js:home.doomscroll.month.0}}', '{{js:home.doomscroll.month.1}}', '{{js:home.doomscroll.month.2}}', '{{js:home.doomscroll.month.3}}', '{{js:home.doomscroll.month.4}}', '{{js:home.doomscroll.month.5}}', '{{js:home.doomscroll.month.6}}', '{{js:home.doomscroll.month.7}}', '{{js:home.doomscroll.month.8}}', '{{js:home.doomscroll.month.9}}', '{{js:home.doomscroll.month.10}}', '{{js:home.doomscroll.month.11}}'];
+  function clock() {
+    var d = new Date();
+    document.getElementById('clock').textContent = (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+    document.getElementById('date').textContent = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + DAYS[d.getDay()];
+  }
+  clock();
+  setInterval(clock, 10000);
+})();
+</script>
+</body>
+</html>

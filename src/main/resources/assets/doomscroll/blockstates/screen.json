@@ -1,0 +1,200 @@
+{
+  "variants": {
+    "facing=down,lit=false,top=east": {
+      "model": "doomscroll:block/screen",
+      "x": 90,
+      "y": 90
+    },
+    "facing=down,lit=false,top=north": {
+      "model": "doomscroll:block/screen",
+      "x": 90
+    },
+    "facing=down,lit=false,top=south": {
+      "model": "doomscroll:block/screen",
+      "x": 90,
+      "y": 180
+    },
+    "facing=down,lit=false,top=west": {
+      "model": "doomscroll:block/screen",
+      "x": 90,
+      "y": 270
+    },
+    "facing=down,lit=true,top=east": {
+      "model": "doomscroll:block/screen",
+      "x": 90,
+      "y": 90
+    },
+    "facing=down,lit=true,top=north": {
+      "model": "doomscroll:block/screen",
+      "x": 90
+    },
+    "facing=down,lit=true,top=south": {
+      "model": "doomscroll:block/screen",
+      "x": 90,
+      "y": 180
+    },
+    "facing=down,lit=true,top=west": {
+      "model": "doomscroll:block/screen",
+      "x": 90,
+      "y": 270
+    },
+    "facing=east,lit=false,top=east": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=false,top=north": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=false,top=south": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=false,top=west": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=true,top=east": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=true,top=north": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=true,top=south": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=east,lit=true,top=west": {
+      "model": "doomscroll:block/screen",
+      "y": 90
+    },
+    "facing=north,lit=false,top=east": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=false,top=north": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=false,top=south": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=false,top=west": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=true,top=east": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=true,top=north": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=true,top=south": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=north,lit=true,top=west": {
+      "model": "doomscroll:block/screen"
+    },
+    "facing=south,lit=false,top=east": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=false,top=north": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=false,top=south": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=false,top=west": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=true,top=east": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=true,top=north": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=true,top=south": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=south,lit=true,top=west": {
+      "model": "doomscroll:block/screen",
+      "y": 180
+    },
+    "facing=up,lit=false,top=east": {
+      "model": "doomscroll:block/screen",
+      "x": 270,
+      "y": 270
+    },
+    "facing=up,lit=false,top=north": {
+      "model": "doomscroll:block/screen",
+      "x": 270,
+      "y": 180
+    },
+    "facing=up,lit=false,top=south": {
+      "model": "doomscroll:block/screen",
+      "x": 270
+    },
+    "facing=up,lit=false,top=west": {
+      "model": "doomscroll:block/screen",
+      "x": 270,
+      "y": 90
+    },
+    "facing=up,lit=true,top=east": {
+      "model": "doomscroll:block/screen",
+      "x": 270,
+      "y": 270
+    },
+    "facing=up,lit=true,top=north": {
+      "model": "doomscroll:block/screen",
+      "x": 270,
+      "y": 180
+    },
+    "facing=up,lit=true,top=south": {
+      "model": "doomscroll:block/screen",
+      "x": 270
+    },
+    "facing=up,lit=true,top=west": {
+      "model": "doomscroll:block/screen",
+      "x": 270,
+      "y": 90
+    },
+    "facing=west,lit=false,top=east": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=false,top=north": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=false,top=south": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=false,top=west": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=true,top=east": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=true,top=north": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=true,top=south": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    },
+    "facing=west,lit=true,top=west": {
+      "model": "doomscroll:block/screen",
+      "y": 270
+    }
+  }
+}

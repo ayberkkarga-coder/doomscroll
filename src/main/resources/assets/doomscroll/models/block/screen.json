@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "doomscroll:block/screen_side",
+    "north": "doomscroll:block/screen",
+    "south": "doomscroll:block/screen_back",
+    "east": "doomscroll:block/screen_side",
+    "west": "doomscroll:block/screen_side",
+    "up": "doomscroll:block/screen_side",
+    "down": "doomscroll:block/screen_side"
+  }
+}
