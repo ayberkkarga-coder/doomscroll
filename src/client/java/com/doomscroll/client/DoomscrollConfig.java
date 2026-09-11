@@ -44,13 +44,6 @@ public final class DoomscrollConfig {
 	 * Sunucu kendi ayarindan zorlayabilir; o zaman bu ayar kapali olsa da gecerli olur.
 	 */
 	public boolean separateScreenCookies = false;
-	/**
-	 * /ds play: reels/tiktok baglantisini indirip yerel oynaticida acar.
-	 * Ilk kullanimda GitHub'dan yt-dlp ve ffmpeg indirip config/doomscroll/tools altina kurar,
-	 * ve yalnizca Windows surumlerini tanir. Bu yuzden varsayilan KAPALI; ekranda videoyu
-	 * dogrudan acmak zaten calisiyor.
-	 */
-	public boolean linkParty = false;
 
 	/** Ses akisinin OpenAL parca suresi (ms). Profilden turetilir. */
 	public int audioChunkMs() {

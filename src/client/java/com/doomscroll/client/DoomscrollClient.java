@@ -159,8 +159,6 @@ public class DoomscrollClient implements ClientModInitializer {
 			}
 		};
 
-		// Onceki oturumdan kalan gecici videolar
-		LinkParty.wipeCache();
 
 		if (SelfTest.enabled()) {
 			SelfTest.register();
@@ -233,13 +231,11 @@ public class DoomscrollClient implements ClientModInitializer {
 			Browsers.close();
 			Browsers.closeTablet();
 			DirectControl.reset();
-			LinkParty.wipeCache();
 		});
 		// Oyun kapanirken tarayicilari MCEF'ten once kapat (kapanis takilmasini azaltir) ve videolari sil
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			Browsers.close();
 			Browsers.closeTablet();
-			LinkParty.wipeCache();
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -560,16 +556,6 @@ public class DoomscrollClient implements ClientModInitializer {
 						.then(ClientCommands.literal("go")
 								.then(ClientCommands.argument("url", StringArgumentType.greedyString())
 										.executes(c -> go(StringArgumentType.getString(c, "url")))))
-						.then(ClientCommands.literal("play")
-								.then(ClientCommands.argument("url", StringArgumentType.greedyString())
-										.executes(c -> {
-											if (!DoomscrollConfig.get().linkParty) {
-												c.getSource().sendError(Component.translatable("command.doomscroll.linkparty_off"));
-												return 0;
-											}
-											LinkParty.play(StringArgumentType.getString(c, "url"));
-											return 1;
-										})))
 						.then(ClientCommands.literal("debug").executes(c -> {
 							Minecraft mc = Minecraft.getInstance();
 							if (mc.player != null) {
@@ -577,10 +563,6 @@ public class DoomscrollClient implements ClientModInitializer {
 								mc.player.sendSystemMessage(Component.literal("[doomscroll] hit=" + DirectControl.currentHit()
 										+ " enYakin=" + ScreenTracker.nearestAnchor(mc.player.position(), true)));
 							}
-							return 1;
-						}))
-						.then(ClientCommands.literal("clear").executes(c -> {
-							LinkParty.clear();
 							return 1;
 						}))
 						.then(ClientCommands.literal("pause").executes(c -> {

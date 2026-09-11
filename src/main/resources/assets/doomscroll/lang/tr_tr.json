@@ -259,11 +259,6 @@
   "command.doomscroll.list.control": "kontrol",
   "command.doomscroll.list.locked": "kilitli",
   "message.doomscroll.popup_blocked": "Popup engellendi: %s — gerçekten açmak için /ds popup",
-  "message.doomscroll.link.queued": "Sıraya alındı: %s",
-  "message.doomscroll.link.ready": "Hazır: %s",
-  "message.doomscroll.link.failed": "§c[doomscroll] Video alınamadı: %s",
-  "message.doomscroll.link.downloading": "İndiriliyor: %s",
-  "message.doomscroll.link.converting": "Dönüştürülüyor (VP9)...",
   "command.doomscroll.glow.no_screen": "yakında açık ekran yok",
   "command.doomscroll.glow.not_computed": "yüzeyler henüz hesaplanmadı",
   "command.doomscroll.glow.patches": "%s ışık yaması (%s ms)",
@@ -328,7 +323,6 @@
   "home.doomscroll.month.9": "Ekim",
   "home.doomscroll.month.10": "Kasım",
   "home.doomscroll.month.11": "Aralık",
-  "message.doomscroll.ffmpeg_extracting": "ffmpeg açılıyor...",
   "home.doomscroll.html_lang": "tr",
   "message.doomscroll.no_permission": "Bunun için iznin yok",
   "message.doomscroll.too_fast": "Çok hızlı, biraz bekle",
@@ -415,6 +409,5 @@
   "gui.doomscroll.lcd.broadcast_short": "YAYIN %s",
   "gui.doomscroll.viewers_short": "%s İZLEYİCİ",
   "home.doomscroll.broadcast_page_title": "doomscroll yayın",
-  "home.doomscroll.broadcast_waiting": "Yayın bekleniyor",
-  "command.doomscroll.linkparty_off": "/ds play kapalı: bu komut ilk kullanımda GitHub'dan yt-dlp ve ffmpeg indirip kurar ve yalnızca Windows'ta çalışır. Açmak için config/doomscroll.json içinde linkParty ayarını true yap."
+  "home.doomscroll.broadcast_waiting": "Yayın bekleniyor"
 }

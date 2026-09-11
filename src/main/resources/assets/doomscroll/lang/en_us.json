@@ -259,11 +259,6 @@
   "command.doomscroll.list.control": "control",
   "command.doomscroll.list.locked": "locked",
   "message.doomscroll.popup_blocked": "Popup blocked: %s — use /ds popup to really open it",
-  "message.doomscroll.link.queued": "Queued: %s",
-  "message.doomscroll.link.ready": "Ready: %s",
-  "message.doomscroll.link.failed": "§c[doomscroll] Could not fetch the video: %s",
-  "message.doomscroll.link.downloading": "Downloading: %s",
-  "message.doomscroll.link.converting": "Converting (VP9)...",
   "command.doomscroll.glow.no_screen": "no screen on nearby",
   "command.doomscroll.glow.not_computed": "surfaces not computed yet",
   "command.doomscroll.glow.patches": "%s light patches (%s ms)",
@@ -328,7 +323,6 @@
   "home.doomscroll.month.9": "October",
   "home.doomscroll.month.10": "November",
   "home.doomscroll.month.11": "December",
-  "message.doomscroll.ffmpeg_extracting": "Extracting ffmpeg...",
   "home.doomscroll.html_lang": "en",
   "message.doomscroll.no_permission": "You do not have permission for that",
   "message.doomscroll.too_fast": "Too fast, wait a moment",
@@ -415,6 +409,5 @@
   "gui.doomscroll.lcd.broadcast_short": "LIVE %s",
   "gui.doomscroll.viewers_short": "%s WATCHING",
   "home.doomscroll.broadcast_page_title": "doomscroll broadcast",
-  "home.doomscroll.broadcast_waiting": "Waiting for the broadcast",
-  "command.doomscroll.linkparty_off": "/ds play is off: on first use it downloads and installs yt-dlp and ffmpeg from GitHub, and it only works on Windows. Set linkParty to true in config/doomscroll.json to enable it."
+  "home.doomscroll.broadcast_waiting": "Waiting for the broadcast"
 }
