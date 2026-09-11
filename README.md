@@ -172,7 +172,7 @@ Singleplayer uses the same file through its internal server.
 | `showDomain` | `true` | Show the real domain on the HUD when you look at a screen. |
 | `maxPanelBlocks` | `0` | Largest panel in blocks (0 = unlimited). |
 | `maxScreensPerPlayer` | `0` | Screen blocks one player may have (0 = unlimited). |
-| `urlCooldownMs` | `1500` | Minimum gap between one player's address changes. |
+| `urlCooldownMs` | `0` | Minimum gap between one player's address changes (0 = none). Set 1000-2000 on a public server. |
 
 **Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `duyuru` / `announce` · `isaretci` / `pointer` · `redstone` · `kontrolsuresi` / `controltime` `<seconds>` · `kayit` / `audit` `[n]` · `denetim` / `auditlog` · `acil` / `emergency` · `karart` / `blackout` · `ozelag` / `privatenet` · `onay` / `consent` · `sessiz` / `muteothers` · `alanadi` / `showdomain` · `panelsinir` / `maxpanel` `<n>` · `ekransinir` / `maxscreens` `<n>` · `bekleme` / `cooldown` `<ms>` · `yayin` / `broadcast`. Changes are written to the file and pushed to every client at once.
 

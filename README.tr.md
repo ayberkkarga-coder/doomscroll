@@ -168,7 +168,7 @@ Tek oyunculuda da aynı dosya (iç sunucu). Alanlar:
 | `showDomain` | `true` | Ekrana bakınca gerçek alan adı HUD'da yazsın. |
 | `maxPanelBlocks` | `0` | En büyük panel, blok olarak (0 = sınırsız). |
 | `maxScreensPerPlayer` | `0` | Bir oyuncunun sahip olabileceği ekran bloğu (0 = sınırsız). |
-| `urlCooldownMs` | `1500` | Aynı oyuncunun iki adres değişikliği arasındaki en az süre. |
+| `urlCooldownMs` | `0` | Aynı oyuncunun iki adres değişikliği arasındaki en az süre (0 = beklemesiz). Halka açık sunucuda 1000-2000. |
 
 **Yönetici komutları** (`/doomscroll ...`, gamemaster yetkisi): `/doomscroll` durum · `yenile` · `engelle <alan>` / `engelkaldir <alan>` · `izin <alan>` / `izinkaldir <alan>` · `isik <0-15>` · `duyuru ac|kapat` · `isaretci ac|kapat` · `redstone ac|kapat` · `kontrolsuresi <sn>` · `kayit [n]` · `denetim ac|kapat` · `acil ac|kapat` · `karart` · `ozelag ac|kapat` · `onay ac|kapat` · `sessiz ac|kapat` · `alanadi ac|kapat` · `panelsinir <n>` · `ekransinir <n>` · `bekleme <ms>` · `yayin ac|kapat`. Her komutun İngilizce adı da var (`reload`, `block`, `audit`, `emergency`, `blackout` ...). Değişiklikler dosyaya yazılır ve anında bütün istemcilere gider.
 

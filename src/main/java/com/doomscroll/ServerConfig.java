@@ -73,8 +73,11 @@ public final class ServerConfig {
 	public int maxPanelBlocks = 0;
 	/** Bir oyuncunun ayni anda kac ekran blogu koyabilecegi (0 = sinirsiz). */
 	public int maxScreensPerPlayer = 0;
-	/** Ayni oyuncunun iki adres degisikligi arasinda beklemesi gereken sure (ms, 0 = beklemesiz). */
-	public int urlCooldownMs = 1500;
+	/**
+	 * Ayni oyuncunun iki adres degisikligi arasinda beklemesi gereken sure (ms).
+	 * Varsayilan 0: kanal gezerken yolu kesmesin. Halka acik sunucuda 1000-2000 arasi iyi.
+	 */
+	public int urlCooldownMs = 0;
 
 	public static synchronized ServerConfig get() {
 		if (instance == null) {
