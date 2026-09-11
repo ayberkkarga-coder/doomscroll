@@ -246,7 +246,7 @@ public final class Broadcast {
 	private static String receiverHtml() {
 		return "<!doctype html><html><head><meta charset=utf-8><title>" + Lang.tr("gui.doomscroll.broadcast.page_title") + "</title><style>html,body{margin:0;background:#000;overflow:hidden;width:100%;height:100%}"
 				+ "video{width:100vw;height:100vh;object-fit:contain;background:#000}#m{position:fixed;left:0;right:0;top:45%;text-align:center;color:#888;font:24px sans-serif}</style></head>"
-				+ "<body><div id=m>📡 " + Lang.tr("gui.doomscroll.broadcast.waiting") + "</div><video id=v autoplay playsinline></video><script>"
+				+ "<body><div id=m>" + Lang.tr("gui.doomscroll.broadcast.waiting") + "</div><video id=v autoplay playsinline></video><script>"
 				+ "var v=document.getElementById('v'),m=document.getElementById('m');var ms=new MediaSource();var sb=null,q=[],haveInit=false;v.src=URL.createObjectURL(ms);"
 				+ "ms.addEventListener('sourceopen',function(){try{sb=ms.addSourceBuffer('video/webm;codecs=vp8,opus');}catch(e){try{sb=ms.addSourceBuffer('video/webm');}catch(e2){m.textContent='" + Lang.tr("gui.doomscroll.broadcast.unsupported") + "';return;}}sb.mode='sequence';sb.addEventListener('updateend',pump);console.log('__DS__{\"bcinfo\":\"open\"}');pump();});"
 				+ "function pump(){if(!sb||sb.updating||!q.length)return;var it=q.shift();try{sb.appendBuffer(it);}catch(e){console.log('__DS__{\"bcerr\":1}');q=[];}}"

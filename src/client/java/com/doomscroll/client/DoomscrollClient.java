@@ -775,7 +775,8 @@ public class DoomscrollClient implements ClientModInitializer {
 			ScreenBrowsers.Screen s = ScreenBrowsers.get(info.pos());
 			String url = s != null ? s.currentUrl() : be.getUrl();
 			String ctl = s != null ? s.controllerLabel() : (be.getController() == null ? Lang.tr("gui.doomscroll.none") : be.getControllerName());
-			String extra = (be.getBroadcaster() != null ? " 📡" + be.getBroadcasterName() : "") + (Pointers.at(info.pos()).isEmpty() ? "" : " 👀" + Pointers.at(info.pos()).size());
+			String extra = (be.getBroadcaster() != null ? "  " + Lang.tr("gui.doomscroll.lcd.broadcast_short", be.getBroadcasterName()) : "")
+					+ (Pointers.at(info.pos()).isEmpty() ? "" : "  " + Lang.tr("gui.doomscroll.viewers_short", Pointers.at(info.pos()).size()));
 			rows.add(String.format(java.util.Locale.ROOT, "%5.0fm  %s  %dx%d  %s  " + Lang.tr("command.doomscroll.list.owner") + ":%s  "
 							+ Lang.tr("command.doomscroll.list.control") + ":%s%s%s  %s",
 					d, info.pos().toShortString(), be.getWidth(), be.getHeight(), Lang.tr(be.isOn() ? "command.doomscroll.list.on" : "command.doomscroll.list.off"),

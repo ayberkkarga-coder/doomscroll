@@ -3,49 +3,36 @@
 <meta charset="utf-8">
 <title>{{home.doomscroll.consent_title}}</title>
 <style>
-  :root { --ink:#f2f3f7; --dim:#9aa0b4; --edge:rgba(255,255,255,.12); }
-  * { box-sizing: border-box; }
-  html, body { height:100%; margin:0; }
-  body {
-    display:flex; align-items:center; justify-content:center;
-    background: radial-gradient(120% 90% at 50% 0%, #1b1f2e 0%, #0b0c11 60%, #07080c 100%);
-    color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .card {
-    width: min(720px, 78vw); padding: 5vh 5vw; text-align:center;
-    border:1px solid var(--edge); border-radius: 24px;
-    background: rgba(255,255,255,.035); box-shadow: 0 30px 90px rgba(0,0,0,.55);
-  }
-  .shield { width:56px; height:56px; margin:0 auto 18px; opacity:.9 }
-  h1 { margin:0 0 6px; font-size: clamp(20px, 3.2vw, 34px); font-weight:700; letter-spacing:-.01em }
-  .host {
-    display:inline-block; margin:10px 0 4px; padding:8px 18px; border-radius:999px;
-    background:rgba(255,255,255,.08); border:1px solid var(--edge);
-    font-size: clamp(18px, 3vw, 30px); font-weight:700; word-break:break-all;
-  }
-  p { margin:14px auto 0; max-width: 46ch; color: var(--dim); font-size: clamp(13px, 1.5vw, 16px); }
-  .who { margin-top:6px; color:var(--dim); font-size: clamp(13px, 1.5vw, 16px); }
-  .who b { color: var(--ink); font-weight:600 }
-  .row { margin-top: 28px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap }
-  button {
-    font: inherit; font-weight:650; cursor:pointer; padding:13px 26px; border-radius:14px;
-    border:1px solid var(--edge); background:rgba(255,255,255,.06); color:var(--ink);
-    transition: transform .08s ease, background .15s ease;
-  }
-  button:hover { background:rgba(255,255,255,.12) }
-  button:active { transform: translateY(1px) }
-  button.ok { background:#e8eaf2; color:#14161d; border-color:transparent }
-  button.ok:hover { background:#fff }
-  .foot { margin-top:22px; font-size:12px; color:#5d6377; letter-spacing:.14em; text-transform:uppercase }
+/*__KIT__*/
+body{display:flex;align-items:center;justify-content:center;background:var(--tile-screen) repeat;background-size:64px 64px;font-size:18px}
+body:before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.42)}
+.card{position:relative;width:min(760px,80vw);padding:30px 34px;text-align:center;
+  background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
+  box-shadow:inset 2px 2px 0 var(--hi),inset -2px -2px 0 var(--lo),0 0 0 4px rgba(0,0,0,.55)}
+.shield{width:34px;height:34px;margin:0 auto 16px;background:var(--dim);
+  -webkit-mask:var(--ic-lock) center/contain no-repeat;mask:var(--ic-lock) center/contain no-repeat}
+.card svg{display:none}
+h1{margin:0 0 10px;font-size:clamp(22px,3.4vw,34px);font-weight:400;text-shadow:3px 3px 0 var(--sh)}
+.host{display:inline-block;margin:8px 0 6px;padding:7px 16px;font-size:clamp(19px,3vw,28px);word-break:break-all;
+  background:var(--field);border:2px solid #000;
+  box-shadow:inset 2px 2px 0 #000,inset -2px -2px 0 #3a3a46,0 0 0 2px var(--edge);text-shadow:2px 2px 0 var(--sh)}
+.who{margin-top:8px;color:var(--dim);font-size:17px;text-shadow:2px 2px 0 var(--sh)}
+.who b{color:var(--ink);font-weight:400}
+p{margin:16px auto 0;max-width:52ch;color:var(--dim);font-size:17px;line-height:1.45;text-shadow:2px 2px 0 var(--sh)}
+.row{margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+button{font-family:inherit;font-size:19px;padding:11px 24px;cursor:pointer;color:var(--ink);
+  background:var(--btn);border:2px solid #000;
+  box-shadow:inset 2px 2px 0 var(--btn-hi),inset -2px -2px 0 var(--lo);text-shadow:2px 2px 0 var(--sh)}
+button:hover{background:var(--btn-hi)}
+button:active{box-shadow:inset 2px 2px 0 var(--lo),inset -2px -2px 0 var(--btn-hi)}
+button.ok{background:var(--btn-on)}
+button.ok:hover{background:#5a739a}
+.foot{margin-top:22px;font-size:14px;color:#4e5265;letter-spacing:2px;text-transform:uppercase}
 </style>
 </head>
 <body>
 <div class="card">
-  <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="#9aa0b4" stroke-width="1.6">
-    <path d="M12 2.6 4.6 5.5v6.1c0 4.6 3.1 8.3 7.4 9.8 4.3-1.5 7.4-5.2 7.4-9.8V5.5z" stroke-linejoin="round"/>
-    <path d="M12 8.4v4.2" stroke-linecap="round"/><circle cx="12" cy="15.8" r=".9" fill="#9aa0b4" stroke="none"/>
-  </svg>
+  <div class="shield"></div>
   <h1>{{home.doomscroll.consent_title}}</h1>
   <div class="host" id="host">?</div>
   <div class="who" id="who"></div>

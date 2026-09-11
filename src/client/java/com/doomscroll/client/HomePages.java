@@ -1,5 +1,6 @@
 package com.doomscroll.client;
 
+import com.doomscroll.Doomscroll;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -24,6 +25,8 @@ public final class HomePages {
 	private static volatile String template;
 	private static volatile String tabletTemplate;
 	private static volatile String consentTemplate;
+	/** font.css + tiles.css + icons.css + kit.css: sayfalarin ortak cizim dili, bir kez okunur. */
+	private static volatile String kit;
 
 	private HomePages() {}
 
@@ -88,7 +91,7 @@ public final class HomePages {
 			if (by != null && !by.isEmpty()) {
 				c.addProperty("by", by);
 			}
-			return translate(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(c) + ";");
+			return page(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(c) + ";");
 		}
 		boolean tablet = path.startsWith("/tablet");
 		JsonObject data = new JsonObject();
@@ -123,7 +126,32 @@ public final class HomePages {
 		if (t == null) {
 			return null;
 		}
-		return translate(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(data) + ";");
+		return page(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(data) + ";");
+	}
+
+	/** Ortak cizim dilini ve dil metinlerini sablona yerlestirir. */
+	private static String page(String t) {
+		return translate(t.replace("/*__KIT__*/", kit()));
+	}
+
+	/** Yazi tipi, karolar, simgeler ve ortak stil; hepsi tek parca halinde gomulur. */
+	private static String kit() {
+		String k = kit;
+		if (k == null) {
+			StringBuilder sb = new StringBuilder(70000);
+			for (String name : new String[]{"font.css", "tiles.css", "icons.css", "kit.css"}) {
+				try (InputStream in = HomePages.class.getResourceAsStream("/assets/doomscroll/home/" + name)) {
+					if (in != null) {
+						sb.append(new String(in.readAllBytes(), StandardCharsets.UTF_8)).append(System.lineSeparator());
+					}
+				} catch (Exception e) {
+					Doomscroll.LOGGER.warn("ana sayfa stili okunamadi ({}): {}", name, e.toString());
+				}
+			}
+			k = sb.toString();
+			kit = k;
+		}
+		return k;
 	}
 
 	/**

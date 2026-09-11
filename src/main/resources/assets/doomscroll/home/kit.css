@@ -1,0 +1,127 @@
+/* doomscroll - ana sayfalarin ortak cizim dili (Minecraft arayuzu).
+   Kurallar: yuvarlak kose yok, bulaniklik yok, degrade yok, animasyon yok.
+   Panel = 2px siyah kontur + iceride sol-ust acik / sag-alt koyu kenar.
+   Yuva (yazi alani, basili dugme) ayni kenarlarin tersi.
+   Yazi = piksel font + 2px sert golge. */
+
+:root{
+  --ink:#f0f1f6;      /* ana yazi */
+  --dim:#a9aec2;      /* ikincil yazi */
+  --faint:#767c91;    /* ucuncul */
+  --sh:#15151d;       /* yazi golgesi */
+  --panel:#2b2b33;    /* panel yuzu */
+  --hi:#4e4e5c;       /* kabartma acik kenar */
+  --lo:#15151b;       /* kabartma koyu kenar */
+  --field:#08080c;    /* icine basik alan */
+  --edge:#6e6e80;     /* alan dis konturu */
+  --btn:#3a3a45;
+  --btn-hi:#5c5c6c;
+  --btn-on:#4a5f7a;
+  --green:#5be07a;
+  --red:#c8453c;
+  --px:2px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;border-radius:0}
+html,body{height:100%}
+body{
+  font-family:'Jersey 10',ui-monospace,"Courier New",monospace;
+  color:var(--ink);
+  image-rendering:pixelated;
+  -webkit-font-smoothing:none;
+  user-select:none;
+  letter-spacing:.5px;
+}
+::selection{background:var(--btn-on);color:#fff}
+
+/* --- yazi --- */
+.t-sh,.status,.label,.big,.day,.foot,h1,h2,h3,h4,.wrow,.empty,.hint{text-shadow:var(--px) var(--px) 0 var(--sh)}
+.dim{color:var(--dim)}
+.faint{color:var(--faint)}
+
+/* --- panel: disa kabarik --- */
+.panel{
+  background:var(--tile-panel) repeat;
+  background-size:64px 64px;
+  border:var(--px) solid #000;
+  box-shadow:inset var(--px) var(--px) 0 var(--hi), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 var(--lo);
+}
+
+/* --- yuva: icine basik (yazi alani, liste kutusu) --- */
+.slot{
+  background:var(--field);
+  border:var(--px) solid #000;
+  box-shadow:inset var(--px) var(--px) 0 #000, inset calc(-1*var(--px)) calc(-1*var(--px)) 0 #3a3a46, 0 0 0 var(--px) var(--edge);
+}
+
+/* --- dugme --- */
+.btn{
+  background:var(--btn);
+  border:var(--px) solid #000;
+  box-shadow:inset var(--px) var(--px) 0 var(--btn-hi), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 var(--lo);
+  color:var(--ink);
+  font-family:inherit;
+  cursor:pointer;
+  text-shadow:var(--px) var(--px) 0 var(--sh);
+}
+.btn:hover{background:var(--btn-hi)}
+.btn:active{box-shadow:inset var(--px) var(--px) 0 var(--lo), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 var(--btn-hi)}
+.btn.ok{background:var(--btn-on)}
+.btn.ok:hover{background:#5a739a}
+
+/* --- piksel simge (maske: rengi yazidan alir) --- */
+.ico{
+  display:inline-block;
+  background:currentColor;
+  -webkit-mask-position:center;mask-position:center;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-size:contain;mask-size:contain;
+  flex:none;
+}
+.ico-play{-webkit-mask-image:var(--ic-play);mask-image:var(--ic-play)}
+.ico-home{-webkit-mask-image:var(--ic-home);mask-image:var(--ic-home)}
+.ico-cinema{-webkit-mask-image:var(--ic-cinema);mask-image:var(--ic-cinema)}
+.ico-plus{-webkit-mask-image:var(--ic-plus);mask-image:var(--ic-plus)}
+.ico-close{-webkit-mask-image:var(--ic-close);mask-image:var(--ic-close)}
+.ico-trash{-webkit-mask-image:var(--ic-trash);mask-image:var(--ic-trash)}
+.ico-clock{-webkit-mask-image:var(--ic-clock);mask-image:var(--ic-clock)}
+.ico-cast{-webkit-mask-image:var(--ic-cast);mask-image:var(--ic-cast)}
+.ico-queue{-webkit-mask-image:var(--ic-queue);mask-image:var(--ic-queue)}
+.ico-tv{-webkit-mask-image:var(--ic-tv);mask-image:var(--ic-tv)}
+.ico-go{-webkit-mask-image:var(--ic-go);mask-image:var(--ic-go)}
+.ico-star{-webkit-mask-image:var(--ic-star);mask-image:var(--ic-star)}
+.ico-menu{-webkit-mask-image:var(--ic-menu);mask-image:var(--ic-menu)}
+.ico-broadcast{-webkit-mask-image:var(--ic-broadcast);mask-image:var(--ic-broadcast)}
+.ico-lock{-webkit-mask-image:var(--ic-lock);mask-image:var(--ic-lock)}
+.ico-search{-webkit-mask-image:var(--ic-search);mask-image:var(--ic-search)}
+
+/* --- uygulama yuvasi: duz renk + kabartma --- */
+.tileface{
+  border:var(--px) solid #000;
+  box-shadow:inset var(--px) var(--px) 0 rgba(255,255,255,.30), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 rgba(0,0,0,.42);
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+a:hover>.tileface,.tileface:hover{filter:brightness(1.18)}
+a:active>.tileface,.tileface:active{filter:brightness(.85);box-shadow:inset var(--px) var(--px) 0 rgba(0,0,0,.42), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 rgba(255,255,255,.30)}
+
+/* --- kaldir dugmesi (kucuk kirmizi kare) --- */
+.rm{
+  position:absolute;width:18px;height:18px;display:none;z-index:2;cursor:pointer;
+  background:var(--red);border:var(--px) solid #000;
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.3), inset -1px -1px 0 rgba(0,0,0,.4);
+}
+.rm:after{content:"";position:absolute;inset:3px;background:#fff;
+  -webkit-mask:var(--ic-close) center/contain no-repeat;mask:var(--ic-close) center/contain no-repeat}
+.rm:hover{background:#e0564c}
+
+/* --- kaydirma cubugu: ince ve kare --- */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--field)}
+::-webkit-scrollbar-thumb{background:var(--btn);border:var(--px) solid #000}
+::-webkit-scrollbar-thumb:hover{background:var(--btn-hi)}
+
+input{
+  font-family:inherit;color:var(--ink);background:none;border:0;outline:none;
+  user-select:text;letter-spacing:.5px;
+}
+input::placeholder{color:var(--faint)}

@@ -119,15 +119,16 @@ public final class DirectControl {
 				ScreenBrowsers.Screen s = ScreenBrowsers.get(looking);
 				String ctl = s == null ? "" : s.controllerLabel();
 				int others = Pointers.at(looking).size();
-				String bc = s != null && s.broadcaster != null ? "  · 📡 " + Broadcast.label(s) : "";
+				String bc = s != null && s.broadcaster != null
+						? "  · " + Lang.tr("gui.doomscroll.lcd.broadcast_short", Broadcast.label(s)) : "";
 				boolean hasCtl = s != null && !s.isFree() && !ctl.isEmpty();
 				String dom = ServerPolicy.showDomain() ? ServerPolicy.host(s == null ? "" : s.currentUrl()) : "";
 				// Alan adi HUD'da yazar: sayfa oyunun arayuzune dokunamaz, sahte giris sayfasi
 				// gercek adresi gizleyemez.
-				mc.player.sendOverlayMessage(Component.literal("▶ " + (title.length() > 40 ? title.substring(0, 40) + "…" : title)
+				mc.player.sendOverlayMessage(Component.literal((title.length() > 40 ? title.substring(0, 40) + "…" : title)
 						+ (dom.isEmpty() ? "" : "  §7" + dom + "§r")
 						+ (time.isEmpty() ? "" : "  " + time) + (hasCtl ? "  · " + Lang.tr("gui.doomscroll.lcd.control", ctl) : "") + bc
-						+ (others > 0 ? "  · 👀 " + (others + 1) : "")));
+						+ (others > 0 ? "  · " + Lang.tr("gui.doomscroll.viewers_short", others + 1) : "")));
 			}
 		}
 
