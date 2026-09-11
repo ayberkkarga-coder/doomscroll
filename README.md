@@ -35,7 +35,7 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 4. A one-time welcome message appears on your first join. `/ds help` lists every command.
 
 ## Items
-Everything is crafted at a crafting table (screen: glass pane + redstone + iron → 2; remote: stone button / redstone / iron; tablet: 6 glass panes + iron, redstone, iron). They are in the Functional Blocks tab in creative.
+Everything is crafted at a crafting table (screen: glass pane + redstone + iron → 2; remote: stone button / redstone / iron; tablet: 6 glass panes + iron, redstone, iron; speaker: iron around a note block with redstone under it). They are in the Functional Blocks tab in creative.
 
 | Item | What it does |
 |---|---|

@@ -31,7 +31,7 @@ Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTub
 4. İlk girişte tek seferlik karşılama mesajı çıkar; `/ds yardim` tüm komutları listeler.
 
 ## Eşyalar
-Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2 adet; kumanda: taş düğme / redstone / demir; tablet: cam levha × 6 + demir, redstone, demir). Yaratıcı envanterde İşlevsel Bloklar sekmesinde.
+Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2 adet; kumanda: taş düğme / redstone / demir; tablet: cam levha × 6 + demir, redstone, demir; hoparlör: demirle çevrili nota bloğu, altında redstone). Yaratıcı envanterde İşlevsel Bloklar sekmesinde.
 
 | Eşya | Ne yapar |
 |---|---|
