@@ -86,10 +86,14 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 - **Redstone kontrolü:** ekran sahibi `/ds redstone` (ya da Diğer → Redstone) ile açar: panelin herhangi bir bloğuna gelen sinyalin yükselen kenarı ekranı açar/kapatır. Tek levhayla ışıkları söndürüp ekranı açmak için.
 - **Blok ışığı:** açık ekran 12 seviye ışık yayar (sunucu ayarı `screenLightLevel`).
 - **Hoparlörler.** Büyük bir salonda sesin yalnızca panelden gelmesi yetmiyor. Oturulan yere, koridora,
-  tribünün etrafına hoparlör blokları koyup kumandayla ekrana bağlıyorsun. Ses akışı tek olduğu için aynı anda
-  birden fazla yerden çalmıyor; onun yerine her oyuncunun istemcisi **kendine en yakın** kaynağı seçiyor:
-  panelin yüzeyi ya da 24 blok içindeki bağlı bir hoparlör. Kulak tek yerde olduğu için sonuç doğru, ayrı
-  hoparlörlerin yanındaki iki kişi de kendi yanındakinden duyuyor.
+  tribünün etrafına hoparlör blokları koyup kumandayla ekrana bağlıyorsun (önce kumandayı ekrana bağla, sonra
+  hoparlöre sağ tıkla). Tarayıcıdan tek bir ses akışı geliyor, yani gerçekten iki ayrı çıkış sürülemiyor: iki
+  oynatıcı aynı tampondan okuyup birbirinin örneğini yer. Onun yerine her istemci **tek bir sanal kaynak**
+  kuruyor ve konumunu duyabildiği her şeyin 1/mesafe-kare ağırlıklı ortalamasına koyuyor: panelin yüzeyi ve 24
+  blok içindeki bağlı hoparlörler. Tek hoparlörün yanında ses tam onun üstünde; iki hoparlörün ortasındayken
+  yakın olana atlamıyor, ortadan geliyor; birine doğru yürüyünce yumuşakça kayıyor. Sanal kaynak en yakın
+  kaynağın yarısından daha yakına getirilmiyor, yani iki hoparlörün arası tekinden yüksek ama kulak patlatmıyor.
+  Ses istemci tarafında olduğu için ayrı hoparlörlerin yanındaki iki kişi kendi karışımını duyuyor.
 
 ## Reklam engelleme ve SponsorBlock
 - **Filtre listeleri (gerçek engelleyici mantığı):** [EasyList](https://easylist.to) ve [AdGuard Türkçe filtresi](https://filters.adtidy.org/extension/ublock/filters/13.txt) tam kural diliyle (alan + yol kalıpları, `$third-party`, tür, `domain=`, `$popup`, `@@` istisnalar, `$generichide`, `@@$document`) istek düzeyinde uygulanır; [StevenBlack hosts](https://github.com/StevenBlack/hosts) alan adı listesi eklenir. Listelerin `##` kozmetik gizleme kuralları (site özel + genel) her sayfaya ve iframe'e stil olarak enjekte edilir. `config/mcef-codec/adblock/`, 7 günde bir yenilenir. Video CDN'leri izin listesindedir; sayfanın kendini reklam/bahis sitesine yönlendirmesi engellenir, adres çubuğundan yazılan adres engellenmez.

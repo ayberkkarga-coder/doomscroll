@@ -63,6 +63,8 @@ public final class ScreenBrowsers {
 		@Nullable String pendingUrl = null;
 		/** Ekranin sahibi ben miyim? (baskasinin ekrani ayri ses seviyesinden duyulur) */
 		boolean mine = true;
+		/** Bu ekrana bagli hoparlorler; ses konumu her karede okundugu icin onbellekte tutulur. */
+		@Nullable List<com.doomscroll.SpeakerBlockEntity> speakers;
 		@Nullable String serverUrlSeen = null;
 		long lastRenderNanos = 0L;
 		/** Panelin ortasi (gorunurluk kestirimi icin). */
@@ -85,22 +87,59 @@ public final class ScreenBrowsers {
 		 * Boylece kocaman ekranin sesi tek bir bloktan degil, onunde durdugun yerden gelir.
 		 */
 		/**
-		 * Sesin geldigi nokta: panelin dinleyiciye en yakin yuzeyi, ya da daha yakinsa
-		 * bu ekrana bagli bir hoparlor. Akis tek oldugu icin "hepsinden ayni anda cal" yok;
-		 * her istemci kendi oyuncusuna en yakin kaynagi secer, kulak tek yerde oldugu icin dogru.
+		 * Sesin geldigi nokta. Kaynaklar: panelin dinleyiciye en yakin yuzeyi ve bu ekrana bagli,
+		 * menzildeki hoparlorler.
+		 *
+		 * <p>Tarayicidan gelen ses akisi tek, yani gercekten iki ayri cikis yapilamiyor: iki
+		 * oynatici ayni tampondan okuyup birbirinin ornegini yer. Onun yerine <b>tek bir sanal
+		 * kaynak</b> kuruyoruz ve konumunu kaynaklarin 1/mesafe-kare agirlikli ortalamasina
+		 * koyuyoruz. Sonuc: tek hoparlorde tam onun ustunde; iki hoparlorun ortasindayken
+		 * ikisinin arasinda, yani ortadan; birine yaklasinca yumusakca ona kayiyor. Keskin
+		 * bir "sag/sol" atlamasi olmuyor.
+		 *
+		 * <p>Ortalama dinleyicinin tam ustune dusup ses patlamasin diye sanal kaynak, en yakin
+		 * kaynagin yarisindan daha yakina getirilmiyor.
 		 */
 		Vec3 soundPos(Vec3 listener) {
-			Vec3 best = panelSoundPos(listener);
-			double bestD = best.distanceToSqr(listener);
-			for (com.doomscroll.SpeakerBlockEntity sp : com.doomscroll.SpeakerBlockEntity.boundTo(pos)) {
-				Vec3 sv = Vec3.atCenterOf(sp.getBlockPos());
-				double d = sv.distanceToSqr(listener);
-				if (d < bestD && d <= com.doomscroll.SpeakerBlockEntity.RANGE * com.doomscroll.SpeakerBlockEntity.RANGE) {
-					best = sv;
-					bestD = d;
-				}
+			Vec3 panel = panelSoundPos(listener);
+			List<com.doomscroll.SpeakerBlockEntity> sps = speakers;
+			if (sps == null || sps.isEmpty()) {
+				return panel;
 			}
-			return best;
+			double range2 = com.doomscroll.SpeakerBlockEntity.RANGE * com.doomscroll.SpeakerBlockEntity.RANGE;
+			double wx = 0, wy = 0, wz = 0, wsum = 0;
+			double nearest = Double.MAX_VALUE;
+			// panel her zaman bir kaynak
+			double d2 = Math.max(1.0, panel.distanceToSqr(listener));
+			double w = 1.0 / d2;
+			wx += panel.x * w; wy += panel.y * w; wz += panel.z * w; wsum += w;
+			nearest = Math.min(nearest, d2);
+			for (com.doomscroll.SpeakerBlockEntity sp : sps) {
+				if (sp.isRemoved()) {
+					continue;
+				}
+				Vec3 sv = Vec3.atCenterOf(sp.getBlockPos());
+				double sd2 = sv.distanceToSqr(listener);
+				if (sd2 > range2) {
+					continue;
+				}
+				double sw = 1.0 / Math.max(1.0, sd2);
+				wx += sv.x * sw; wy += sv.y * sw; wz += sv.z * sw; wsum += sw;
+				nearest = Math.min(nearest, sd2);
+			}
+			if (wsum <= 0) {
+				return panel;
+			}
+			Vec3 mix = new Vec3(wx / wsum, wy / wsum, wz / wsum);
+			// En yakin kaynagin yarisindan daha yakina gelmesin (iki hoparlorun tam ortasi = sifir mesafe)
+			double minD = Math.sqrt(nearest) * 0.5;
+			Vec3 rel = mix.subtract(listener);
+			double len = rel.length();
+			if (len < minD) {
+				Vec3 dir = len > 1.0e-4 ? rel.scale(1.0 / len) : panel.subtract(listener).normalize();
+				return listener.add(dir.scale(minD));
+			}
+			return mix;
 		}
 
 		private Vec3 panelSoundPos(Vec3 listener) {
@@ -781,6 +820,7 @@ public final class ScreenBrowsers {
 			}
 			if (s.browser == null) continue;
 			if (tick % 10 == 0) {
+				s.speakers = com.doomscroll.SpeakerBlockEntity.boundTo(s.pos);
 				guard(s);
 				if (be instanceof ScreenBlockEntity sbe2) {
 					java.util.UUID owner = sbe2.getOwner();

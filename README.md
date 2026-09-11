@@ -90,10 +90,15 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 - **Redstone control:** the screen's owner enables it with `/ds redstone` (or More → Redstone): a rising edge on any block of the panel toggles the screen. One lever to kill the lights and start the film.
 - **Block light:** a screen that is on emits light level 12 (server setting `screenLightLevel`).
 - **Speakers.** In a big room the sound coming only off the panel is not enough. Place speaker blocks where
-  people sit, in the corridor, around the stands, and bind them to the screen with the remote. There is one
-  audio stream, so nothing plays from several places at once; instead each player's client picks the source
-  **nearest to them** — the panel's surface or a bound speaker within 24 blocks. Your ears are in one place, so
-  the result is right, and two people standing by different speakers each hear their own.
+  people sit, in the corridor, around the stands, and bind them to the screen with the remote (pair the remote
+  with the screen first, then right-click a speaker). The browser gives one audio stream, so the mod cannot
+  really drive two outputs — two players would read the same buffer and eat each other's samples. Instead each
+  client builds **one virtual source** and places it at the inverse-square-weighted average of everything it
+  can hear: the panel's surface and every bound speaker within 24 blocks. Next to a single speaker the sound
+  sits on it; standing between two it comes from the middle rather than snapping to the closer one; walking
+  toward one it slides over smoothly. The source is never brought closer than half the distance to the nearest
+  emitter, so standing between two speakers is louder than one but does not blow your ears out. Audio is
+  client-side, so two people by different speakers each get their own mix.
 
 ## Ad blocking and SponsorBlock
 - **Filter lists (real blocker logic):** [EasyList](https://easylist.to) and the [AdGuard Turkish filter](https://filters.adtidy.org/extension/ublock/filters/13.txt) are applied at request level with the full rule syntax (domain and path patterns, `$third-party`, type, `domain=`, `$popup`, `@@` exceptions, `$generichide`, `@@$document`), plus the [StevenBlack hosts](https://github.com/StevenBlack/hosts) domain list. The lists' `##` cosmetic rules (site-specific and generic) are injected as styles into every page and iframe. Cached in `config/mcef-codec/adblock/` and refreshed every 7 days. Video CDNs are allowlisted; a page redirecting itself to an ad or gambling site is blocked, while an address you type yourself never is.
