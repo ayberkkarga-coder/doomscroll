@@ -438,5 +438,6 @@
   "home.doomscroll.help.tmark.t": "Bookmarks and history",
   "home.doomscroll.help.tmark.d": "The star saves, the menu opens both.",
   "home.doomscroll.help.thome.t": "Getting back here",
-  "home.doomscroll.help.thome.d": "The Home button returns here."
+  "home.doomscroll.help.thome.d": "The Home button returns here.",
+  "command.doomscroll.admin.bad_state": "Not a valid value: %s. Use \"on\" or \"off\"."
 }

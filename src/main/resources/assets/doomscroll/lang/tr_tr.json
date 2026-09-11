@@ -438,5 +438,6 @@
   "home.doomscroll.help.tmark.t": "Yer imi ve geçmiş",
   "home.doomscroll.help.tmark.d": "Yıldız kaydeder, menü ikisini açar.",
   "home.doomscroll.help.thome.t": "Buraya dönmek",
-  "home.doomscroll.help.thome.d": "Ana tuşu bu sayfaya döner."
+  "home.doomscroll.help.thome.d": "Ana tuşu bu sayfaya döner.",
+  "command.doomscroll.admin.bad_state": "Geçersiz değer: %s. \"ac\" ya da \"kapat\" yaz."
 }

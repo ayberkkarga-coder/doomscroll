@@ -526,14 +526,12 @@ public class Doomscroll implements ModInitializer {
 				return;
 			}
 			if (payload.explicit()) {
-				if (onCooldown(player)) {
-					notice(player, a, Component.translatable("message.doomscroll.too_fast"));
+				if (!canControl(a, player)) {
+					deny(player, a); // once yetki: reddedilen deneme beklemeyi yakmasin
 					return;
 				}
-			}
-			if (payload.explicit()) {
-				if (!canControl(a, player)) {
-					deny(player, a);
+				if (onCooldown(player)) {
+					notice(player, a, Component.translatable("message.doomscroll.too_fast"));
 					return;
 				}
 				giveControl(player, a);

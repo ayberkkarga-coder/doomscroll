@@ -58,15 +58,20 @@ public final class ScreenMultiblock {
 
 		// 2) Kalanlardan sirayla dikdortgen kes: en alt satir (ust'e gore en kucuk), sonra en sagdaki (uzama'ya gore en kucuk) blok anchor olur
 		Set<BlockPos> remaining = new HashSet<>(component);
+		// Bir kez sirala: en alt satir, sonra en sagdaki. Her dikdortgen icin bastan
+		// taramak buyuk yapilarda kare karmasiklik cikariyordu.
+		java.util.List<BlockPos> order = new java.util.ArrayList<>(component);
+		order.sort(java.util.Comparator.<BlockPos>comparingInt(p -> along(p, up))
+				.thenComparingInt(p -> along(p, extend)));
+		int cursor = 0;
 		while (!remaining.isEmpty()) {
-			BlockPos anchor = null;
-			for (BlockPos p : remaining) {
-				if (anchor == null
-						|| along(p, up) < along(anchor, up)
-						|| (along(p, up) == along(anchor, up) && along(p, extend) < along(anchor, extend))) {
-					anchor = p;
-				}
+			while (cursor < order.size() && !remaining.contains(order.get(cursor))) {
+				cursor++;
 			}
+			if (cursor >= order.size()) {
+				break;
+			}
+			BlockPos anchor = order.get(cursor);
 
 			int w = 1;
 			while (remaining.contains(anchor.relative(extend, w))) {

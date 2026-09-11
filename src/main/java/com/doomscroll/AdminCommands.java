@@ -249,10 +249,18 @@ public final class AdminCommands {
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> toggle(String name, Function<Boolean, Component> fn) {
-		return Commands.literal(name).then(Commands.argument("durum", StringArgumentType.word()).executes(c -> {
-			Component msg = fn.apply(on(StringArgumentType.getString(c, "durum")));
-			return apply(c, msg);
-		}));
+		return Commands.literal(name).then(Commands.argument("durum", StringArgumentType.word())
+				.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+						new String[]{"ac", "kapat", "on", "off"}, b))
+				.executes(c -> {
+					String raw = StringArgumentType.getString(c, "durum");
+					Boolean state = state(raw);
+					if (state == null) {
+						c.getSource().sendFailure(Component.translatable("command.doomscroll.admin.bad_state", raw));
+						return 0;
+					}
+					return apply(c, fn.apply(state));
+				}));
 	}
 
 	private interface IntSetting {
@@ -318,11 +326,20 @@ public final class AdminCommands {
 
 	// ---------- yardimcilar ----------
 
-	/** "ac/on/true/1" ve Turkce karsiliklari acik sayilir. */
-	private static boolean on(String s) {
+	/** "ac/on/true/1" acik, "kapat/off/false/0" kapali; baskasi null (gecersiz). */
+	@org.jetbrains.annotations.Nullable
+	private static Boolean state(String s) {
 		String v = s.toLowerCase(Locale.ROOT);
-		return v.equals("ac") || v.equals("aç") || v.equals("on") || v.equals("true") || v.equals("1")
-				|| v.equals("acik") || v.equals("açık");
+		if (v.equals("ac") || v.equals("aç") || v.equals("on") || v.equals("true") || v.equals("1")
+				// "AÇIK" Locale.ROOT ile "açik" olur (noktasiz I noktali i'ye iner)
+				|| v.equals("acik") || v.equals("açık") || v.equals("açik")) {
+			return Boolean.TRUE;
+		}
+		if (v.equals("kapat") || v.equals("kapali") || v.equals("kapalı") || v.equals("off")
+				|| v.equals("false") || v.equals("0")) {
+			return Boolean.FALSE;
+		}
+		return null;
 	}
 
 	private static Component onOff(boolean v) {
