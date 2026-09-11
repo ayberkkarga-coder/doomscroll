@@ -6,7 +6,7 @@ Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTub
 
 - Minecraft **26.2** · Fabric · Java 25
 - Komutların çoğunun bir de İngilizce adı var, ikisi karışık kullanılabilir: `/ds ekranlar` = `/ds screens`, `/ds sira temizle` = `/ds queue clear`. Arayüz dili Minecraft'ın dil ayarını izler.
-- Gerçek Chromium (CEF 126, H.264/AAC kodekli) — kardeş proje [`mcef-codec`](https://modrinth.com/mod/mcef-codec) sağlar
+- Gerçek Chromium (CEF 126, H.264/AAC kodekli) — kardeş proje [`mcef-codec`](https://github.com/menntdev/mcef-codec) sağlar
 - Konumsal ses (panelin sana en yakın noktasından gelir, Sound Physics Remastered ile uyumlu), shader'larda ışık yayan ekran, ekrandaki görüntüye göre renklenen oda (ambilight)
 
 ## İçindekiler
@@ -256,6 +256,11 @@ Bir de not: izin listesi alt alan adlarını doğru kapsıyor. `example.com` eng
 - Mimari: `ScreenBrowsers` (ekran başına tarayıcı, kontrol, senkron, SponsorBlock, kalite) · `Browsers` (tablet + sayfa JS'leri: raporcu, temizleyici, sinema) · `DirectControl` (bak-tıkla, klavye, işaretçi) · `ScreenGlow` (ambilight) · `ScreenQueue` / `SponsorBlock` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (sunucu: paketler, kontrol süresi, kilit, adres kuralı) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel birleştirme, ışık, redstone).
 - **Duman testi:** `./gradlew runClient` dev istemciyi `-Ddoomscroll.selftest=true` ile açar; `SelfTest` dünyaya girince oyuncunun yanına 3×2 panel kurar, YouTube açar ve sayfa raporu, başlık, SponsorBlock atlama, ekran ışığı, sıra (atla + video bitince), sunucu adres engeli, redstone, yönetici komutları ve işaretçi adımlarını sınar; sonucu `[selftest]` satırlarıyla loga yazar ve oyunu kapatır (`run/config/doomscroll-server.json` içinde `example.org` engelli olmalı).
 - **Tasarım:** blok/eşya dokuları, GUI simgeleri (`textures/gui/sprites/icon/*.png`, 9×9) ve mod simgesi `tools/make_art.py` ile üretilir (piksel haritaları betiğin içinde; `pip install pillow`). Arayüz çizim dili `Ui.java` (kabartma panel/tuş, çukur alan, simge).
+
+## Hata bildirme
+Bir şey bozulduysa ya da bir site oynamıyorsa issue aç: https://github.com/menntdev/doomscroll/issues
+Minecraft ve mod sürümünü, tek oyunculu mu sunucuda mı olduğunu ve sayfanın adresini yaz.
+`.minecraft/logs/latest.log` dosyasında genelde cevap yazıyor olur.
 
 ## Lisans
 MIT — tam metin [LICENSE](LICENSE) dosyasında, üçüncü taraf bildirimleriyle birlikte. Chromium'u sağlayan
