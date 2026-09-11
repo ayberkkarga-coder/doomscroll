@@ -409,5 +409,15 @@
   "gui.doomscroll.lcd.broadcast_short": "YAYIN %s",
   "gui.doomscroll.viewers_short": "%s İZLEYİCİ",
   "home.doomscroll.broadcast_page_title": "doomscroll yayın",
-  "home.doomscroll.broadcast_waiting": "Yayın bekleniyor"
+  "home.doomscroll.broadcast_waiting": "Yayın bekleniyor",
+  "message.doomscroll.queue.full": "Sıra dolu (en fazla %s video)",
+  "message.doomscroll.queue.not_yours": "Bunu yalnızca ekleyen kişi ya da ekranın sahibi kaldırabilir",
+  "command.doomscroll.queue.sent": "[doomscroll] Sıraya yollandı. Ne oynayacağına oylar karar verir; /ds sira liste ile bak.",
+  "command.doomscroll.queue.votes": "%s oy",
+  "message.doomscroll.tablet.queued2": "Sıraya eklendi: %s",
+  "gui.doomscroll.queue.vote_hint": "Sayiya bas: oy ver / geri al",
+  "message.doomscroll.queue.sent": "Sıraya yollandı",
+  "message.doomscroll.queue.added_by": "%s — ekleyen: %s",
+  "home.doomscroll.vote_hint": "Oy ver / geri al",
+  "home.doomscroll.added_by": "ekleyen"
 }

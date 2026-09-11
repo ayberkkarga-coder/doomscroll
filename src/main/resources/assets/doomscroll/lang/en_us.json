@@ -409,5 +409,15 @@
   "gui.doomscroll.lcd.broadcast_short": "LIVE %s",
   "gui.doomscroll.viewers_short": "%s WATCHING",
   "home.doomscroll.broadcast_page_title": "doomscroll broadcast",
-  "home.doomscroll.broadcast_waiting": "Waiting for the broadcast"
+  "home.doomscroll.broadcast_waiting": "Waiting for the broadcast",
+  "message.doomscroll.queue.full": "The queue is full (%s videos max)",
+  "message.doomscroll.queue.not_yours": "Only the person who added it, or the screen's owner, can remove it",
+  "command.doomscroll.queue.sent": "[doomscroll] Sent to the queue. Votes decide what plays next; /ds sira liste to see it.",
+  "command.doomscroll.queue.votes": "%s votes",
+  "message.doomscroll.tablet.queued2": "Added to the queue: %s",
+  "gui.doomscroll.queue.vote_hint": "Tap the number to vote or take it back",
+  "message.doomscroll.queue.sent": "Sent to the queue",
+  "message.doomscroll.queue.added_by": "%s — added by %s",
+  "home.doomscroll.vote_hint": "Vote or take it back",
+  "home.doomscroll.added_by": "added by"
 }

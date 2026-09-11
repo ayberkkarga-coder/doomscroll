@@ -342,7 +342,7 @@ public class TabletScreen extends Screen {
 			return;
 		}
 		if (ScreenQueue.add(target, u)) {
-			overlay(Lang.tr("message.doomscroll.tablet.queued", ScreenQueue.size(target), RemoteScreen.siteName(u)));
+			overlay(Lang.tr("message.doomscroll.tablet.queued2", RemoteScreen.siteName(u)));
 		} else {
 			overlay(Lang.tr("message.doomscroll.tablet.queue_failed"));
 		}

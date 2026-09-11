@@ -166,6 +166,32 @@ public class Doomscroll implements ModInitializer {
 		}
 	}
 
+	/** Siradan bir video ekrana acilir: kontrol acani gecer, herkes ayni adrese doner. */
+	private static void openFromQueue(ServerPlayer player, ScreenBlockEntity a, ServerQueue.Entry e) {
+		giveControl(player, a);
+		if (!e.url.equals(a.getUrl())) {
+			announce(player, a, e.url);
+			AuditLog.record(player, a, AuditLog.OPEN, e.url);
+		}
+		a.setUrl(e.url);
+	}
+
+	/** Ekranin sirasini yakindaki herkese yolla; "ben oy verdim mi" alicisina gore degisir. */
+	static void sendQueue(ScreenBlockEntity a, ScreenKey key, net.minecraft.world.level.Level level) {
+		java.util.List<ServerQueue.Entry> entries = ServerQueue.list(key);
+		if (!(level instanceof ServerLevel sl)) {
+			return;
+		}
+		for (ServerPlayer p : PlayerLookup.around(sl, Vec3.atCenterOf(a.getBlockPos()), CONTROL_RANGE)) {
+			java.util.List<com.doomscroll.net.QueueBroadcast.Row> rows = new java.util.ArrayList<>(entries.size());
+			for (ServerQueue.Entry e : entries) {
+				rows.add(new com.doomscroll.net.QueueBroadcast.Row(
+						e.url, e.title, e.byName, e.voteCount(), e.votes.contains(p.getUUID())));
+			}
+			ServerPlayNetworking.send(p, new com.doomscroll.net.QueueBroadcast(a.getBlockPos(), rows));
+		}
+	}
+
 	/** Politikayi istemciye yolla (girise ve ayar degisikligine). */
 	static void sendPolicy(ServerPlayer p) {
 		ServerPlayNetworking.send(p, policy());
@@ -428,6 +454,8 @@ public class Doomscroll implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(ScreenNoticePayload.TYPE, ScreenNoticePayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(com.doomscroll.net.ServerPolicyBroadcast.TYPE, com.doomscroll.net.ServerPolicyBroadcast.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.ScreenReportPayload.TYPE, com.doomscroll.net.ScreenReportPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.QueueActionPayload.TYPE, com.doomscroll.net.QueueActionPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(com.doomscroll.net.QueueBroadcast.TYPE, com.doomscroll.net.QueueBroadcast.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.ScreenPointerPayload.TYPE, com.doomscroll.net.ScreenPointerPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.BroadcastChunkPayload.TYPE, com.doomscroll.net.BroadcastChunkPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.BroadcastControlPayload.TYPE, com.doomscroll.net.BroadcastControlPayload.CODEC);
@@ -746,6 +774,80 @@ public class Doomscroll implements ModInitializer {
 				ServerPlayNetworking.send(handler.player, b);
 			}
 		});
+
+		// ---------- paylasilan sira (oylamali) ----------
+		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.QueueActionPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
+			ServerPlayer player = ctx.player();
+			ScreenBlockEntity a = anchorNear(player, payload.pos(), CONTROL_RANGE);
+			if (a == null) {
+				return;
+			}
+			ScreenKey key = keyOf(player.level(), a);
+			boolean admin = isAdmin(player);
+			String url = payload.url();
+			switch (payload.action()) {
+				case com.doomscroll.net.QueueActionPayload.ADD -> {
+					if (!validUrl(url)) {
+						return;
+					}
+					if (!Perms.has(player, Perms.URL, Perms.EVERYONE)) {
+						notice(player, a, Component.translatable("message.doomscroll.no_permission"));
+						return;
+					}
+					int deny = ServerConfig.check(url);
+					if (deny != ServerConfig.OK && !Perms.has(player, Perms.BYPASS, Perms.GAMEMASTER)) {
+						AuditLog.record(player, a, AuditLog.BLOCKED, url);
+						notice(player, a, denyMessage(deny, url));
+						return;
+					}
+					if (!ServerQueue.add(key, url, payload.title(), player)) {
+						notice(player, a, Component.translatable("message.doomscroll.queue.full", ServerQueue.MAX));
+						return;
+					}
+					AuditLog.record(player, a, AuditLog.QUEUE, url);
+				}
+				case com.doomscroll.net.QueueActionPayload.VOTE -> ServerQueue.vote(key, url, player);
+				case com.doomscroll.net.QueueActionPayload.REMOVE -> {
+					if (!ServerQueue.remove(key, url, player, admin || a.isOwner(player.getUUID()))) {
+						notice(player, a, Component.translatable("message.doomscroll.queue.not_yours"));
+						return;
+					}
+				}
+				case com.doomscroll.net.QueueActionPayload.CLEAR -> {
+					if (!admin && !a.isOwner(player.getUUID())) {
+						notice(player, a, Component.translatable("message.doomscroll.queue.not_yours"));
+						return;
+					}
+					ServerQueue.clear(key);
+				}
+				case com.doomscroll.net.QueueActionPayload.NEXT -> {
+					if (!canControl(a, player)) {
+						deny(player, a);
+						return;
+					}
+					ServerQueue.Entry e = ServerQueue.poll(key);
+					if (e == null) {
+						return;
+					}
+					openFromQueue(player, a, e);
+				}
+				case com.doomscroll.net.QueueActionPayload.PLAY -> {
+					if (!canControl(a, player)) {
+						deny(player, a);
+						return;
+					}
+					ServerQueue.Entry e = ServerQueue.take(key, url);
+					if (e == null) {
+						return;
+					}
+					openFromQueue(player, a, e);
+				}
+				default -> {
+					// REFRESH: asagidaki yayin zaten guncel listeyi yolluyor
+				}
+			}
+			sendQueue(a, key, player.level());
+		}));
 
 		// ---------- rapor et ----------
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenReportPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {

@@ -95,7 +95,17 @@ body{background:#0d0e13;overflow-x:hidden;overflow-y:auto;position:relative;font
 .card .n{position:absolute;left:8px;top:8px;z-index:1;font-size:15px;padding:2px 7px;background:rgba(0,0,0,.75);
   border:2px solid #000;text-shadow:2px 2px 0 var(--sh)}
 .card .t{padding:8px 7px 3px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:2px 2px 0 var(--sh)}
-.card .h{padding:0 7px 8px;font-size:14px;color:var(--faint);text-transform:uppercase;letter-spacing:1px}
+.card .h{padding:0 7px 6px;font-size:14px;color:var(--faint);text-transform:uppercase;letter-spacing:1px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .h>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .by{padding:0 7px 8px;font-size:13px;color:#5a5f73;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* oy rozeti: basilabilir kare */
+.card .v{flex:none;min-width:26px;text-align:center;padding:2px 6px;font-size:15px;color:var(--ink);letter-spacing:0;
+  text-transform:none;cursor:pointer;background:var(--btn);border:2px solid #000;
+  box-shadow:inset 2px 2px 0 var(--btn-hi),inset -2px -2px 0 var(--lo);text-shadow:2px 2px 0 var(--sh)}
+.card .v:hover{background:var(--btn-hi)}
+.card .v.on{background:var(--btn-on)}
+.card .v:active{box-shadow:inset 2px 2px 0 var(--lo),inset -2px -2px 0 var(--btn-hi)}
 .card .x{position:absolute;right:8px;top:8px;width:18px;height:18px;opacity:0;font-size:0;color:transparent;
   background:var(--red);border:2px solid #000;box-shadow:inset 1px 1px 0 rgba(255,255,255,.3),inset -1px -1px 0 rgba(0,0,0,.45)}
 .card .x:after{content:"";position:absolute;inset:3px;background:#fff;
@@ -251,8 +261,21 @@ body{background:#0d0e13;overflow-x:hidden;overflow-y:auto;position:relative;font
     p.appendChild(x);
     c.appendChild(p);
     c.appendChild(el('div', 't', it.title || host(it.url)));
-    c.appendChild(el('div', 'h', host(it.url)));
-    c.onclick = function (ev) { ev.preventDefault(); cmd({home: 'play', n: i + 1}); };
+    var foot = el('div', 'h');
+    foot.appendChild(el('span', null, host(it.url)));
+    var vote = el('span', 'v' + (it.mine ? ' on' : ''), String(it.votes == null ? 0 : it.votes));
+    vote.title = '{{js:home.doomscroll.vote_hint}}';
+    vote.onclick = function (ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      cmd({home: 'qvote', url: it.url});
+      var n = (it.votes || 0) + (it.mine ? -1 : 1);
+      it.mine = !it.mine; it.votes = n;
+      vote.textContent = String(n); vote.className = 'v' + (it.mine ? ' on' : '');
+    };
+    foot.appendChild(vote);
+    c.appendChild(foot);
+    if (it.by) { var by = el('div', 'by', '{{js:home.doomscroll.added_by}} ' + it.by); c.appendChild(by); }
+    c.onclick = function (ev) { ev.preventDefault(); cmd({home: 'play', url: it.url}); };
     qRail.appendChild(c);
   });
 
@@ -267,7 +290,7 @@ body{background:#0d0e13;overflow-x:hidden;overflow-y:auto;position:relative;font
     document.getElementById('heroNum').textContent = '01';
     var th0 = thumb(first.url);
     if (th0) document.getElementById('heroBg').style.backgroundImage = 'url(' + th0 + ')';
-    hero.onclick = function (ev) { ev.preventDefault(); cmd({home: 'play', n: 1}); };
+    hero.onclick = function (ev) { ev.preventDefault(); cmd({home: 'play', url: first.url}); };
   } else {
     var hours = new Date().getHours();
     document.getElementById('kick').textContent = hours < 6 ? '{{js:home.doomscroll.greet_night}}' : hours < 12 ? '{{js:home.doomscroll.greet_morning}}' : hours < 18 ? '{{js:home.doomscroll.greet_day}}' : '{{js:home.doomscroll.greet_evening}}';

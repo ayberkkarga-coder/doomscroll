@@ -406,7 +406,8 @@ public class RemoteScreen extends Screen {
 
 	/** Sira listesi: her satir [oynat] [baslik] [sil]; ustte geri/sayac/temizle; tekerlekle kayar. */
 	private void initQueue(int left, int inner, int top) {
-		List<String> q = ScreenQueue.list(target);
+		ScreenQueue.refresh(target);
+		List<com.doomscroll.net.QueueBroadcast.Row> q = ScreenQueue.list(target);
 		int y = top;
 		buttons.add(new Ui.Btn(left, y, 20, 14, () -> "", () -> Ui.ICON_BACK, Ui.BTN, Ui.BTN_HOVER, () -> switchPage(PAGE_OTHER), () -> false));
 		labels.add(new Label(left + 26, y + 3, Lang.tr("gui.doomscroll.queue.title", q.size())));
@@ -425,28 +426,36 @@ public class RemoteScreen extends Screen {
 		int maxScroll = Math.max(0, q.size() - QUEUE_VISIBLE);
 		queueScroll = Math.max(0, Math.min(queueScroll, maxScroll));
 		int end = Math.min(q.size(), queueScroll + QUEUE_VISIBLE);
+		// Satir: oynat | baslik | oy sayisi (basinca oy ver/geri al) | kaldir
 		for (int i = queueScroll; i < end; i++) {
 			final int no = i + 1;
-			final String url = q.get(i);
-			buttons.add(new Ui.Btn(left, y, 18, 14, () -> "", () -> Ui.ICON_PLAY, Ui.BTN, Ui.BTN_HOVER, guarded(() -> {
-				if (ScreenQueue.playNow(target, no)) {
-					hint(Lang.tr("message.doomscroll.queue.opening", shortName(PageTitles.get(url), 22)));
-				}
+			final com.doomscroll.net.QueueBroadcast.Row row = q.get(i);
+			final String url = row.url();
+			buttons.add(new Ui.Btn(left, y, 16, 14, () -> "", () -> Ui.ICON_PLAY, Ui.BTN, Ui.BTN_HOVER, guarded(() -> {
+				ScreenQueue.playNow(target, url);
+				hint(Lang.tr("message.doomscroll.queue.opening", shortName(ScreenQueue.label(row), 22)));
 				rebuildWidgets();
 			}), () -> false));
-			buttons.add(new Ui.Btn(left + 21, y, inner - 42, 14, () -> no + ". " + shortName(PageTitles.get(url), 15), null, C_DISPLAY, 0xFF14201A,
-					() -> hint(shortName(PageTitles.get(url), 26)), () -> false));
-			buttons.add(new Ui.Btn(left + inner - 18, y, 18, 14, () -> "", () -> Ui.ICON_CLOSE, Ui.BTN, Ui.BTN_HOVER, () -> {
-				ScreenQueue.remove(target, no);
+			buttons.add(new Ui.Btn(left + 18, y, inner - 64, 14,
+					() -> no + ". " + shortName(ScreenQueue.label(row), 12), null, C_DISPLAY, 0xFF14201A,
+					() -> hint(row.by().isEmpty() ? shortName(ScreenQueue.label(row), 26)
+							: Lang.tr("message.doomscroll.queue.added_by", shortName(ScreenQueue.label(row), 18), row.by())),
+					() -> false));
+			buttons.add(new Ui.Btn(left + inner - 44, y, 24, 14, () -> String.valueOf(row.votes()), null,
+					row.mine() ? C_TAB_ON : Ui.BTN, Ui.BTN_HOVER, () -> {
+						ScreenQueue.vote(target, url);
+						rebuildWidgets();
+					}, row::mine));
+			buttons.add(new Ui.Btn(left + inner - 16, y, 16, 14, () -> "", () -> Ui.ICON_CLOSE, Ui.BTN, Ui.BTN_HOVER, () -> {
+				ScreenQueue.remove(target, url);
 				rebuildWidgets();
 			}, () -> false));
 			y += ROW;
 		}
-		if (maxScroll > 0) {
-			labels.add(new Label(left, y + 2, Lang.tr("gui.doomscroll.queue.scroll_hint", queueScroll + 1, end, q.size())));
-		}
+		labels.add(new Label(left, y + 2, maxScroll > 0
+				? Lang.tr("gui.doomscroll.queue.scroll_hint", queueScroll + 1, end, q.size())
+				: Lang.tr("gui.doomscroll.queue.vote_hint")));
 	}
-
 	private static String latencyLabel(String p) {
 		return switch (p == null ? "normal" : p) {
 			case "dusuk" -> Lang.tr("gui.doomscroll.latency.low");
@@ -488,7 +497,7 @@ public class RemoteScreen extends Screen {
 			return;
 		}
 		if (ScreenQueue.add(target, text)) {
-			hint(Lang.tr("message.doomscroll.queue.added", ScreenQueue.size(target)));
+			hint(Lang.tr("message.doomscroll.queue.sent"));
 			if (urlBox != null) urlBox.setValue("");
 		} else {
 			hint(Lang.tr("message.doomscroll.queue.add_failed"));

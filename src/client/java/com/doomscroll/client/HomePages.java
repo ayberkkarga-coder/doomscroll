@@ -119,11 +119,15 @@ public final class HomePages {
 				data.add("history", entries(TabletBookmarks.history()));
 			} else {
 				BlockPos pos = parsePos(u.getQuery());
+				ScreenQueue.refresh(pos);
 				JsonArray q = new JsonArray();
-				for (String qu : ScreenQueue.list(pos)) {
+				for (com.doomscroll.net.QueueBroadcast.Row r : ScreenQueue.list(pos)) {
 					JsonObject o = new JsonObject();
-					o.addProperty("title", PageTitles.get(qu));
-					o.addProperty("url", qu);
+					o.addProperty("title", ScreenQueue.label(r));
+					o.addProperty("url", r.url());
+					o.addProperty("votes", r.votes());
+					o.addProperty("by", r.by());
+					o.addProperty("mine", r.mine());
 					q.add(o);
 				}
 				data.add("queue", q);
@@ -277,7 +281,8 @@ public final class HomePages {
 	public static void onScreenCommand(BlockPos anchor, JsonObject o) {
 		String c = o.get("home").getAsString();
 		switch (c) {
-			case "play" -> ScreenQueue.playNow(anchor, o.has("n") ? o.get("n").getAsInt() : 1);
+			case "play" -> ScreenQueue.playNow(anchor, str(o, "url"));
+			case "qvote" -> ScreenQueue.vote(anchor, str(o, "url"));
 			case "add" -> Channels.add(str(o, "name"), str(o, "url"));
 			case "removeChannel" -> Channels.remove(str(o, "name"));
 			case "trust" -> {
@@ -285,16 +290,7 @@ public final class HomePages {
 				ScreenBrowsers.consentGiven(anchor);
 			}
 			case "consentHome" -> ScreenBrowsers.consentDeclined(anchor);
-			case "qremove" -> {
-				String url = o.has("url") ? o.get("url").getAsString() : "";
-				java.util.List<String> q = ScreenQueue.list(anchor);
-				for (int i = 0; i < q.size(); i++) {
-					if (q.get(i).equals(url)) {
-						ScreenQueue.remove(anchor, i + 1);
-						break;
-					}
-				}
-			}
+			case "qremove" -> ScreenQueue.remove(anchor, str(o, "url"));
 			default -> {
 			}
 		}

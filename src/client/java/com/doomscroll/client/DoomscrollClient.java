@@ -176,6 +176,9 @@ public class DoomscrollClient implements ClientModInitializer {
 		// Kontrolcunun video konumu (izleyiciler hizalanir)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenTimeBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() ->
 				ScreenBrowsers.applyRemoteTime(payload.pos(), payload.time(), payload.duration(), payload.paused())));
+		// Paylasilan sira: sunucudaki liste degistikce gelir
+		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.QueueBroadcast.TYPE, (payload, ctx) ->
+				ctx.client().execute(() -> ScreenQueue.apply(payload)));
 		// Sunucu adres politikasi (girise ve her yonetici degisikligine gelir)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ServerPolicyBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
 			ServerPolicy.apply(payload);
@@ -403,13 +406,29 @@ public class DoomscrollClient implements ClientModInitializer {
 										c.getSource().sendError(Component.translatable("command.doomscroll.queue.invalid"));
 										return 0;
 									}
-									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.added", ScreenQueue.size(a)));
+									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.sent"));
 									return 1;
 								})))
 								.then(ClientCommands.literal("sil").then(ClientCommands.argument("no", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 50)).executes(c -> {
-									boolean ok = ScreenQueue.remove(ScreenBrowsers.activeAnchor(), com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "no"));
-									c.getSource().sendFeedback(Component.translatable(ok ? "command.doomscroll.queue.removed" : "command.doomscroll.queue.no_such"));
-									return ok ? 1 : 0;
+									net.minecraft.core.BlockPos qa = ScreenBrowsers.activeAnchor();
+									String qurl = ScreenQueue.urlAt(qa, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "no"));
+									if (qurl.isEmpty()) {
+										c.getSource().sendError(Component.translatable("command.doomscroll.queue.no_such"));
+										return 0;
+									}
+									ScreenQueue.remove(qa, qurl);
+									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.removed"));
+									return 1;
+								})))
+								.then(ClientCommands.literal("oyla").then(ClientCommands.argument("no", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 50)).executes(c -> {
+									net.minecraft.core.BlockPos va = ScreenBrowsers.activeAnchor();
+									String vurl = ScreenQueue.urlAt(va, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "no"));
+									if (vurl.isEmpty()) {
+										c.getSource().sendError(Component.translatable("command.doomscroll.queue.no_such"));
+										return 0;
+									}
+									ScreenQueue.vote(va, vurl);
+									return 1;
 								})))
 								.then(ClientCommands.literal("temizle").executes(c -> {
 									ScreenQueue.clear(ScreenBrowsers.activeAnchor());
@@ -417,9 +436,14 @@ public class DoomscrollClient implements ClientModInitializer {
 									return 1;
 								}))
 								.then(ClientCommands.literal("atla").executes(c -> {
-									boolean ok = ScreenQueue.next(ScreenBrowsers.activeAnchor());
-									c.getSource().sendFeedback(Component.translatable(ok ? "command.doomscroll.queue.skipping" : "command.doomscroll.queue.is_empty"));
-									return ok ? 1 : 0;
+									net.minecraft.core.BlockPos na = ScreenBrowsers.activeAnchor();
+									if (ScreenQueue.size(na) == 0) {
+										c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.is_empty"));
+										return 0;
+									}
+									ScreenQueue.next(na);
+									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.skipping"));
+									return 1;
 								})))
 						.then(ClientCommands.literal("yayin")
 								.executes(c -> {
@@ -600,6 +624,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		alias(root, "sira", "sil", "remove");
 		alias(root, "sira", "temizle", "clear");
 		alias(root, "sira", "atla", "skip");
+		alias(root, "sira", "oyla", "vote");
 		alias(root, "yayin", "ac", "on");
 		alias(root, "yayin", "kapat", "off");
 		alias(root, "yayin", "kalite", "quality");
@@ -735,11 +760,19 @@ public class DoomscrollClient implements ClientModInitializer {
 	/** /ds ekranlar: yakindaki ekranlar (uzaklik, durum, sahip, kontrol, site). */
 	private static String queueList() {
 		net.minecraft.core.BlockPos a = ScreenBrowsers.activeAnchor();
-		java.util.List<String> q = ScreenQueue.list(a);
+		java.util.List<com.doomscroll.net.QueueBroadcast.Row> q = ScreenQueue.list(a);
 		if (a == null) return Lang.tr("command.doomscroll.no_screen_near");
 		if (q.isEmpty()) return Lang.tr("command.doomscroll.queue.empty_hint");
 		StringBuilder sb = new StringBuilder(Lang.tr("command.doomscroll.queue.title", q.size()));
-		for (int i = 0; i < q.size(); i++) sb.append("\n  ").append(i + 1).append(". ").append(q.get(i));
+		for (int i = 0; i < q.size(); i++) {
+			com.doomscroll.net.QueueBroadcast.Row r = q.get(i);
+			sb.append("\n  ").append(i + 1).append(". ")
+					.append(Lang.tr("command.doomscroll.queue.votes", r.votes())).append("  ")
+					.append(ScreenQueue.label(r));
+			if (!r.by().isEmpty()) {
+				sb.append("  \u00a78").append(r.by()).append("\u00a7r");
+			}
+		}
 		return sb.toString();
 	}
 

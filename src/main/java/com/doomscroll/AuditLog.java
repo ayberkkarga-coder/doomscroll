@@ -44,6 +44,8 @@ public final class AuditLog {
 	public static final String BROADCAST = "broadcast";
 	/** Ekran acildi/kapatildi. */
 	public static final String POWER = "power";
+	/** Siraya video eklendi. */
+	public static final String QUEUE = "queue";
 	/** Oyuncu ekrani rapor etti. */
 	public static final String REPORT = "report";
 	/** Yonetici islemi (acil kapatma vb.). */
