@@ -23,3 +23,7 @@ desktop.ini
 
 # Minecraft siniflarinin javap dokumu: gelistirme notu, depoya girmez
 api-notes-*.txt
+
+# Ic gelistirme notlari: diskte kalir, depoya girmez
+GECE_RAPORU.md
+ARASTIRMA.md
