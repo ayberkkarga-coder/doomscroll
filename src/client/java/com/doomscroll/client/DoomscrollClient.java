@@ -24,9 +24,9 @@ public class DoomscrollClient implements ClientModInitializer {
 	public static void openLater(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> screen) {
 		pendingScreen = screen;
 	}
-	private static final int HELP_LINES = 19;
+	private static final int HELP_LINES = 20;
 
-	/** Yardim metni dil dosyasindan satir satir kurulur: command.doomscroll.help.0 .. help.18 */
+	/** Yardim metni dil dosyasindan satir satir kurulur: command.doomscroll.help.0 .. help.19 */
 	private static Component help() {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < HELP_LINES; i++) {
@@ -178,6 +178,11 @@ public class DoomscrollClient implements ClientModInitializer {
 		// Kontrolcunun video konumu (izleyiciler hizalanir)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenTimeBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() ->
 				ScreenBrowsers.applyRemoteTime(payload.pos(), payload.time(), payload.duration(), payload.paused())));
+		// Sunucu adres politikasi (girise ve her yonetici degisikligine gelir)
+		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ServerPolicyBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
+			ServerPolicy.apply(payload);
+			Browsers.onPolicyChanged();
+		}));
 		// Sunucu bildirimi (kilit reddi vb.)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenNoticePayload.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
 			if (ctx.client().player != null && !payload.text().getString().isEmpty()) {
@@ -217,6 +222,8 @@ public class DoomscrollClient implements ClientModInitializer {
 		}));
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			ServerPolicy.reset();
+			Browsers.onPolicyChanged();
 			Pointers.clear();
 			ScreenQueue.clearAll();
 			Broadcast.reset();
@@ -522,6 +529,10 @@ public class DoomscrollClient implements ClientModInitializer {
 							c.getSource().sendError(Component.translatable("command.doomscroll.popup_none"));
 							return 0;
 						}))
+						.then(ClientCommands.literal("rapor")
+								.executes(c -> report(c.getSource(), ""))
+								.then(ClientCommands.argument("not", StringArgumentType.greedyString())
+										.executes(c -> report(c.getSource(), StringArgumentType.getString(c, "not")))))
 						.then(ClientCommands.literal("perf").executes(c -> {
 							c.getSource().sendFeedback(Component.literal(perfReport()));
 							return 1;
@@ -632,6 +643,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		alias(root, "altyazi", "captions");
 		alias(root, "gecikme", "latency");
 		alias(root, "ytgiris", "ytlogin");
+		alias(root, "rapor", "report");
 		return root;
 	}
 
@@ -678,6 +690,18 @@ public class DoomscrollClient implements ClientModInitializer {
 	/** Komut geri bildirimlerinde acik/kapali. */
 	private static Component onOff(boolean v) {
 		return Component.translatable(v ? "gui.doomscroll.enabled" : "gui.doomscroll.disabled");
+	}
+
+	/** /ds rapor: baktigin ekrani yoneticilere bildir. Adres ve sahip sunucuda okunur. */
+	private static int report(net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource src, String note) {
+		net.minecraft.core.BlockPos anchor = ScreenBrowsers.activeAnchor();
+		if (anchor == null) {
+			src.sendError(Component.translatable("command.doomscroll.no_screen"));
+			return 0;
+		}
+		ClientPlayNetworking.send(new com.doomscroll.net.ScreenReportPayload(anchor,
+				note.length() > 200 ? note.substring(0, 200) : note));
+		return 1;
 	}
 
 	private static String adBlockStatus() {

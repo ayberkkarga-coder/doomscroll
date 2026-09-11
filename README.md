@@ -21,9 +21,10 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 10. [Commands](#commands-ds)
 11. [Client settings](#client-settings--configdoomscrolljson)
 12. [Server admin settings and commands](#server-admin-settings--configdoomscroll-serverjson)
-13. [Performance](#performance)
-14. [Safety notes](#safety-notes)
-15. [Development](#development)
+13. [Moderation and safety](#moderation-and-safety)
+14. [Performance](#performance)
+15. [Safety notes](#safety-notes)
+16. [Development](#development)
 
 > **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Every command has an English name and a Turkish one, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`.
 
@@ -118,6 +119,7 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `/ds adblock [on\|off]` · `/ds popup` | ad blocker / open the last blocked popup |
 | `/ds captions` | show or hide HUD captions |
 | `/ds ytlogin` | a Firefox identity for signing in to Google |
+| `/ds report [note]` | report the screen you are looking at to the admins |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / status |
 | `/ds play <reels or tiktok link>` | (legacy) download with yt-dlp + ffmpeg and play in a local player |
 
@@ -136,6 +138,8 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `screenVolume`, `screenMuted` | 0.8 | your personal volume for screens (the slider on the remote) |
 | `tabletVolume`, `tabletMuted` | 0.8 | the volume of the tablet in your hand (the speaker in its toolbar) |
 | `remoteTabletVolume` | 0.8 | how loud other people's tablets are for you (0 = never hear them) |
+| `othersScreenVolume` | 1.0 | how loud screens you did not place are (the server can make this start at 0) |
+| `separateScreenCookies` | true | screens use an in-memory Chromium context, separate from the tablet's persistent profile |
 | `tabletSway` | 0.35 | how much of the vanilla walking sway the held tablet keeps (0 still, 1 vanilla) |
 | `screenGlow` / `screenGlowRange` / `screenGlowSmooth` | 1.0 / 10 / true | screen light strength (0 off, 0.5 low, 1 normal, 1.8 high), range, smooth blending |
 | `autoScroll` | true | next video when one ends (Shorts/Reels/TikTok) |
@@ -160,8 +164,62 @@ Singleplayer uses the same file through its internal server.
 | `pointer` | `true` | Shared pointer relay. |
 | `broadcast` | `true` | Whether broadcast mode is allowed. |
 | `controlTimeoutSeconds` | `45` | How long a quiet controller keeps control. |
+| `auditLog` | `true` | Write every address opened to `config/doomscroll-audit.log`. |
+| `lockdown` | `false` | Emergency shutdown: every screen is dark and none can be turned on. Toggled with `/doomscroll emergency`. |
+| `allowPrivateNetwork` | `false` | Allow loopback and LAN addresses. Leave it off: otherwise a player can put `192.168.1.1` on a screen and make everyone open their own router page. |
+| `requireConsent` | `false` | A page outside the allowlist is not drawn until the viewer taps Show. Nothing is requested from the site before that. |
+| `muteOthersByDefault` | `false` | Screens you did not place start muted for you. |
+| `showDomain` | `true` | Show the real domain on the HUD when you look at a screen. |
+| `maxPanelBlocks` | `0` | Largest panel in blocks (0 = unlimited). |
+| `maxScreensPerPlayer` | `0` | Screen blocks one player may have (0 = unlimited). |
+| `urlCooldownMs` | `1500` | Minimum gap between one player's address changes. |
 
-**Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `duyuru` / `announce` · `isaretci` / `pointer` · `redstone` · `kontrolsuresi` / `controltime` `<seconds>`. Changes are written to the file.
+**Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `duyuru` / `announce` · `isaretci` / `pointer` · `redstone` · `kontrolsuresi` / `controltime` `<seconds>` · `kayit` / `audit` `[n]` · `denetim` / `auditlog` · `acil` / `emergency` · `karart` / `blackout` · `ozelag` / `privatenet` · `onay` / `consent` · `sessiz` / `muteothers` · `alanadi` / `showdomain` · `panelsinir` / `maxpanel` `<n>` · `ekransinir` / `maxscreens` `<n>` · `bekleme` / `cooldown` `<ms>` · `yayin` / `broadcast`. Changes are written to the file and pushed to every client at once.
+
+## Moderation and safety
+
+Server owners generally do not distrust what a mod like this does. They distrust that the client is
+authoritative and that nothing is available after an incident. These are the tools for that.
+
+- **Audit log.** Every address opened, every blocked attempt, every broadcast and power change is written to
+  `config/doomscroll-audit.log` with who, when, which world and which block. `/doomscroll audit [n]` shows the
+  last entries in chat. Addresses are never used as a format string, so a `%` in a URL cannot break the log.
+- **Emergency shutdown.** `/doomscroll emergency on` blacks out every loaded screen and stops any of them from
+  being turned on again. `/doomscroll blackout` is the one-shot version without the lock. Both take effect
+  immediately; nobody has to rejoin.
+- **Redirect enforcement.** The server checks the shared address, but redirects happen in the browser first.
+  The domain policy is sent to every client on join and after every change, so each browser applies the same
+  rule at every navigation and a shortened link to a blocked site never finishes loading. A modified client can
+  ignore this; the server-side check still stands.
+- **Private network addresses are refused.** Loopback, `10/8`, `172.16/12`, `192.168/16`, link-local (including
+  cloud metadata at `169.254.169.254`), carrier NAT, IPv6 unique-local and link-local, `.local` and dotless
+  intranet names. Without this, a screen showing `192.168.1.1` makes every viewer's client open their own
+  router page. Turn it back on with `allowPrivateNetwork` only on a LAN you control.
+- **Permissions.** If a permission manager is installed (anything speaking fabric-permissions-api, such as
+  LuckPerms) the nodes `doomscroll.place`, `doomscroll.url`, `doomscroll.broadcast`, `doomscroll.bypass` and
+  `doomscroll.admin` are honoured. Without one, the first three are open to everyone and the last two need
+  gamemaster. No extra dependency: the API is looked up at runtime and skipped if absent.
+- **Viewer consent.** With `requireConsent` on, a page outside the allowlist is replaced by a card naming the
+  domain and the player who placed the screen, with Show and Home menu. Until you choose Show, the site gets no
+  request at all, so neither shock content nor your IP reaches it. Your choice is remembered per domain for the
+  session.
+- **Separate cookies.** Screens share an in-memory Chromium context that is separate from the persistent
+  profile your tablet uses, so a page somebody else opened never runs in the same context as your own signed-in
+  session. Nothing is written to disk for screens. Turn `separateScreenCookies` off in the client config if you
+  want a YouTube sign-in on a screen to survive a restart. Per-screen contexts would be stricter, but CEF gives
+  every context its own render process, which is unaffordable with many screens.
+- **The real domain on the HUD.** Looking at a screen shows its real domain next to the page title. A page
+  cannot touch the game's HUD, so a fake sign-in page cannot hide where it actually is.
+- **Others' screens can start muted.** With `muteOthersByDefault` on, screens you did not place are silent
+  until you raise the slider (remote → More → Others' screens).
+- **Limits.** `maxPanelBlocks`, `maxScreensPerPlayer` and `urlCooldownMs` stop somebody building a lag machine
+  or cycling addresses. Going over the limit refunds the block instead of placing it.
+- **Report.** `/ds report [note]` sends the screen you are looking at to every online admin, with its owner,
+  its address and its coordinates, and writes the same to the audit log. The address and owner are read on the
+  server, never taken from the client.
+
+One thing worth knowing: the allowlist matches subdomains correctly. Blocking `example.com` also blocks
+`www.example.com` and `ads.example.com`.
 
 ## Performance
 - The picture comes out of Chromium by off-screen rendering: changed regions are uploaded straight to a GPU texture, with no copy. Screens nobody is looking at drop to 10 fps while video and audio keep running.

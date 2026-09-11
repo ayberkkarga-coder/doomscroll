@@ -281,9 +281,26 @@ public class ScreenBlockEntity extends BlockEntity {
 		}
 	}
 
+	/** Sunucuda yuklu ekran bloklari: acil kapatma ve sayi siniri bunlar uzerinden calisir. */
+	private static final java.util.Set<ScreenBlockEntity> SERVER_LIVE = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+	/** Yuklu (chunk'i acik) sunucu ekranlarinin kopyasi. */
+	public static java.util.List<ScreenBlockEntity> liveOnServer() {
+		return java.util.List.copyOf(SERVER_LIVE);
+	}
+
+	@Override
+	public void setLevel(net.minecraft.world.level.Level level) {
+		super.setLevel(level);
+		if (!level.isClientSide()) {
+			SERVER_LIVE.add(this);
+		}
+	}
+
 	@Override
 	public void setRemoved() {
 		super.setRemoved();
+		SERVER_LIVE.remove(this);
 		if (level != null && level.isClientSide()) {
 			Doomscroll.screenRemoved.accept(getBlockPos());
 		}

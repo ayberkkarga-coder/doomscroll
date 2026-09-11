@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -51,6 +52,10 @@ import java.util.function.Consumer;
 public class Doomscroll implements ModInitializer {
 	public static final String MOD_ID = "doomscroll";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	/** Oyuncu basina son adres degisikligi (bekleme suresi icin). */
+	private static final Map<UUID, Long> URL_COOLDOWN = new ConcurrentHashMap<>();
+	/** Oyuncu basina son rapor. */
+	private static final Map<UUID, Long> REPORT_COOLDOWN = new ConcurrentHashMap<>();
 
 	public static ScreenBlock SCREEN_BLOCK;
 	public static BlockItem SCREEN_ITEM;
@@ -159,6 +164,83 @@ public class Doomscroll implements ModInitializer {
 				p.sendOverlayMessage(msg);
 			}
 		}
+	}
+
+	/** Politikayi istemciye yolla (girise ve ayar degisikligine). */
+	static void sendPolicy(ServerPlayer p) {
+		ServerPlayNetworking.send(p, policy());
+	}
+
+	/** Politikayi butun oyunculara yolla. */
+	public static void broadcastPolicy(@Nullable MinecraftServer server) {
+		if (server == null) {
+			return;
+		}
+		com.doomscroll.net.ServerPolicyBroadcast msg = policy();
+		for (ServerPlayer p : PlayerLookup.all(server)) {
+			ServerPlayNetworking.send(p, msg);
+		}
+	}
+
+	private static com.doomscroll.net.ServerPolicyBroadcast policy() {
+		ServerConfig c = ServerConfig.get();
+		int flags = 0;
+		if (c.lockdown) flags |= com.doomscroll.net.ServerPolicyBroadcast.LOCKDOWN;
+		if (c.allowPrivateNetwork) flags |= com.doomscroll.net.ServerPolicyBroadcast.ALLOW_PRIVATE;
+		if (c.requireConsent) flags |= com.doomscroll.net.ServerPolicyBroadcast.REQUIRE_CONSENT;
+		if (c.muteOthersByDefault) flags |= com.doomscroll.net.ServerPolicyBroadcast.MUTE_OTHERS;
+		if (c.showDomain) flags |= com.doomscroll.net.ServerPolicyBroadcast.SHOW_DOMAIN;
+		return new com.doomscroll.net.ServerPolicyBroadcast(
+				List.copyOf(c.blockedDomains), List.copyOf(c.allowedDomains), flags, c.urlCooldownMs);
+	}
+
+	/** Acil kapatma: yuklu butun ekranlari karart. Karartilan ekran sayisini dondurur. */
+	public static int blackout() {
+		int n = 0;
+		for (ScreenBlockEntity s : ScreenBlockEntity.liveOnServer()) {
+			if (s.isAnchor() && s.isOn()) {
+				s.setOn(false);
+				n++;
+			}
+		}
+		return n;
+	}
+
+	/** Adres degisikligi bekleme suresi (spam ve lag makinesi icin). */
+	private static boolean onCooldown(ServerPlayer p) {
+		int ms = ServerConfig.get().urlCooldownMs;
+		if (ms <= 0 || Perms.has(p, Perms.BYPASS, Perms.GAMEMASTER)) {
+			return false;
+		}
+		long now = System.currentTimeMillis();
+		Long last = URL_COOLDOWN.get(p.getUUID());
+		if (last != null && now - last < ms) {
+			return true;
+		}
+		URL_COOLDOWN.put(p.getUUID(), now);
+		return false;
+	}
+
+	/** Rapor spam'ini engelle: oyuncu basina 10 saniyede bir. */
+	private static boolean onReportCooldown(ServerPlayer p) {
+		long now = System.currentTimeMillis();
+		Long last = REPORT_COOLDOWN.get(p.getUUID());
+		if (last != null && now - last < 10_000L) {
+			return true;
+		}
+		REPORT_COOLDOWN.put(p.getUUID(), now);
+		return false;
+	}
+
+	/** Reddetme sebebine gore mesaj. Adres hicbir zaman bicim dizesi olarak kullanilmaz. */
+	static Component denyMessage(int deny, String url) {
+		String site = siteOf(url);
+		return switch (deny) {
+			case ServerConfig.DENY_PRIVATE -> Component.translatable("message.doomscroll.url_private", site);
+			case ServerConfig.DENY_LOCKDOWN -> Component.translatable("message.doomscroll.lockdown");
+			case ServerConfig.DENY_NOT_ALLOWED -> Component.translatable("message.doomscroll.url_not_allowed", site);
+			default -> Component.translatable("message.doomscroll.url_blocked", site);
+		};
 	}
 
 	static boolean validUrl(String url) {
@@ -343,6 +425,8 @@ public class Doomscroll implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(com.doomscroll.net.TabletTimeBroadcast.TYPE, com.doomscroll.net.TabletTimeBroadcast.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(ScreenTimeBroadcast.TYPE, ScreenTimeBroadcast.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(ScreenNoticePayload.TYPE, ScreenNoticePayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(com.doomscroll.net.ServerPolicyBroadcast.TYPE, com.doomscroll.net.ServerPolicyBroadcast.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.ScreenReportPayload.TYPE, com.doomscroll.net.ScreenReportPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.ScreenPointerPayload.TYPE, com.doomscroll.net.ScreenPointerPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.BroadcastChunkPayload.TYPE, com.doomscroll.net.BroadcastChunkPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(com.doomscroll.net.BroadcastControlPayload.TYPE, com.doomscroll.net.BroadcastControlPayload.CODEC);
@@ -363,10 +447,22 @@ public class Doomscroll implements ModInitializer {
 			if (a == null) {
 				return;
 			}
-			if (!ServerConfig.urlAllowed(url)) {
+			int deny = ServerConfig.check(url);
+			if (deny != ServerConfig.OK && !Perms.has(player, Perms.BYPASS, Perms.GAMEMASTER)) {
+				AuditLog.record(player, a, AuditLog.BLOCKED, url);
 				ServerPlayNetworking.send(player, new ScreenNoticePayload(a.getBlockPos(), ScreenNoticePayload.BLOCKED,
-						Component.translatable("message.doomscroll.url_blocked", siteOf(url))));
+						denyMessage(deny, url)));
 				return;
+			}
+			if (payload.explicit()) {
+				if (!Perms.has(player, Perms.URL, Perms.EVERYONE)) {
+					notice(player, a, Component.translatable("message.doomscroll.no_permission"));
+					return;
+				}
+				if (onCooldown(player)) {
+					notice(player, a, Component.translatable("message.doomscroll.too_fast"));
+					return;
+				}
 			}
 			if (payload.explicit()) {
 				if (!canControl(a, player)) {
@@ -376,6 +472,7 @@ public class Doomscroll implements ModInitializer {
 				giveControl(player, a);
 				if (!url.equals(a.getUrl())) {
 					announce(player, a, url);
+					AuditLog.record(player, a, AuditLog.OPEN, url);
 				}
 				a.setUrl(url);
 				return;
@@ -389,6 +486,9 @@ public class Doomscroll implements ModInitializer {
 				a.setUrl(url);
 			} else if (c.equals(player.getUUID())) {
 				touch(player, a);
+				if (!url.equals(a.getUrl())) {
+					AuditLog.record(player, a, AuditLog.OPEN, url);
+				}
 				a.setUrl(url);
 			}
 			// baskasinin surdugu ekrandaki pasif degisiklik yayilmaz
@@ -512,8 +612,13 @@ public class Doomscroll implements ModInitializer {
 						notice(player, a, Component.translatable("message.doomscroll.broadcast.already", a.getBroadcasterName()));
 						return;
 					}
+					if (!Perms.has(player, Perms.BROADCAST, Perms.EVERYONE)) {
+						notice(player, a, Component.translatable("message.doomscroll.no_permission"));
+						return;
+					}
 					giveControl(player, a);
 					a.setBroadcaster(player.getUUID(), player.getName().getString());
+					AuditLog.record(player, a, AuditLog.BROADCAST, a.getUrl());
 					BROADCASTERS.put(key, player.getUUID());
 					BROADCAST_SUBS.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet());
 					Component msg = Component.translatable("message.doomscroll.broadcast.started", player.getName().getString());
@@ -635,10 +740,37 @@ public class Doomscroll implements ModInitializer {
 			}
 		}));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			sendPolicy(handler.player);
 			for (TabletStateBroadcast b : TABLET_STATES.values()) {
 				ServerPlayNetworking.send(handler.player, b);
 			}
 		});
+
+		// ---------- rapor et ----------
+		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenReportPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
+			ServerPlayer player = ctx.player();
+			ScreenBlockEntity a = anchorNear(player, payload.pos(), 64);
+			if (a == null) {
+				return;
+			}
+			if (onReportCooldown(player)) {
+				notice(player, a, Component.translatable("message.doomscroll.too_fast"));
+				return;
+			}
+			String owner = a.getOwnerName().isEmpty() ? "-" : a.getOwnerName();
+			// Istemcinin yolladigi nota guvenme: adres ve sahip sunucudan okunur.
+			AuditLog.record(player, a, AuditLog.REPORT, "owner=" + owner + " url=" + a.getUrl() + " note=" + payload.note());
+			notice(player, a, Component.translatable("message.doomscroll.report.sent"));
+			BlockPos bp = a.getBlockPos();
+			Component alert = Component.translatable("message.doomscroll.report.alert",
+					player.getName().getString(), owner, siteOf(a.getUrl()),
+					bp.getX() + " " + bp.getY() + " " + bp.getZ());
+			for (ServerPlayer admin : PlayerLookup.all(ctx.server())) {
+				if (Perms.has(admin, Perms.ADMIN, Perms.GAMEMASTER)) {
+					admin.sendSystemMessage(alert);
+				}
+			}
+		}));
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
 			UUID id = handler.player.getUUID();
 			if (TABLET_STATES.remove(id) != null) {
@@ -680,11 +812,16 @@ public class Doomscroll implements ModInitializer {
 						: Component.translatable("message.doomscroll.power.owner_only_named", a.getOwnerName()));
 				return;
 			}
+			if (payload.on() && ServerConfig.get().lockdown) {
+				notice(player, a, Component.translatable("message.doomscroll.lockdown"));
+				return;
+			}
 			if (payload.on() && !canControl(a, player)) {
 				deny(player, a);
 				return;
 			}
 			a.setOn(payload.on());
+			AuditLog.record(player, a, AuditLog.POWER, payload.on() ? "on" : "off");
 		}));
 
 		// ---------- kontrol suresi ----------

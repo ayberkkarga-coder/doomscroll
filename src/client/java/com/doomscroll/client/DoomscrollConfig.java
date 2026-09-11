@@ -36,6 +36,10 @@ public final class DoomscrollConfig {
 	 * "yuksek" (50/100; ~320 ms, en guvenli). Takilma/citirti olursa bir kademe yukari cik.
 	 */
 	public String audioLatency = "normal";
+	/** Senin koymadigin ekranlarin sesi (0 = duyma). Sunucu "sessiz basla" derse oturum 0'dan baslar. */
+	public float othersScreenVolume = 1.0f;
+	/** Ekranlar kalici Chromium profilinden ayri, gecici bir cerez baglaminda calissin. */
+	public boolean separateScreenCookies = true;
 
 	/** Ses akisinin OpenAL parca suresi (ms). Profilden turetilir. */
 	public int audioChunkMs() {

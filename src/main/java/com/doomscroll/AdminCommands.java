@@ -20,6 +20,9 @@ import java.util.function.ToIntBiFunction;
  *
  * Her alt komut hem Turkce hem Ingilizce adla kayitlidir (yenile / reload gibi); mesajlar dil dosyasindan
  * cevrilebilir Component olarak gider, yani her yoneticinin istemcisi kendi diliyle gosterir.
+ *
+ * Ayar degisen her komut politikayi istemcilere yeniden yollar: beyaz liste degisikligi icin
+ * kimsenin yeniden girmesi gerekmez.
  */
 public final class AdminCommands {
 	private AdminCommands() {}
@@ -34,6 +37,7 @@ public final class AdminCommands {
 				root.then(Commands.literal(n).executes(c -> {
 					ServerConfig.load();
 					Doomscroll.CONTROL_TIMEOUT_MS = ServerConfig.get().controlTimeoutSeconds * 1000L;
+					Doomscroll.broadcastPolicy(c.getSource().getServer());
 					return reply(c, Component.translatable("command.doomscroll.admin.reloaded", summary()));
 				}));
 			}
@@ -53,11 +57,10 @@ public final class AdminCommands {
 				root.then(domain(n, AdminCommands::unallow));
 			}
 			for (String n : new String[]{"isik", "light"}) {
-				root.then(Commands.literal(n).then(Commands.argument("seviye", IntegerArgumentType.integer(0, 15)).executes(c -> {
-					ServerConfig.get().screenLightLevel = IntegerArgumentType.getInteger(c, "seviye");
-					ServerConfig.save();
-					return reply(c, Component.translatable("command.doomscroll.admin.light", ServerConfig.get().screenLightLevel));
-				})));
+				root.then(number(n, "seviye", 0, 15, (c, v) -> {
+					ServerConfig.get().screenLightLevel = v;
+					return Component.translatable("command.doomscroll.admin.light", v);
+				}));
 			}
 			for (String n : new String[]{"duyuru", "announce"}) {
 				root.then(toggle(n, v -> {
@@ -76,12 +79,90 @@ public final class AdminCommands {
 				return Component.translatable("command.doomscroll.admin.redstone", onOff(v));
 			}));
 			for (String n : new String[]{"kontrolsuresi", "controltime"}) {
-				root.then(Commands.literal(n).then(Commands.argument("saniye", IntegerArgumentType.integer(5, 3600)).executes(c -> {
-					ServerConfig.get().controlTimeoutSeconds = IntegerArgumentType.getInteger(c, "saniye");
-					Doomscroll.CONTROL_TIMEOUT_MS = ServerConfig.get().controlTimeoutSeconds * 1000L;
-					ServerConfig.save();
-					return reply(c, Component.translatable("command.doomscroll.admin.control_time", ServerConfig.get().controlTimeoutSeconds));
-				})));
+				root.then(number(n, "saniye", 5, 3600, (c, v) -> {
+					ServerConfig.get().controlTimeoutSeconds = v;
+					Doomscroll.CONTROL_TIMEOUT_MS = v * 1000L;
+					return Component.translatable("command.doomscroll.admin.control_time", v);
+				}));
+			}
+
+			// ---------- denetim ve guvenlik ----------
+
+			for (String n : new String[]{"kayit", "audit"}) {
+				root.then(Commands.literal(n)
+						.executes(c -> audit(c, 15))
+						.then(Commands.argument("adet", IntegerArgumentType.integer(1, 200))
+								.executes(c -> audit(c, IntegerArgumentType.getInteger(c, "adet")))));
+			}
+			for (String n : new String[]{"denetim", "auditlog"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().auditLog = v;
+					return Component.translatable("command.doomscroll.admin.audit_log", onOff(v));
+				}));
+			}
+			for (String n : new String[]{"acil", "emergency"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().lockdown = v;
+					int off = v ? Doomscroll.blackout() : 0;
+					return v
+							? Component.translatable("command.doomscroll.admin.lockdown_on", off)
+							: Component.translatable("command.doomscroll.admin.lockdown_off");
+				}));
+			}
+			for (String n : new String[]{"karart", "blackout"}) {
+				root.then(Commands.literal(n).executes(c -> {
+					int off = Doomscroll.blackout();
+					AuditLog.record(c.getSource().getPlayer(), AuditLog.ADMIN, "blackout " + off);
+					return reply(c, Component.translatable("command.doomscroll.admin.blackout", off));
+				}));
+			}
+			for (String n : new String[]{"ozelag", "privatenet"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().allowPrivateNetwork = v;
+					return Component.translatable("command.doomscroll.admin.private_net", onOff(v));
+				}));
+			}
+			for (String n : new String[]{"onay", "consent"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().requireConsent = v;
+					return Component.translatable("command.doomscroll.admin.consent", onOff(v));
+				}));
+			}
+			for (String n : new String[]{"sessiz", "muteothers"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().muteOthersByDefault = v;
+					return Component.translatable("command.doomscroll.admin.mute_others", onOff(v));
+				}));
+			}
+			for (String n : new String[]{"alanadi", "showdomain"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().showDomain = v;
+					return Component.translatable("command.doomscroll.admin.show_domain", onOff(v));
+				}));
+			}
+			for (String n : new String[]{"panelsinir", "maxpanel"}) {
+				root.then(number(n, "blok", 0, 4096, (c, v) -> {
+					ServerConfig.get().maxPanelBlocks = v;
+					return Component.translatable("command.doomscroll.admin.max_panel", label(v));
+				}));
+			}
+			for (String n : new String[]{"ekransinir", "maxscreens"}) {
+				root.then(number(n, "blok", 0, 4096, (c, v) -> {
+					ServerConfig.get().maxScreensPerPlayer = v;
+					return Component.translatable("command.doomscroll.admin.max_screens", label(v));
+				}));
+			}
+			for (String n : new String[]{"bekleme", "cooldown"}) {
+				root.then(number(n, "ms", 0, 60000, (c, v) -> {
+					ServerConfig.get().urlCooldownMs = v;
+					return Component.translatable("command.doomscroll.admin.cooldown", v);
+				}));
+			}
+			for (String n : new String[]{"yayin", "broadcast"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().broadcast = v;
+					return Component.translatable("command.doomscroll.admin.broadcast", onOff(v));
+				}));
 			}
 			dispatcher.register(root);
 		});
@@ -97,25 +178,55 @@ public final class AdminCommands {
 	private static LiteralArgumentBuilder<CommandSourceStack> toggle(String name, Function<Boolean, Component> fn) {
 		return Commands.literal(name).then(Commands.argument("durum", StringArgumentType.word()).executes(c -> {
 			Component msg = fn.apply(on(StringArgumentType.getString(c, "durum")));
-			ServerConfig.save();
-			return reply(c, msg);
+			return apply(c, msg);
 		}));
 	}
 
+	private interface IntSetting {
+		Component apply(CommandContext<CommandSourceStack> c, int value);
+	}
+
+	private static LiteralArgumentBuilder<CommandSourceStack> number(String name, String arg, int min, int max, IntSetting fn) {
+		return Commands.literal(name).then(Commands.argument(arg, IntegerArgumentType.integer(min, max)).executes(c -> {
+			Component msg = fn.apply(c, IntegerArgumentType.getInteger(c, arg));
+			return apply(c, msg);
+		}));
+	}
+
+	/** Ayari kaydeder, politikayi istemcilere yollar, denetim kaydina yazar ve yaniti gonderir. */
+	private static int apply(CommandContext<CommandSourceStack> c, Component msg) {
+		ServerConfig.save();
+		Doomscroll.broadcastPolicy(c.getSource().getServer());
+		AuditLog.record(c.getSource().getPlayer(), AuditLog.ADMIN, msg.getString());
+		return reply(c, msg);
+	}
+
 	// ---------- eylemler ----------
+
+	private static int audit(CommandContext<CommandSourceStack> c, int n) {
+		List<AuditLog.Entry> rows = AuditLog.recent(n);
+		if (rows.isEmpty()) {
+			return reply(c, Component.translatable("command.doomscroll.admin.audit_empty"));
+		}
+		c.getSource().sendSuccess(() -> Component.translatable("command.doomscroll.admin.audit_head",
+				rows.size(), AuditLog.file().toString()), false);
+		for (AuditLog.Entry e : rows) {
+			// Kayit satirlari oyuncu metni icerir: asla bicim dizesi olarak kullanma.
+			c.getSource().sendSuccess(() -> Component.literal("§7" + e.line()), false);
+		}
+		return rows.size();
+	}
 
 	private static int block(CommandContext<CommandSourceStack> c, String d) {
 		if (d.isEmpty()) return fail(c, Component.translatable("command.doomscroll.admin.bad_domain"));
 		List<String> l = ServerConfig.get().blockedDomains;
 		if (!l.contains(d)) l.add(d);
-		ServerConfig.save();
-		return reply(c, Component.translatable("command.doomscroll.admin.blocked", d));
+		return apply(c, Component.translatable("command.doomscroll.admin.blocked", d));
 	}
 
 	private static int unblock(CommandContext<CommandSourceStack> c, String d) {
 		boolean ok = ServerConfig.get().blockedDomains.remove(d);
-		ServerConfig.save();
-		return ok ? reply(c, Component.translatable("command.doomscroll.admin.unblocked", d))
+		return ok ? apply(c, Component.translatable("command.doomscroll.admin.unblocked", d))
 				: fail(c, Component.translatable("command.doomscroll.admin.not_in_list", d));
 	}
 
@@ -123,14 +234,12 @@ public final class AdminCommands {
 		if (d.isEmpty()) return fail(c, Component.translatable("command.doomscroll.admin.bad_domain"));
 		List<String> l = ServerConfig.get().allowedDomains;
 		if (!l.contains(d)) l.add(d);
-		ServerConfig.save();
-		return reply(c, Component.translatable("command.doomscroll.admin.allowed", d));
+		return apply(c, Component.translatable("command.doomscroll.admin.allowed", d));
 	}
 
 	private static int unallow(CommandContext<CommandSourceStack> c, String d) {
 		boolean ok = ServerConfig.get().allowedDomains.remove(d);
-		ServerConfig.save();
-		return ok ? reply(c, Component.translatable("command.doomscroll.admin.unallowed", d))
+		return ok ? apply(c, Component.translatable("command.doomscroll.admin.unallowed", d))
 				: fail(c, Component.translatable("command.doomscroll.admin.not_in_list", d));
 	}
 
@@ -145,6 +254,11 @@ public final class AdminCommands {
 
 	private static Component onOff(boolean v) {
 		return Component.translatable(v ? "gui.doomscroll.enabled" : "gui.doomscroll.disabled");
+	}
+
+	/** 0 = sinirsiz. */
+	private static Component label(int v) {
+		return v <= 0 ? Component.translatable("command.doomscroll.admin.unlimited") : Component.literal(String.valueOf(v));
 	}
 
 	private static String clean(String d) {
@@ -165,7 +279,11 @@ public final class AdminCommands {
 				: Component.literal(String.join(", ", c.allowedDomains));
 		return Component.translatable("command.doomscroll.admin.summary",
 				blocked, allowed, c.screenLightLevel, onOff(c.announce), c.announceRange,
-				onOff(c.redstoneControl), onOff(c.pointer), c.controlTimeoutSeconds);
+				onOff(c.redstoneControl), onOff(c.pointer), c.controlTimeoutSeconds)
+				.copy().append(Component.translatable("command.doomscroll.admin.summary2",
+						onOff(c.lockdown), onOff(c.auditLog), onOff(c.allowPrivateNetwork), onOff(c.requireConsent),
+						onOff(c.muteOthersByDefault), onOff(c.showDomain),
+						label(c.maxPanelBlocks), label(c.maxScreensPerPlayer), c.urlCooldownMs));
 	}
 
 	private static int reply(CommandContext<CommandSourceStack> c, Component text) {

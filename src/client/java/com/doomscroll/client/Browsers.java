@@ -94,7 +94,8 @@ public final class Browsers {
 				return null;
 			}
 			try {
-				tablet = init.getFuture().join().createBrowser(TABLET_HOME_URL, false);
+				// Tablet senin: kalici profil (girislerin kalsin).
+				tablet = init.getFuture().join().createBrowser(TABLET_HOME_URL, false, false);
 				tablet.resize(tabletWidth(), tabletHeight());
 				final CefBrowserView tb = tablet;
 				tb.setMessageListener(msg -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
@@ -708,6 +709,38 @@ public final class Browsers {
 	}
 
 	// ---- ses: ekranlar (kumanda) ve elindeki tablet ayri; ikisi de config'e yazilir ----
+
+	/** Bu oturumdaki etkin deger; -1 = henuz sunucu politikasina gore belirlenmedi. */
+	private static float othersEffective = -1f;
+
+	/** Senin koymadigin ekranlarin sesi. Sunucu "sessiz basla" diyorsa oturum 0'dan baslar. */
+	public static float getOthersScreenVolume() {
+		if (othersEffective < 0f) {
+			othersEffective = ServerPolicy.muteOthers() ? 0f : DoomscrollConfig.get().othersScreenVolume;
+		}
+		return othersEffective;
+	}
+
+	/** kapali -> kisik -> orta -> tam -> kapali */
+	public static void cycleOthersScreenVolume() {
+		float v = getOthersScreenVolume();
+		float next = v <= 0.01f ? 0.35f : v <= 0.4f ? 0.7f : v <= 0.75f ? 1f : 0f;
+		othersEffective = next;
+		DoomscrollConfig.get().othersScreenVolume = next;
+		DoomscrollConfig.save();
+	}
+
+	public static String othersScreenLabel() {
+		float v = getOthersScreenVolume();
+		return Lang.tr(v <= 0.01f ? "gui.doomscroll.volume.off"
+				: v <= 0.4f ? "gui.doomscroll.volume.low"
+				: v <= 0.75f ? "gui.doomscroll.volume.mid" : "gui.doomscroll.volume.full");
+	}
+
+	/** Sunucu politikasi degisti: etkin deger yeniden hesaplansin. */
+	public static void onPolicyChanged() {
+		othersEffective = -1f;
+	}
 
 	public static float getUserVolume() { return DoomscrollConfig.get().screenVolume; }
 	public static boolean isMuted() { return DoomscrollConfig.get().screenMuted; }

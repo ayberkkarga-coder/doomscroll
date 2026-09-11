@@ -348,6 +348,10 @@ public class RemoteScreen extends Screen {
 			if (!cfg.pointer) Pointers.clear();
 		}, () -> cfg.pointer, false);
 		y += ROW;
+		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.others_screen"),
+				Browsers::othersScreenLabel, Browsers::cycleOthersScreenVolume,
+				() -> Browsers.getOthersScreenVolume() > 0.01f, false);
+		y += ROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.screen_volume"), () -> {
 			ScreenBlockEntity be = targetBe();
 			return be == null ? "—" : Lang.tr(ScreenBlockEntity.volumeKey(be.getVolume())).toUpperCase(java.util.Locale.ROOT);

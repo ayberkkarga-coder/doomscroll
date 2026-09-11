@@ -19,7 +19,8 @@ Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTub
 7. [Komutlar](#komutlar-ds)
 8. [İstemci ayarları](#istemci-ayarları--configdoomscrolljson)
 9. [Sunucu yönetici ayarları ve komutları](#sunucu-yönetici-ayarları--configdoomscroll-serverjson)
-10. [Performans](#performans)
+10. [Moderasyon ve güvenlik](#moderasyon-ve-güvenlik)
+11. [Performans](#performans)
 11. [Güvenlik notları](#güvenlik-notları)
 12. [Geliştirme](#geliştirme)
 
@@ -114,6 +115,7 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `/ds reklam [ac\|kapat]` · `/ds popup` | reklam engelleyici / son engellenen popup'ı aç |
 | `/ds altyazi` | HUD altyazısını göster/gizle |
 | `/ds ytgiris` | Google girişi için Firefox kimliği |
+| `/ds rapor [not]` | baktığın ekranı yöneticilere bildir |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / durum |
 | `/ds play <reels/tiktok linki>` | (eski) yt-dlp + ffmpeg ile indirip yerel oynatıcıda oynatır |
 
@@ -132,6 +134,8 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `screenVolume`, `screenMuted` | 0.8 | ekranların kişisel sesi (kumandadaki kaydırıcı) |
 | `tabletVolume`, `tabletMuted` | 0.8 | elindeki tabletin kendi sesi (tablet araç çubuğundaki hoparlör) |
 | `remoteTabletVolume` | 0.8 | başkalarının tabletinden duyulan ses (0 = duyma) |
+| `othersScreenVolume` | 1.0 | senin koymadığın ekranların sesi (sunucu bunu 0'dan başlatabilir) |
+| `separateScreenCookies` | true | ekranlar tabletin kalıcı profilinden ayrı, bellekteki bir Chromium bağlamında çalışır |
 
 Ses üç kademeli: **cihazın sesi** (tabletin kaydırıcısı, herkes o seviyeden duyar; ekranınki blokta durur, kumanda → Diğer → "Ekranın sesi"), üstüne **senin kaydırıcın**, en üstte Minecraft'ın "Bloklar" ayarı.
 | `tabletSway` | 0.35 | tablet eldeyken yürüme sallanmasının kalan oranı (0 sabit, 1 vanilla) |
@@ -156,8 +160,59 @@ Tek oyunculuda da aynı dosya (iç sunucu). Alanlar:
 | `pointer` | `true` | Paylaşımlı işaretçi yayını. |
 | `broadcast` | `true` | Yayın moduna izin. |
 | `controlTimeoutSeconds` | `45` | Sessiz kalan kontrolcünün kontrolü kaybettiği süre. |
+| `auditLog` | `true` | Açılan her adresi `config/doomscroll-audit.log` dosyasına yaz. |
+| `lockdown` | `false` | Acil kapatma: bütün ekranlar karanlık ve açılamaz. `/doomscroll acil` ile değişir. |
+| `allowPrivateNetwork` | `false` | Loopback ve yerel ağ adreslerine izin. Kapalı bırak: açıksa biri ekrana `192.168.1.1` koyup herkese kendi modem arayüzünü açtırabilir. |
+| `requireConsent` | `false` | İzin listesinde olmayan sayfa, izleyici Göster diyene kadar çizilmez. O ana kadar siteye hiçbir istek gitmez. |
+| `muteOthersByDefault` | `false` | Senin koymadığın ekranlar sende sessiz başlar. |
+| `showDomain` | `true` | Ekrana bakınca gerçek alan adı HUD'da yazsın. |
+| `maxPanelBlocks` | `0` | En büyük panel, blok olarak (0 = sınırsız). |
+| `maxScreensPerPlayer` | `0` | Bir oyuncunun sahip olabileceği ekran bloğu (0 = sınırsız). |
+| `urlCooldownMs` | `1500` | Aynı oyuncunun iki adres değişikliği arasındaki en az süre. |
 
-**Yönetici komutları** (`/doomscroll ...`, gamemaster yetkisi): `/doomscroll` durum · `yenile` · `engelle <alan>` / `engelkaldir <alan>` · `izin <alan>` / `izinkaldir <alan>` · `isik <0-15>` · `duyuru ac|kapat` · `isaretci ac|kapat` · `redstone ac|kapat` · `kontrolsuresi <sn>`. Değişiklikler dosyaya yazılır.
+**Yönetici komutları** (`/doomscroll ...`, gamemaster yetkisi): `/doomscroll` durum · `yenile` · `engelle <alan>` / `engelkaldir <alan>` · `izin <alan>` / `izinkaldir <alan>` · `isik <0-15>` · `duyuru ac|kapat` · `isaretci ac|kapat` · `redstone ac|kapat` · `kontrolsuresi <sn>` · `kayit [n]` · `denetim ac|kapat` · `acil ac|kapat` · `karart` · `ozelag ac|kapat` · `onay ac|kapat` · `sessiz ac|kapat` · `alanadi ac|kapat` · `panelsinir <n>` · `ekransinir <n>` · `bekleme <ms>` · `yayin ac|kapat`. Her komutun İngilizce adı da var (`reload`, `block`, `audit`, `emergency`, `blackout` ...). Değişiklikler dosyaya yazılır ve anında bütün istemcilere gider.
+
+## Moderasyon ve güvenlik
+
+Sunucu sahiplerinin sorunu genelde modun ne yaptığı değil, istemcinin yetkili olması ve olay olduktan sonra
+ellerinde hiçbir şey kalmaması. Bunun için olan araçlar şunlar.
+
+- **Denetim kaydı.** Açılan her adres, engellenen her deneme, her yayın ve açma/kapama `config/doomscroll-audit.log`
+  dosyasına kim, ne zaman, hangi dünya, hangi blok olarak yazılır. `/doomscroll kayit [n]` son kayıtları sohbete
+  döker. Adres hiçbir zaman biçim dizesi olarak kullanılmaz, yani içinde `%` olan bir adres logu kıramaz.
+- **Acil kapatma.** `/doomscroll acil ac` yüklü bütün ekranları karartır ve hiçbirinin açılmasına izin vermez.
+  `/doomscroll karart` kilitsiz, tek seferlik hâli. İkisi de anında etki eder, kimsenin yeniden girmesi gerekmez.
+- **Yönlendirme denetimi.** Sunucu paylaşılan adresi denetler ama yönlendirme önce tarayıcıda olur. Alan adı
+  politikası her istemciye girişte ve her değişiklikte gider; böylece her tarayıcı aynı kuralı her adres
+  değişikliğinde uygular ve kısaltılmış bir bağlantı engelli siteye hiç ulaşamaz. Değiştirilmiş bir istemci bunu
+  yok sayabilir, sunucudaki denetim yine geçerlidir.
+- **Yerel ağ adresleri reddedilir.** Loopback, `10/8`, `172.16/12`, `192.168/16`, link-local (`169.254.169.254`
+  bulut metadata dahil), operatör NAT, IPv6 benzersiz yerel ve link-local, `.local` ve noktasız iç ağ adları.
+  Bu olmasa ekrandaki `192.168.1.1` her izleyicinin kendi modem arayüzünü açardı. Kendi LAN'ında denemek için
+  `allowPrivateNetwork` ile geri açabilirsin.
+- **İzinler.** fabric-permissions-api konuşan bir izin yöneticisi (LuckPerms gibi) kuruluysa
+  `doomscroll.place`, `doomscroll.url`, `doomscroll.broadcast`, `doomscroll.bypass` ve `doomscroll.admin`
+  düğümleri geçerli olur. Yoksa ilk üçü herkese açık, son ikisi oyun yöneticisine. Ek bağımlılık yok: API
+  çalışma anında aranır, bulunamazsa atlanır.
+- **İzleyici onayı.** `requireConsent` açıkken izin listesinde olmayan sayfa yerine alan adını ve ekranı koyan
+  oyuncuyu yazan bir kart çıkar; Göster ve Ana menü düğmeleri var. Sen Göster demeden siteye hiçbir istek
+  gitmez, yani ne şok içerik ne de IP'n oraya ulaşır. Seçimin o oturum boyunca alan adı başına hatırlanır.
+- **Çerez ayrımı.** Ekranlar, tabletin kullandığı kalıcı profilden ayrı, bellekte duran ortak bir Chromium
+  bağlamını paylaşır. Başkasının açtığı bir sayfa senin giriş yaptığın oturumla aynı bağlamda çalışmaz ve
+  ekranlar için diske hiçbir şey yazılmaz. Ekrandaki YouTube girişinin yeniden başlatmadan sonra da kalmasını
+  istersen istemci ayarındaki `separateScreenCookies` kapatılabilir. Ekran başına ayrı bağlam daha sıkı olurdu
+  ama CEF her bağlama ayrı bir render süreci açıyor; çok ekranda bu kaldırılmaz.
+- **Gerçek alan adı HUD'da.** Ekrana bakınca sayfa başlığının yanında gerçek alan adı yazar. Sayfa oyunun
+  arayüzüne dokunamaz, yani sahte bir giriş sayfası nerede olduğunu gizleyemez.
+- **Başkasının ekranı sessiz başlayabilir.** `muteOthersByDefault` açıkken senin koymadığın ekranlar sen
+  kaydırıcıyı açana kadar sessizdir (kumanda → Diğer → Başkalarının ekranı).
+- **Sınırlar.** `maxPanelBlocks`, `maxScreensPerPlayer` ve `urlCooldownMs` lag makinesi kurulmasını ve adres
+  döndürmeyi engeller. Sınırı aşan yerleştirmede blok konmaz, eşya iade edilir.
+- **Rapor.** `/ds rapor [not]` baktığın ekranı sahibi, adresi ve koordinatıyla çevrimiçi bütün yöneticilere
+  yollar ve aynısını denetim kaydına yazar. Adres ve sahip sunucuda okunur, istemciden alınmaz.
+
+Bir de not: izin listesi alt alan adlarını doğru kapsıyor. `example.com` engellendiğinde `www.example.com` ve
+`ads.example.com` da engelli olur.
 
 ## Performans
 - Ekran görüntüsü Chromium'dan "ekran dışı çizim" ile alınır: değişen bölgeler doğrudan GPU dokusuna yüklenir (kopya yok). Bakılmayan ekranlar 10 fps'e düşer, video ve ses sürer.

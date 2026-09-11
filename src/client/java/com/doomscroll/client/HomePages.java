@@ -23,11 +23,39 @@ public final class HomePages {
 	private static final Gson GSON = new Gson();
 	private static volatile String template;
 	private static volatile String tabletTemplate;
+	private static volatile String consentTemplate;
 
 	private HomePages() {}
 
 	public static boolean isHome(@Nullable String url) {
 		return url != null && url.startsWith(SCHEME);
+	}
+
+	/** Izleyici onayi karti: gercek sayfa yerine bu acilir, siteye hicbir istek gitmez. */
+	public static String consentUrl(@Nullable BlockPos anchor, String host, String by) {
+		StringBuilder sb = new StringBuilder(SCHEME).append("home/consent?host=").append(enc(host));
+		if (by != null && !by.isEmpty()) {
+			sb.append("&by=").append(enc(by));
+		}
+		if (anchor != null) {
+			sb.append("&pos=").append(anchor.getX()).append(',').append(anchor.getY()).append(',').append(anchor.getZ());
+		}
+		return sb.toString();
+	}
+
+	private static String enc(String s) {
+		return java.net.URLEncoder.encode(s == null ? "" : s, StandardCharsets.UTF_8);
+	}
+
+	@Nullable
+	private static String query(@Nullable String q, String key) {
+		if (q == null) return null;
+		for (String part : q.split("&")) {
+			if (part.startsWith(key + "=")) {
+				return java.net.URLDecoder.decode(part.substring(key.length() + 1), StandardCharsets.UTF_8);
+			}
+		}
+		return null;
 	}
 
 	/** Ekranin ana menusu: sira o ekrana ait. */
@@ -48,6 +76,20 @@ public final class HomePages {
 			return null;
 		}
 		String path = u.getPath() == null ? "" : u.getPath();
+		if (path.startsWith("/consent")) {
+			String t = consentTemplate();
+			if (t == null) {
+				return null;
+			}
+			JsonObject c = new JsonObject();
+			String host = query(u.getQuery(), "host");
+			c.addProperty("host", host == null ? "?" : host);
+			String by = query(u.getQuery(), "by");
+			if (by != null && !by.isEmpty()) {
+				c.addProperty("by", by);
+			}
+			return translate(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(c) + ";");
+		}
 		boolean tablet = path.startsWith("/tablet");
 		JsonObject data = new JsonObject();
 		data.addProperty("mode", tablet ? "tablet" : "screen");
@@ -151,6 +193,21 @@ public final class HomePages {
 		return null;
 	}
 
+	@Nullable
+	private static String consentTemplate() {
+		String t = consentTemplate;
+		if (t == null) {
+			try (InputStream in = HomePages.class.getResourceAsStream("/assets/doomscroll/home/consent.html")) {
+				if (in == null) return null;
+				t = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+				consentTemplate = t;
+			} catch (Exception e) {
+				return null;
+			}
+		}
+		return t;
+	}
+
 	/** Sablon: ekran icin home.html (TV menusu), tablet icin home_tablet.html (iPad ana ekrani). */
 	@Nullable
 	private static String template(boolean tablet) {
@@ -175,6 +232,11 @@ public final class HomePages {
 			case "play" -> ScreenQueue.playNow(anchor, o.has("n") ? o.get("n").getAsInt() : 1);
 			case "add" -> Channels.add(str(o, "name"), str(o, "url"));
 			case "removeChannel" -> Channels.remove(str(o, "name"));
+			case "trust" -> {
+				ServerPolicy.trust(str(o, "host"));
+				ScreenBrowsers.consentGiven(anchor);
+			}
+			case "consentHome" -> ScreenBrowsers.consentDeclined(anchor);
 			case "qremove" -> {
 				String url = o.has("url") ? o.get("url").getAsString() : "";
 				java.util.List<String> q = ScreenQueue.list(anchor);

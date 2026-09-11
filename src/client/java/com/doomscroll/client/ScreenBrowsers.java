@@ -59,6 +59,10 @@ public final class ScreenBrowsers {
 		boolean pausedForOff = false;
 		String startUrl = "";
 		String lastSent = "";
+		/** Izleyici onayi bekleyen gercek adres (onay karti gosterilirken). */
+		@Nullable String pendingUrl = null;
+		/** Ekranin sahibi ben miyim? (baskasinin ekrani ayri ses seviyesinden duyulur) */
+		boolean mine = true;
 		@Nullable String serverUrlSeen = null;
 		long lastRenderNanos = 0L;
 		/** Panelin ortasi (gorunurluk kestirimi icin). */
@@ -276,7 +280,9 @@ public final class ScreenBrowsers {
 		}
 		try {
 			String start = !s.startUrl.isEmpty() ? s.startUrl : Browsers.homeUrlFor(s.pos);
-			s.browser = init.getFuture().join().createBrowser(start, false);
+			start = gate(s, start);
+			s.browser = init.getFuture().join().createBrowser(start, false,
+					DoomscrollConfig.get().separateScreenCookies);
 			s.browser.resize(Browsers.screenWidth(), Browsers.screenHeight());
 			s.lastSent = start;
 			final Screen ref = s;
@@ -324,9 +330,10 @@ public final class ScreenBrowsers {
 			s.startUrl = u;
 			return;
 		}
-		if (!u.equals(s.currentUrl())) {
-			Doomscroll.LOGGER.info("[sync] ekran {} adres uygulaniyor: {}", s.pos, u);
-			s.browser.getCefBrowser().loadURL(u);
+		String target = gate(s, u);
+		if (!target.equals(s.currentUrl())) {
+			Doomscroll.LOGGER.info("[sync] ekran {} adres uygulaniyor: {}", s.pos, target);
+			s.browser.getCefBrowser().loadURL(target);
 		}
 	}
 
@@ -346,6 +353,90 @@ public final class ScreenBrowsers {
 	 * Bilerek yonlendirme: adres sunucuya gider (kontrol alinir), herkesin ekrani - bizimki dahil - sunucudan
 	 * gelen adresi yukler. Ekranin yerel kaydi olmasa da (uzak kumanda) calisir.
 	 */
+	/**
+	 * Adresi sunucu politikasindan gecirir: engelliyse ana menuye, izleyici onayi gerekiyorsa
+	 * onay kartina cevirir. Gercek adres {@code pendingUrl}'de bekler.
+	 */
+	private static String gate(Screen s, String url) {
+		if (!ServerPolicy.allows(url)) {
+			s.pendingUrl = null;
+			notifyBlocked(url);
+			return Browsers.homeUrlFor(s.pos);
+		}
+		if (ServerPolicy.needsConsent(url)) {
+			s.pendingUrl = url;
+			return HomePages.consentUrl(s.pos, ServerPolicy.host(url), ownerName(s));
+		}
+		s.pendingUrl = null;
+		return url;
+	}
+
+	/** Onay verildi: bekleyen adresi ac. */
+	public static void consentGiven(@Nullable BlockPos anchor) {
+		Screen s = get(anchor);
+		if (s == null || s.browser == null) {
+			return;
+		}
+		String u = s.pendingUrl;
+		s.pendingUrl = null;
+		if (u != null && ServerPolicy.allows(u)) {
+			s.browser.getCefBrowser().loadURL(u);
+		}
+	}
+
+	/** Onay verilmedi: ana menuye don. */
+	public static void consentDeclined(@Nullable BlockPos anchor) {
+		Screen s = get(anchor);
+		if (s == null || s.browser == null) {
+			return;
+		}
+		s.pendingUrl = null;
+		s.browser.getCefBrowser().loadURL(Browsers.homeUrlFor(s.pos));
+	}
+
+	private static String ownerName(Screen s) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level != null && mc.level.getBlockEntity(s.pos) instanceof ScreenBlockEntity be) {
+			return be.getOwnerName();
+		}
+		return "";
+	}
+
+	private static long lastBlockedNoticeMs = 0L;
+
+	private static void notifyBlocked(String url) {
+		long now = System.currentTimeMillis();
+		if (now - lastBlockedNoticeMs < 3000L) {
+			return;
+		}
+		lastBlockedNoticeMs = now;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player != null) {
+			mc.player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(
+					"message.doomscroll.policy_blocked", ServerPolicy.host(url)));
+		}
+	}
+
+	/**
+	 * Yonlendirme denetimi: sayfa kendiliginden engelli bir adrese gittiyse (kisaltici,
+	 * reklam yonlendirmesi) hemen ana menuye don. Sunucu yalnizca paylasilan adresi gorur;
+	 * bu kontrol her istemcide, her ekran icin ayri calisir.
+	 */
+	private static void guard(Screen s) {
+		if (s.browser == null) {
+			return;
+		}
+		String cur = s.currentUrl();
+		if (cur.isEmpty() || ServerPolicy.allows(cur)) {
+			return;
+		}
+		Doomscroll.LOGGER.info("[politika] ekran {} engelli adrese gitti, geri aliniyor: {}", s.pos, cur);
+		notifyBlocked(cur);
+		s.pendingUrl = null;
+		s.lastSent = "";
+		s.browser.getCefBrowser().loadURL(Browsers.homeUrlFor(s.pos));
+	}
+
 	public static void requestNavigate(@Nullable BlockPos anchor, @Nullable String url) {
 		if (anchor == null || url == null || url.isEmpty()) return;
 		ClientPlayNetworking.send(new SetScreenUrlPayload(anchor.immutable(), url, true));
@@ -669,6 +760,13 @@ public final class ScreenBrowsers {
 				continue;
 			}
 			if (s.browser == null) continue;
+			if (tick % 10 == 0) {
+				guard(s);
+				if (be instanceof ScreenBlockEntity sbe2) {
+					java.util.UUID owner = sbe2.getOwner();
+					s.mine = owner == null || owner.equals(mc.player.getUUID());
+				}
+			}
 			// ses
 			boolean wantsSound = s.on && s.browser.hasAudioStream();
 			if (wantsSound) {
@@ -681,7 +779,9 @@ public final class ScreenBrowsers {
 					final Screen ref = s;
 					s.sound = new BrowserSoundInstance(Doomscroll.SCREEN_SOUND,
 							() -> ref.soundPos(listenerPos()),
-							() -> Browsers.isMuted() ? 0f : Browsers.getUserVolume() * ref.screenVolume,
+							() -> Browsers.isMuted() ? 0f
+									: Browsers.getUserVolume() * ref.screenVolume
+											* (ref.mine ? 1f : Browsers.getOthersScreenVolume()),
 							() -> ref.browser != null && ref.on,
 							Doomscroll.id("screen/" + s.key));
 					s.soundRate = s.browser.audioSampleRate();

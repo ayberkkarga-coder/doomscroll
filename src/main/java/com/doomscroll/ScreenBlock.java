@@ -134,11 +134,52 @@ public class ScreenBlock extends BaseEntityBlock {
 	public void setPlacedBy(Level level, BlockPos pos, BlockState state, net.minecraft.world.entity.LivingEntity placer, net.minecraft.world.item.ItemStack stack) {
 		super.setPlacedBy(level, pos, state, placer, stack);
 		if (!level.isClientSide() && placer instanceof Player p && level.getBlockEntity(pos) instanceof ScreenBlockEntity be) {
+			if (refuse(level, pos, p, be)) {
+				return;
+			}
 			be.setOwner(p.getUUID(), p.getName().getString());
 			if (be.getWidth() * be.getHeight() > 1) {
 				p.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.doomscroll.screen.panel", be.getWidth(), be.getHeight()));
 			}
 		}
+	}
+
+	/**
+	 * Sunucu sinirlari: izin, panel buyuklugu, oyuncu basina ekran sayisi.
+	 * Sinir asilirsa blok geri alinir ve esya iade edilir (lag makinesi kurulmasin).
+	 */
+	private static boolean refuse(Level level, BlockPos pos, Player p, ScreenBlockEntity be) {
+		ServerConfig sc = ServerConfig.get();
+		boolean bypass = !(p instanceof net.minecraft.server.level.ServerPlayer sp)
+				|| Perms.has(sp, Perms.BYPASS, Perms.GAMEMASTER);
+		net.minecraft.network.chat.Component why = null;
+		if (p instanceof net.minecraft.server.level.ServerPlayer sp2 && !Perms.has(sp2, Perms.PLACE, Perms.EVERYONE)) {
+			why = net.minecraft.network.chat.Component.translatable("message.doomscroll.no_permission");
+		} else if (!bypass && sc.maxPanelBlocks > 0 && be.getWidth() * be.getHeight() > sc.maxPanelBlocks) {
+			why = net.minecraft.network.chat.Component.translatable("message.doomscroll.screen.too_big", sc.maxPanelBlocks);
+		} else if (!bypass && sc.maxScreensPerPlayer > 0 && ownedBy(p) > sc.maxScreensPerPlayer) {
+			why = net.minecraft.network.chat.Component.translatable("message.doomscroll.screen.too_many", sc.maxScreensPerPlayer);
+		}
+		if (why == null) {
+			return false;
+		}
+		level.removeBlock(pos, false);
+		if (!p.getAbilities().instabuild) {
+			p.getInventory().placeItemBackInInventory(new net.minecraft.world.item.ItemStack(Doomscroll.SCREEN_BLOCK));
+		}
+		p.sendOverlayMessage(why);
+		return true;
+	}
+
+	/** Oyuncunun yuklu chunk'lardaki ekran blogu sayisi. */
+	private static int ownedBy(Player p) {
+		int n = 0;
+		for (ScreenBlockEntity s : ScreenBlockEntity.liveOnServer()) {
+			if (s.isOwner(p.getUUID())) {
+				n++;
+			}
+		}
+		return n;
 	}
 
 	@Override

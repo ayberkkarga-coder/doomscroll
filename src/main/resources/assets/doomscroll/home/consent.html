@@ -1,0 +1,75 @@
+<html lang="{{home.doomscroll.html_lang}}">
+<head>
+<meta charset="utf-8">
+<title>{{home.doomscroll.consent_title}}</title>
+<style>
+  :root { --ink:#f2f3f7; --dim:#9aa0b4; --edge:rgba(255,255,255,.12); }
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; }
+  body {
+    display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(120% 90% at 50% 0%, #1b1f2e 0%, #0b0c11 60%, #07080c 100%);
+    color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    width: min(720px, 78vw); padding: 5vh 5vw; text-align:center;
+    border:1px solid var(--edge); border-radius: 24px;
+    background: rgba(255,255,255,.035); box-shadow: 0 30px 90px rgba(0,0,0,.55);
+  }
+  .shield { width:56px; height:56px; margin:0 auto 18px; opacity:.9 }
+  h1 { margin:0 0 6px; font-size: clamp(20px, 3.2vw, 34px); font-weight:700; letter-spacing:-.01em }
+  .host {
+    display:inline-block; margin:10px 0 4px; padding:8px 18px; border-radius:999px;
+    background:rgba(255,255,255,.08); border:1px solid var(--edge);
+    font-size: clamp(18px, 3vw, 30px); font-weight:700; word-break:break-all;
+  }
+  p { margin:14px auto 0; max-width: 46ch; color: var(--dim); font-size: clamp(13px, 1.5vw, 16px); }
+  .who { margin-top:6px; color:var(--dim); font-size: clamp(13px, 1.5vw, 16px); }
+  .who b { color: var(--ink); font-weight:600 }
+  .row { margin-top: 28px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap }
+  button {
+    font: inherit; font-weight:650; cursor:pointer; padding:13px 26px; border-radius:14px;
+    border:1px solid var(--edge); background:rgba(255,255,255,.06); color:var(--ink);
+    transition: transform .08s ease, background .15s ease;
+  }
+  button:hover { background:rgba(255,255,255,.12) }
+  button:active { transform: translateY(1px) }
+  button.ok { background:#e8eaf2; color:#14161d; border-color:transparent }
+  button.ok:hover { background:#fff }
+  .foot { margin-top:22px; font-size:12px; color:#5d6377; letter-spacing:.14em; text-transform:uppercase }
+</style>
+</head>
+<body>
+<div class="card">
+  <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="#9aa0b4" stroke-width="1.6">
+    <path d="M12 2.6 4.6 5.5v6.1c0 4.6 3.1 8.3 7.4 9.8 4.3-1.5 7.4-5.2 7.4-9.8V5.5z" stroke-linejoin="round"/>
+    <path d="M12 8.4v4.2" stroke-linecap="round"/><circle cx="12" cy="15.8" r=".9" fill="#9aa0b4" stroke="none"/>
+  </svg>
+  <h1>{{home.doomscroll.consent_title}}</h1>
+  <div class="host" id="host">?</div>
+  <div class="who" id="who"></div>
+  <p>{{home.doomscroll.consent_text}}</p>
+  <div class="row">
+    <button class="ok" id="show">{{home.doomscroll.consent_show}}</button>
+    <button id="home">{{home.doomscroll.consent_home}}</button>
+  </div>
+  <div class="foot">doomscroll</div>
+</div>
+<script>
+/*__DATA__*/
+(function () {
+  var D = window.__DS || {};
+  var host = D.host || '?';
+  document.getElementById('host').textContent = host;
+  if (D.by) {
+    document.getElementById('who').innerHTML = '{{js:home.doomscroll.consent_by}} <b></b>';
+    document.getElementById('who').querySelector('b').textContent = D.by;
+  }
+  function cmd(o) { console.log('__DS__' + JSON.stringify(o)); }
+  document.getElementById('show').onclick = function () { cmd({home: 'trust', host: host}); };
+  document.getElementById('home').onclick = function () { cmd({home: 'consentHome'}); };
+})();
+</script>
+</body>
+</html>
