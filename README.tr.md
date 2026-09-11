@@ -65,6 +65,7 @@ Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2
 
 ## Ana menüler
 - Yeni yerleştirilen ekran ve tablet, siteye değil **ana menüye** açılır (`doomscroll://home/screen`, `doomscroll://home/tablet`; kumanda ve tabletteki "Ana" tuşu da buraya döner).
+- **İki menüde de yardım.** Ekran menüsünün altında **Nasıl kullanılır** rayı, tablette Geçmiş'in yanında bir yardım widget'ı var: bak-tıkla, klavye, kaydırma, kumanda, sıra ve oylama, sinema modu, R ile dik/yatay, Yansıt ve Sıraya. Benzer modların kullanıcıları sürekli nasıl kaydırılacağını ve ana sayfaya nasıl dönüleceğini soruyor; bakacakları yer burası.
 - **Ekran menüsü** (Smart TV launcher): üstte marka, arama (adres değilse Google) ve saat; büyük **hero** alanı (sırada video varsa küçük resmi ve başlığıyla "Şimdi oynat", yoksa günün selamı ve Shorts daveti); yatay raylar: Uygulamalar (YouTube, Shorts, Reels, TikTok, Twitch, Kick), Kanallar (+ Kanal ekle, ✕), Sırada (YouTube küçük resimli kartlar; tıkla oynat, ✕ çıkar). Üzerine gelince TV odak halkası.
 - **Tablet menüsü** (iPad ana ekranı): duvar kâğıdı, durum çubuğu (saat, tarih), arama hapı, yuvarlak köşeli uygulama simgeleri, **Geçmiş** widget'ı ("Temizle"), yer imleri ve kanallar web-klip simgesi olarak (üzerine gelince ✕ ile silinir), altta dock (YouTube, Shorts, Reels, TikTok, Twitch). Dik modda 4 sütun.
 - Her iki menüde **+ Ekle** simgesi: ad ve adres girince tablete yer imi, ekrana kanal olarak eklenir (üzerine gelince ✕ ile silinir). Yıldız ve `/ds kanal ekle` de aynı listeleri besler.

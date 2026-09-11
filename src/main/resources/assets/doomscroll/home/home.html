@@ -113,6 +113,13 @@ body{background:#0d0e13;overflow-x:hidden;overflow-y:auto;position:relative;font
 .card:hover .x{opacity:1}
 .empty{color:var(--faint);font-size:17px;padding:10px 2px;text-shadow:2px 2px 0 var(--sh)}
 
+/* yardim kartlari */
+.row.help .rail{gap:10px}
+.tip{flex:none;width:250px;padding:11px 13px;
+  background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
+  box-shadow:inset 2px 2px 0 var(--hi),inset -2px -2px 0 var(--lo)}
+.tip b{display:block;font-weight:400;font-size:17px;margin-bottom:5px;text-shadow:2px 2px 0 var(--sh)}
+.tip span{display:block;font-size:15px;color:var(--dim);line-height:1.35;text-shadow:2px 2px 0 var(--sh)}
 .foot{padding:8px var(--safe) 30px;color:#4e5265;font-size:14px;letter-spacing:2px;text-transform:uppercase}
 
 /* kanal ekle kutusu */
@@ -165,6 +172,14 @@ body{background:#0d0e13;overflow-x:hidden;overflow-y:auto;position:relative;font
 <section class="row"><h2>{{home.doomscroll.row_apps}}</h2><div class="rail fit" id="apps"></div></section>
 <section class="row"><h2>{{home.doomscroll.row_channels}}<span id="chCount"></span></h2><div class="rail" id="channels"></div></section>
 <section class="row"><h2>{{home.doomscroll.row_queue}}<span id="qCount"></span></h2><div class="rail" id="queue"></div></section>
+<section class="row help"><h2>{{home.doomscroll.help_title}}</h2><div class="rail fit">
+  <div class="tip"><b>{{home.doomscroll.help.look.t}}</b><span>{{home.doomscroll.help.look.d}}</span></div>
+  <div class="tip"><b>{{home.doomscroll.help.keyboard.t}}</b><span>{{home.doomscroll.help.keyboard.d}}</span></div>
+  <div class="tip"><b>{{home.doomscroll.help.scroll.t}}</b><span>{{home.doomscroll.help.scroll.d}}</span></div>
+  <div class="tip"><b>{{home.doomscroll.help.remote.t}}</b><span>{{home.doomscroll.help.remote.d}}</span></div>
+  <div class="tip"><b>{{home.doomscroll.help.queue.t}}</b><span>{{home.doomscroll.help.queue.d}}</span></div>
+  <div class="tip"><b>{{home.doomscroll.help.cinema.t}}</b><span>{{home.doomscroll.help.cinema.d}}</span></div>
+</div></section>
 <div class="foot">{{home.doomscroll.foot}}</div>
 
 <div class="ov" id="ov"><form class="dlg" id="addf"><h4>{{home.doomscroll.add_channel}}</h4><input id="an" placeholder="{{home.doomscroll.add_name}}" autocomplete="off"><input id="au" placeholder="{{home.doomscroll.add_url}}" autocomplete="off"><div class="btns"><button type="button" id="ac">{{home.doomscroll.cancel}}</button><button type="submit" class="ok">{{home.doomscroll.add}}</button></div></form></div>

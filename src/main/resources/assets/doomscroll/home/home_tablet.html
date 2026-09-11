@@ -85,6 +85,10 @@ body{display:flex;flex-direction:column;position:relative;background:#101219;fon
 .clockw .day{font-size:17px;color:var(--dim);margin-top:5px}
 .clockw .foot{font-size:13px;color:var(--faint)}
 
+/* yardim satirlari */
+.hrow{display:flex;flex-direction:column;gap:1px;padding:3px 5px;font-size:15px}
+.hrow b{font-weight:400;color:var(--ink);text-shadow:2px 2px 0 var(--sh)}
+.hrow span{font-size:14px;color:var(--faint);line-height:1.3;text-shadow:2px 2px 0 var(--sh)}
 /* alt */
 .dots{display:flex;justify-content:center;gap:6px;padding:7px 0 6px;flex:none}
 .dots span{width:6px;height:6px;background:var(--faint)}
@@ -232,6 +236,19 @@ body.portrait .clockw .big{font-size:44px}
   });
   wd.appendChild(rows);
   grid.appendChild(stagger(wd));
+
+  // Yardim widget'i: temel hareketler (en cok takilinan yer burasi)
+  var hw = el('div', 'widget');
+  hw.appendChild(el('h3', null, '{{js:home.doomscroll.help_title}}'));
+  var hrows = el('div', 'rows');
+  [['{{js:home.doomscroll.help.tscroll.t}}', '{{js:home.doomscroll.help.tscroll.d}}'], ['{{js:home.doomscroll.help.trotate.t}}', '{{js:home.doomscroll.help.trotate.d}}'], ['{{js:home.doomscroll.help.tcast.t}}', '{{js:home.doomscroll.help.tcast.d}}'], ['{{js:home.doomscroll.help.tqueue.t}}', '{{js:home.doomscroll.help.tqueue.d}}'], ['{{js:home.doomscroll.help.tmark.t}}', '{{js:home.doomscroll.help.tmark.d}}'], ['{{js:home.doomscroll.help.thome.t}}', '{{js:home.doomscroll.help.thome.d}}']].forEach(function (p) {
+    var r = el('div', 'hrow');
+    r.appendChild(el('b', null, p[0]));
+    r.appendChild(el('span', null, p[1]));
+    hrows.appendChild(r);
+  });
+  hw.appendChild(hrows);
+  grid.appendChild(stagger(hw));
 
   APPS.forEach(function (a) { grid.appendChild(stagger(iconApp(a))); });
   (D.channels || []).forEach(function (c) {
