@@ -284,8 +284,13 @@ public class ScreenBlockEntity extends BlockEntity {
 	/** Sunucuda yuklu ekran bloklari: acil kapatma ve sayi siniri bunlar uzerinden calisir. */
 	private static final java.util.Set<ScreenBlockEntity> SERVER_LIVE = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-	/** Yuklu (chunk'i acik) sunucu ekranlarinin kopyasi. */
+	/**
+	 * Yuklu (chunk'i acik) sunucu ekranlarinin kopyasi.
+	 * Kaldirilmis ya da dunyasi gitmis girdiler burada ayiklanir: chunk bosaltmasi
+	 * setRemoved cagirir ama tek oyunculuda dunya kapanisinda birkac girdi kalabiliyor.
+	 */
 	public static java.util.List<ScreenBlockEntity> liveOnServer() {
+		SERVER_LIVE.removeIf(s -> s.isRemoved() || s.level == null);
 		return java.util.List.copyOf(SERVER_LIVE);
 	}
 
