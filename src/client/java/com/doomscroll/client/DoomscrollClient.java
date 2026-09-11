@@ -256,7 +256,7 @@ public class DoomscrollClient implements ClientModInitializer {
 			}
 		});
 
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> dispatcher.register(
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, ctx) -> aliases(dispatcher.register(
 				ClientCommands.literal("ds")
 						.executes(c -> {
 							c.getSource().sendFeedback(help());
@@ -354,8 +354,13 @@ public class DoomscrollClient implements ClientModInitializer {
 							return 1;
 						})))
 						.then(ClientCommands.literal("gecikme").then(ClientCommands.argument("profil", StringArgumentType.word()).executes(c -> {
-							String p = StringArgumentType.getString(c, "profil").toLowerCase(java.util.Locale.ROOT)
+							String p0 = StringArgumentType.getString(c, "profil").toLowerCase(java.util.Locale.ROOT)
 									.replace('\u00fc', 'u').replace('\u015f', 's').replace('\u0131', 'i');
+							String p = switch (p0) {
+								case "low" -> "dusuk";
+								case "high" -> "yuksek";
+								default -> p0;
+							};
 							if (!java.util.Set.of("dusuk", "normal", "yuksek").contains(p)) {
 								c.getSource().sendError(Component.translatable("command.doomscroll.latency_usage"));
 								return 0;
@@ -579,9 +584,79 @@ public class DoomscrollClient implements ClientModInitializer {
 							openLater(BrowserScreen::new);
 							return 1;
 						}))
-		));
+		)));
 
 		Doomscroll.LOGGER.info("doomscroll client hazir");
+	}
+
+	/**
+	 * Komut agacina Ingilizce takma adlar ekler: /ds screens = /ds ekranlar.
+	 * Takma dugum, kaynak dugumun komutunu ve cocuklarini paylasir (kopya yok).
+	 */
+	private static com.mojang.brigadier.tree.LiteralCommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> aliases(
+			com.mojang.brigadier.tree.LiteralCommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> root) {
+		// Once derin dugumler: ust dugum kopyalanirken cocuklarini oldugu gibi paylasir.
+		alias(root, "kontrol", "al", "take");
+		alias(root, "kontrol", "birak", "release");
+		alias(root, "kontrol", "kilit", "lock");
+		alias(root, "kanal", "liste", "list");
+		alias(root, "kanal", "ekle", "add");
+		alias(root, "kanal", "sil", "remove");
+		alias(root, "sira", "ekle", "add");
+		alias(root, "sira", "liste", "list");
+		alias(root, "sira", "sil", "remove");
+		alias(root, "sira", "temizle", "clear");
+		alias(root, "sira", "atla", "skip");
+		alias(root, "yayin", "ac", "on");
+		alias(root, "yayin", "kapat", "off");
+		alias(root, "yayin", "kalite", "quality");
+		alias(root, "isik", "kapat", "off");
+		alias(root, "isik", "az", "low");
+		alias(root, "isik", "cok", "high");
+		alias(root, "isik", "yumusak", "smooth");
+		alias(root, "isik", "menzil", "range");
+		alias(root, "reklam", "ac", "on");
+		alias(root, "reklam", "kapat", "off");
+
+		alias(root, "yardim", "help");
+		alias(root, "ekranlar", "screens");
+		alias(root, "kontrol", "control");
+		alias(root, "kanal", "channel");
+		alias(root, "senkron", "sync");
+		alias(root, "sinema", "cinema");
+		alias(root, "sira", "queue");
+		alias(root, "yayin", "broadcast");
+		alias(root, "isik", "light");
+		alias(root, "reklam", "adblock");
+		alias(root, "isaretci", "pointer");
+		alias(root, "altyazi", "captions");
+		alias(root, "gecikme", "latency");
+		alias(root, "ytgiris", "ytlogin");
+		return root;
+	}
+
+	private static void alias(com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> root, String parent, String from, String to) {
+		com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> p = root.getChild(parent);
+		if (p != null) {
+			alias(p, from, to);
+		}
+	}
+
+	private static void alias(com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> parent, String from, String to) {
+		com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> src = parent.getChild(from);
+		if (src == null || parent.getChild(to) != null) {
+			Doomscroll.LOGGER.warn("komut takma adi atlandi: {} -> {}", from, to);
+			return;
+		}
+		com.mojang.brigadier.tree.LiteralCommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> node =
+				com.mojang.brigadier.builder.LiteralArgumentBuilder.<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource>literal(to)
+						.requires(src.getRequirement())
+						.executes(src.getCommand())
+						.build();
+		for (com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> child : src.getChildren()) {
+			node.addChild(child);
+		}
+		parent.addChild(node);
 	}
 
 	/** /ds kontrol al|birak|kilit: bakilan / kumandanin sectigi / en yakin ekran icin. */

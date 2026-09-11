@@ -25,13 +25,13 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 14. [Safety notes](#safety-notes)
 15. [Development](#development)
 
-> **Language.** The mod ships in English and Turkish; it follows your Minecraft language setting. Command names themselves are still Turkish words (`/ds ekranlar`, `/ds kanal ekle`) — the help text explains what each one does in your language.
+> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Every command has an English name and a Turkish one, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`.
 
 ## Install
 1. Put `fabric-api`, `mcef-codec-0.1.0.jar` and `doomscroll-0.1.0.jar` in your `mods/` folder.
 2. On first launch mcef-codec downloads the Chromium binaries (~136 MB, SHA-256 verified) into `config/mcef-codec/`.
 3. On a server every player needs both jars, and the server needs `doomscroll` too. The browser only ever runs on the client. Anyone without the mod sees a blank screen.
-4. A one-time welcome message appears on your first join. `/ds yardim` lists every command.
+4. A one-time welcome message appears on your first join. `/ds help` lists every command.
 
 ## Items
 Everything is crafted at a crafting table (screen: glass pane + redstone + iron → 2; remote: stone button / redstone / iron; tablet: 6 glass panes + iron, redstone, iron). They are in the Functional Blocks tab in creative.
@@ -51,7 +51,7 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
   - **MORE:** SponsorBlock, shared pointer, redstone, broadcast, screen light, smooth light, light range, queue → the **queue list** page (with titles; play / remove / clear, scrollable).
   - LCD rows: state · owner · volume, page title + duration (+N queued), control/lock.
 - **Looking at a new screen** shows a "▶ title · duration · control" notice after one second.
-- **Cinema mode:** the site's own fullscreen is tried first (the page drops a single-use cover and the mod clicks it, which supplies the "user gesture" the browser wants); if that fails the largest player is pinned to the screen with CSS (`/ds sinema`, and Cinema on the remote and tablet). Links that try to open a new window open on the same screen if they are on the same site; foreign popups (ads) are blocked.
+- **Cinema mode:** the site's own fullscreen is tried first (the page drops a single-use cover and the mod clicks it, which supplies the "user gesture" the browser wants); if that fails the largest player is pinned to the screen with CSS (`/ds cinema`, and Cinema on the remote and tablet). Links that try to open a new window open on the same screen if they are on the same site; foreign popups (ads) are blocked.
 - **Tablet toolbar:** back/forward/reload, Home, Cinema, **★ bookmark** (add/remove the open page), **≡ menu** (bookmarks + history panel: tap to open, ✕ to delete, the bin clears history), address, **Cast** (send the page to the screen you are looking at, or the nearest one), **Queue** (add the page to that screen's video queue). Bookmarks and the last 40 pages live in `config/doomscroll-tablet.json`.
 
 ## Watching together (sync)
@@ -59,8 +59,8 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - **Controller:** one person drives each screen at a time. Any deliberate action (remote, click, wheel, address) takes control; only the controller's browser publishes addresses and auto-advances. If the controller walks away, leaves, or goes quiet (45 s by default, a server setting) control is released.
 - **Lock:** if the person who placed the screen locks it, only they (and operators) can control it.
 - **Playback sync:** on long videos (≥30 s) viewers line up with the controller's position (2.5 s tolerance) and pausing is mirrored. It is off for short looping videos. It works on film sites even when the player is inside an iframe.
-- **Video queue:** `/ds sira ekle <url>` (or **+** on the remote, **Queue** on the tablet) adds a video; when the current one ends the next opens and everyone moves to the same address. `/ds sira` lists, `/ds sira atla` skips now, `/ds sira sil <n>`, `/ds sira temizle`. Ads and preview clips ending do not trigger the queue. The queue lasts for the session.
-- **Shared pointer:** the crosshair of a player looking at a screen shows up as a coloured dot for everyone else looking at the same screen ("look here"). The server publishes at most ~16 positions per second, within 48 blocks. `/ds isaretci` or the More tab.
+- **Video queue:** `/ds queue add <url>` (or **+** on the remote, **Queue** on the tablet) adds a video; when the current one ends the next opens and everyone moves to the same address. `/ds queue` lists, `/ds queue skip` skips now, `/ds queue remove <n>`, `/ds queue clear`. Ads and preview clips ending do not trigger the queue. The queue lasts for the session.
+- **Shared pointer:** the crosshair of a player looking at a screen shows up as a coloured dot for everyone else looking at the same screen ("look here"). The server publishes at most ~16 positions per second, within 48 blocks. `/ds pointer` or the More tab.
 - **Cast:** send the tablet's page to the screen you are looking at, or the nearest one.
 - **HUD captions:** if the video has captions on (YouTube CC, HTML5 caption tracks, a player's caption layer, players inside iframes), the text appears above your hotbar in the game. You do not have to look at the screen. Only lines actually visible on the screen are picked up.
 - Everyone watches in their own CEF profile and cookies: only the address and position are shared, never an account. Everyone sees the same page but not a pixel-identical image (sign-in state, ads and recommendations are personal; on a film site each person picks their own dub or subtitle track).
@@ -69,7 +69,7 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - A newly placed screen and the tablet open the **home menu**, not a site (`doomscroll://home/screen`, `doomscroll://home/tablet`; the Home button on the remote and tablet also comes back here).
 - **Screen menu** (a smart-TV launcher): brand, search (anything that is not an address goes to Google) and a clock across the top; a large **hero** area (if something is queued, its thumbnail and title with "Play now"; otherwise a greeting for the time of day and an invitation to Shorts); horizontal rails: Apps (YouTube, Shorts, Reels, TikTok, Twitch, Kick), Channels (+ Add a channel, ✕), Up next (cards with YouTube thumbnails; click to play, ✕ to remove). A TV focus ring on hover.
 - **Tablet menu** (an iPad home screen): wallpaper, status bar (clock, date), a search pill, rounded app icons, a **History** widget ("Clear"), bookmarks and channels as web-clip icons (hover for ✕), and a dock at the bottom (YouTube, Shorts, Reels, TikTok, Twitch). Four columns in portrait.
-- Both menus have a **+ Add** icon: give it a name and an address and it becomes a tablet bookmark or a screen channel (hover for ✕). The star and `/ds kanal ekle` feed the same lists.
+- Both menus have a **+ Add** icon: give it a name and an address and it becomes a tablet bookmark or a screen channel (hover for ✕). The star and `/ds channel add` feed the same lists.
 - The pages are generated inside the mod (`assets/doomscroll/home/home.html` + `HomePages`) and never touch the internet; server address rules always allow `doomscroll://`.
 
 ## Floor and ceiling screens
@@ -79,12 +79,12 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - A floor screen lights the ceiling and walls, a ceiling screen lights the floor. Look-and-click, the pointer and audio all work the same.
 
 ## Broadcast mode (everyone sees your view)
-Normally everyone opens the same address in their own browser, at zero extra cost. When a page differs per person, as on film sites, or when you want people to see exactly what you see, use **broadcast mode**: `/ds yayin ac` (or remote → More → Broadcast). The video on your screen is drawn scaled down onto a canvas and encoded with the video's own audio track by Chromium's own encoder (VP8 + Opus, WebM) into 500 ms chunks; the chunks go through the server to everyone looking at that screen. Viewers' screens open a small receiver page (MediaSource) and play near the live edge (~1-2 s behind). When a new viewer arrives the encoder restarts for a keyframe; when the host leaves or runs `/ds yayin kapat` everyone returns to the address on the server.
-- The cost falls on the host (encoding, about like a Discord screen share) and the server (~150 KB/s per viewer). Quality presets: `/ds yayin kalite dusuk|normal|yuksek` (640×360/20 fps/700 kbps · 960×540/24/1200 · 1280×720/30/2500, changeable mid-broadcast) or `config/doomscroll.json`: `broadcastWidth`, `broadcastFps`, `broadcastKbps`. The server drops anything over 40 chunks per second per host. Server owners can turn it off with `broadcast`.
+Normally everyone opens the same address in their own browser, at zero extra cost. When a page differs per person, as on film sites, or when you want people to see exactly what you see, use **broadcast mode**: `/ds broadcast on` (or remote → More → Broadcast). The video on your screen is drawn scaled down onto a canvas and encoded with the video's own audio track by Chromium's own encoder (VP8 + Opus, WebM) into 500 ms chunks; the chunks go through the server to everyone looking at that screen. Viewers' screens open a small receiver page (MediaSource) and play near the live edge (~1-2 s behind). When a new viewer arrives the encoder restarts for a keyframe; when the host leaves or runs `/ds broadcast off` everyone returns to the address on the server.
+- The cost falls on the host (encoding, about like a Discord screen share) and the server (~150 KB/s per viewer). Quality presets: `/ds broadcast quality low|normal|high` (640×360/20 fps/700 kbps · 960×540/24/1200 · 1280×720/30/2500, changeable mid-broadcast) or `config/doomscroll.json`: `broadcastWidth`, `broadcastFps`, `broadcastKbps`. The server drops anything over 40 chunks per second per host. Server owners can turn it off with `broadcast`.
 - Limit: Chromium captures direct MP4 sources without CORS as black for security reasons; YouTube and players using HLS/MSE (most film sites) are fine.
 
 ## Cinema-room features
-- **Screen light (ambilight):** walls, floor and ceiling in front of the screen are lit by the colour of the nearest part of the screen, blending into the whole screen's average as you move away. The panel behaves like an area light, so surfaces flush with its edge still catch light. It is entirely client-side and works with shader packs (the same emissive draw path as the screen). The surface list is recomputed on a background thread every 2 s with a line-of-sight check so light does not leak through walls; colours come from the browser's 8×5 colour map every frame, brightened while keeping their hue. Settings → "Screen light" (off / low / normal / high) and "Smooth light" (on: a continuous gradient across neighbouring surfaces, off: a block-by-block mosaic); `/ds isik kapat|az|normal|cok|yumusak|menzil <2-24>`; More → light range. `/ds isik` prints diagnostics (patch count, average screen colour).
+- **Screen light (ambilight):** walls, floor and ceiling in front of the screen are lit by the colour of the nearest part of the screen, blending into the whole screen's average as you move away. The panel behaves like an area light, so surfaces flush with its edge still catch light. It is entirely client-side and works with shader packs (the same emissive draw path as the screen). The surface list is recomputed on a background thread every 2 s with a line-of-sight check so light does not leak through walls; colours come from the browser's 8×5 colour map every frame, brightened while keeping their hue. Settings → "Screen light" (off / low / normal / high) and "Smooth light" (on: a continuous gradient across neighbouring surfaces, off: a block-by-block mosaic); `/ds light off|low|normal|high|smooth|range <2-24>`; More → light range. `/ds light` prints diagnostics (patch count, average screen colour).
 - **Redstone control:** the screen's owner enables it with `/ds redstone` (or More → Redstone): a rising edge on any block of the panel toggles the screen. One lever to kill the lights and start the film.
 - **Block light:** a screen that is on emits light level 12 (server setting `screenLightLevel`).
 
@@ -95,29 +95,29 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 - **YouTube ads** come from the same domain, so lists cannot block them; the in-page skipper seeks to the end of an ad and presses Skip.
 - **SponsorBlock:** sponsor, self-promo, subscribe reminder, intro, outro and preview segments in YouTube videos are skipped automatically using [SponsorBlock](https://sponsor.ajay.app) community data. It works on screens and on the tablet. More → SponsorBlock, or `/ds sponsor`.
 - In-feed ads on Instagram and TikTok arrive as ordinary content and are not blocked.
-- Toggle: Settings → **Ad blocker** or `/ds reklam ac|kapat`; `/ds reklam` reports the loaded rule count and how many requests were blocked; the log has `[reklam] engellendi: domain/path` for the first 20.
+- Toggle: Settings → **Ad blocker** or `/ds adblock on|off`; `/ds adblock` reports the loaded rule count and how many requests were blocked; the log has `[reklam] engellendi: domain/path` for the first 20.
 
 ## Commands (`/ds`)
 | Command | |
 |---|---|
-| `/ds yardim` | the full list |
-| `/ds ekranlar` | nearby screens: distance, size, owner, control, lock, page title |
+| `/ds help` | the full list |
+| `/ds screens` | nearby screens: distance, size, owner, control, lock, page title |
 | `/ds go <url>` · `shorts` · `reels` · `tiktok` | open on the screen |
-| `/ds kontrol al\|birak\|kilit` | take / release control, toggle the lock |
-| `/ds sira [ekle <url>\|liste\|sil <n>\|temizle\|atla]` | video queue |
-| `/ds kanal liste\|ekle "Name" [url]\|sil Name` | remote channels (without a url it uses the open page) |
-| `/ds senkron` · `/ds auto` | playback sync / auto-advance |
-| `/ds sinema` · `/ds pause` | fullscreen / play-pause |
-| `/ds isik kapat\|az\|normal\|cok\|yumusak\|menzil <blocks>` | screen light |
-| `/ds yayin [ac\|kapat]` | broadcast mode (your view to everyone) |
-| `/ds sponsor` · `/ds isaretci` · `/ds redstone` | SponsorBlock / shared pointer / redstone on this screen (owner) |
+| `/ds control take\|release\|lock` | take / release control, toggle the lock |
+| `/ds queue [add <url>\|list\|remove <n>\|clear\|skip]` | video queue |
+| `/ds channel list\|add "Name" [url]\|remove Name` | remote channels (without a url it uses the open page) |
+| `/ds sync` · `/ds auto` | playback sync / auto-advance |
+| `/ds cinema` · `/ds pause` | fullscreen / play-pause |
+| `/ds light off\|low\|normal\|high\|smooth\|range <blocks>` | screen light |
+| `/ds broadcast [on\|off]` | broadcast mode (your view to everyone) |
+| `/ds sponsor` · `/ds pointer` · `/ds redstone` | SponsorBlock / shared pointer / redstone on this screen (owner) |
 | `/ds res 720p\|1080p\|1440p\|WxH` · `/ds audiorate <hz>` | resolution / audio sample rate |
 | `/ds fps <10-60>` · `/ds perf` | browser frame rate / performance report |
 | `/ds boost <0.5-6>` | browser audio gain (default 2.5; peaks are soft-limited) |
-| `/ds gecikme dusuk\|normal\|yuksek` | audio delay profile: low ~150 ms, normal ~180 ms, high ~320 ms |
-| `/ds reklam [ac\|kapat]` · `/ds popup` | ad blocker / open the last blocked popup |
-| `/ds altyazi` | show or hide HUD captions |
-| `/ds ytgiris` | a Firefox identity for signing in to Google |
+| `/ds latency low\|normal\|high` | audio delay profile: low ~150 ms, normal ~180 ms, high ~320 ms |
+| `/ds adblock [on\|off]` · `/ds popup` | ad blocker / open the last blocked popup |
+| `/ds captions` | show or hide HUD captions |
+| `/ds ytlogin` | a Firefox identity for signing in to Google |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / status |
 | `/ds play <reels or tiktok link>` | (legacy) download with yt-dlp + ffmpeg and play in a local player |
 

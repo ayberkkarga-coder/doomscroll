@@ -5,6 +5,7 @@
 Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTube / film izle. Dünyaya dev ekranlar kur, elinde tablet taşı, kumandayla yönet, sinema salonu yap. Şakaydı, gerçek oldu.
 
 - Minecraft **26.2** · Fabric · Java 25
+- Her komutun bir de İngilizce adı var, ikisi karışık kullanılabilir: `/ds ekranlar` = `/ds screens`, `/ds sira temizle` = `/ds queue clear`. Arayüz dili Minecraft'ın dil ayarını izler.
 - Gerçek Chromium (CEF 126, H.264/AAC kodekli) — kardeş proje [`mcef-codec`](../mcef-codec) sağlar
 - Konumsal ses (panelin sana en yakın noktasından gelir, Sound Physics Remastered ile uyumlu), shader'larda ışık yayan ekran, ekrandaki görüntüye göre renklenen oda (ambilight)
 
