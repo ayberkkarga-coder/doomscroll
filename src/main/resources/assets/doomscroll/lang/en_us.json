@@ -419,5 +419,12 @@
   "message.doomscroll.queue.sent": "Sent to the queue",
   "message.doomscroll.queue.added_by": "%s — added by %s",
   "home.doomscroll.vote_hint": "Vote or take it back",
-  "home.doomscroll.added_by": "added by"
+  "home.doomscroll.added_by": "added by",
+  "block.doomscroll.speaker": "Speaker",
+  "block.doomscroll.speaker.tooltip": "Plays the sound of the screen it is bound to",
+  "block.doomscroll.speaker.tooltip.hint": "Pair the remote with a screen, then right-click this",
+  "message.doomscroll.speaker.bound": "Speaker bound to the screen at %s %s %s",
+  "message.doomscroll.speaker.unbound": "Speaker unbound",
+  "message.doomscroll.speaker.unbound_hint": "This speaker is not bound to a screen. Pair the remote with a screen, then right-click this.",
+  "message.doomscroll.speaker.need_remote": "Pair the remote with a screen first (right-click the screen)"
 }

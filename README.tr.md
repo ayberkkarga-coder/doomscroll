@@ -38,6 +38,7 @@ Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2
 | **Ekran** (`doomscroll:screen`) | Yan yana / üst üste dizince tek panel olur (sağ-alt blok "anchor"), yerleştirince panel boyutu yazılır. Eğilerek (Shift) yere ya da tavana koyunca yer / tavan ekranı. Açıkken ışık yayar. Çerçevesiz. |
 | **Kumanda** (`doomscroll:remote`) | Ekrana sağ tık: o ekrana bağlanır. Havaya sağ tık: panel. Shift + sağ tık: bağı keser. Bağlı değilken hiçbir ekranı yönetmez. |
 | **Tablet** (`doomscroll:tablet`) | Sağ tık: kendi tarayıcısı. Elde tutulunca 3D görünür, R ile dik/yatay. Ana eldeyken fare tekerleği tablete gider (TikTok/Shorts/Reels: video değiştir, diğer sayfalar: kaydır); eğilerek (Shift) çevirince hotbar değişir. Başkalarının tabletinde onların sayfası görünür. |
+| **Hoparlör** (`doomscroll:speaker`) | Bir ekranın sesini başka bir noktadan duyurur. Kumandayı ekrana bağla, sonra hoparlöre sağ tıkla; eğilerek sağ tık bağı keser. Elin boşken sağ tıklayınca neye bağlı olduğunu söyler. |
 
 ## Ekranı kullanmak
 - **Bak-tıkla:** el boşken (ya da kumanda/tablet tutarken) ekrana bak: crosshair imleç olur. Sol tık tıklar, tekerlek kaydırır (Shorts/Reels'te bir tık = bir video), sağ tık klavyeyi ekrana bağlar (ESC bırakır), Shift + sağ tık oynat/durdur. Elinde blok varken tıklarsan ipucu çıkar (bloklar ekranın yanına konabilsin diye tıklar oyuna gider).
@@ -84,6 +85,11 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 - **Ekran ışığı (ambilight):** ekranın önündeki duvar, zemin ve tavan yüzeyleri ekranın o bölgesindeki renkle aydınlanır; uzaklaştıkça tüm ekranın ortalamasıyla karışır. Panel bir alan ışığı gibi davranır: yüzeyler kenarla aynı hizada olsa da ışık alır. Tamamen istemci tarafındadır, shader paketleriyle de çalışır (ekranla aynı "emissive" çizim yolu). Yüzey listesi arka planda 2 sn'de bir hesaplanır, görüş çizgisi kontrolüyle duvar arkasına ışık sızmaz; renkler her karede tarayıcının 8×5 renk haritasından alınır, ton korunarak parlaklık yükseltilir. Ayar: Ayarlar → "Ekran ışığı" (kapalı / az / normal / çok) ve "Yumuşak ışık" (açık: komşu yüzeyler arasında kesintisiz geçiş, kapalı: blok blok mozaik); `/ds isik kapat|az|normal|cok|yumusak|menzil <2-24>`; Diğer → ışık menzili. `/ds isik` teşhis bilgisi verir (yama sayısı, ekran ortalama rengi).
 - **Redstone kontrolü:** ekran sahibi `/ds redstone` (ya da Diğer → Redstone) ile açar: panelin herhangi bir bloğuna gelen sinyalin yükselen kenarı ekranı açar/kapatır. Tek levhayla ışıkları söndürüp ekranı açmak için.
 - **Blok ışığı:** açık ekran 12 seviye ışık yayar (sunucu ayarı `screenLightLevel`).
+- **Hoparlörler.** Büyük bir salonda sesin yalnızca panelden gelmesi yetmiyor. Oturulan yere, koridora,
+  tribünün etrafına hoparlör blokları koyup kumandayla ekrana bağlıyorsun. Ses akışı tek olduğu için aynı anda
+  birden fazla yerden çalmıyor; onun yerine her oyuncunun istemcisi **kendine en yakın** kaynağı seçiyor:
+  panelin yüzeyi ya da 24 blok içindeki bağlı bir hoparlör. Kulak tek yerde olduğu için sonuç doğru, ayrı
+  hoparlörlerin yanındaki iki kişi de kendi yanındakinden duyuyor.
 
 ## Reklam engelleme ve SponsorBlock
 - **Filtre listeleri (gerçek engelleyici mantığı):** [EasyList](https://easylist.to) ve [AdGuard Türkçe filtresi](https://filters.adtidy.org/extension/ublock/filters/13.txt) tam kural diliyle (alan + yol kalıpları, `$third-party`, tür, `domain=`, `$popup`, `@@` istisnalar, `$generichide`, `@@$document`) istek düzeyinde uygulanır; [StevenBlack hosts](https://github.com/StevenBlack/hosts) alan adı listesi eklenir. Listelerin `##` kozmetik gizleme kuralları (site özel + genel) her sayfaya ve iframe'e stil olarak enjekte edilir. `config/mcef-codec/adblock/`, 7 günde bir yenilenir. Video CDN'leri izin listesindedir; sayfanın kendini reklam/bahis sitesine yönlendirmesi engellenir, adres çubuğundan yazılan adres engellenmez.

@@ -58,12 +58,15 @@ public class Doomscroll implements ModInitializer {
 	private static final Map<UUID, Long> REPORT_COOLDOWN = new ConcurrentHashMap<>();
 
 	public static ScreenBlock SCREEN_BLOCK;
+	public static SpeakerBlock SPEAKER_BLOCK;
 	public static BlockItem SCREEN_ITEM;
+	public static BlockItem SPEAKER_ITEM;
 	public static RemoteItem REMOTE_ITEM;
 	public static SoundEvent SCREEN_SOUND;
 	public static SoundEvent TABLET_SOUND;
 	public static TabletItem TABLET_ITEM;
 	public static BlockEntityType<ScreenBlockEntity> SCREEN_BE_TYPE;
+	public static BlockEntityType<SpeakerBlockEntity> SPEAKER_BE_TYPE;
 	/** Tabletin su an kimin elinde oldugu (sunucu her tick gunceller; baskasinin tabletini cizerken kullanilir). */
 	public static DataComponentType<UUID> TABLET_OWNER;
 	/** Kumandanin bagli oldugu ekran (anchor). Ekrana sag tik ile ayarlanir. */
@@ -427,10 +430,34 @@ public class Doomscroll implements ModInitializer {
 				new BlockEntityType<>(ScreenBlockEntity::new, Set.of(SCREEN_BLOCK))
 		);
 
+		// Hoparlor: ekranin sesini baska bir noktadan duyurur (sinema salonu, koridor, tribun)
+		Identifier speakerId = id("speaker");
+		SPEAKER_BLOCK = Registry.register(
+				BuiltInRegistries.BLOCK,
+				speakerId,
+				new SpeakerBlock(BlockBehaviour.Properties.of()
+						.setId(ResourceKey.create(Registries.BLOCK, speakerId))
+						.strength(1.5f)
+						.sound(net.minecraft.world.level.block.SoundType.WOOD))
+		);
+		SPEAKER_ITEM = Registry.register(
+				BuiltInRegistries.ITEM,
+				speakerId,
+				new SpeakerItem(SPEAKER_BLOCK, new Item.Properties()
+						.setId(ResourceKey.create(Registries.ITEM, speakerId))
+						.useBlockDescriptionPrefix())
+		);
+		SPEAKER_BE_TYPE = Registry.register(
+				BuiltInRegistries.BLOCK_ENTITY_TYPE,
+				speakerId,
+				new BlockEntityType<>(SpeakerBlockEntity::new, Set.of(SPEAKER_BLOCK))
+		);
+
 		// Yaratici envanter: Islevsel Bloklar sekmesi
 		ResourceKey<CreativeModeTab> functional = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("functional_blocks"));
 		CreativeModeTabEvents.modifyOutputEvent(functional).register(out -> {
 			out.accept(new ItemStack(SCREEN_ITEM), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+			out.accept(new ItemStack(SPEAKER_ITEM), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
 			out.accept(new ItemStack(REMOTE_ITEM), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
 			out.accept(new ItemStack(TABLET_ITEM), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
 		});

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "W": "minecraft:note_block",
+    "I": "minecraft:iron_ingot",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "III",
+    "IWI",
+    "IRI"
+  ],
+  "result": {
+    "id": "doomscroll:speaker"
+  }
+}

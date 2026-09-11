@@ -84,7 +84,26 @@ public final class ScreenBrowsers {
 		 * Sesin geldigi nokta: panel yuzeyinde dinleyiciye en yakin nokta, yuzeyin hemen onunde.
 		 * Boylece kocaman ekranin sesi tek bir bloktan degil, onunde durdugun yerden gelir.
 		 */
+		/**
+		 * Sesin geldigi nokta: panelin dinleyiciye en yakin yuzeyi, ya da daha yakinsa
+		 * bu ekrana bagli bir hoparlor. Akis tek oldugu icin "hepsinden ayni anda cal" yok;
+		 * her istemci kendi oyuncusuna en yakin kaynagi secer, kulak tek yerde oldugu icin dogru.
+		 */
 		Vec3 soundPos(Vec3 listener) {
+			Vec3 best = panelSoundPos(listener);
+			double bestD = best.distanceToSqr(listener);
+			for (com.doomscroll.SpeakerBlockEntity sp : com.doomscroll.SpeakerBlockEntity.boundTo(pos)) {
+				Vec3 sv = Vec3.atCenterOf(sp.getBlockPos());
+				double d = sv.distanceToSqr(listener);
+				if (d < bestD && d <= com.doomscroll.SpeakerBlockEntity.RANGE * com.doomscroll.SpeakerBlockEntity.RANGE) {
+					best = sv;
+					bestD = d;
+				}
+			}
+			return best;
+		}
+
+		private Vec3 panelSoundPos(Vec3 listener) {
 			if (facing == null || extDir == null || topDir == null) {
 				return center;
 			}

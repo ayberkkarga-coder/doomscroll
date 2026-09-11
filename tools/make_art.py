@@ -430,6 +430,46 @@ ICONS = {
 for name, rows in ICONS.items():
     paint(rows, TEX + "/gui/sprites/icon/" + name + ".png")
 
+# ---------------- hoparlor blogu ----------------
+speaker_front = [
+    "KKKKKKKKKKKKKKKK",
+    "KDDDDDDDDDDDDDDK",
+    "KD..WWWWWWWW..DK",
+    "KD.WHHHHHHHHW.DK",
+    "KD.WH.gggg.HW.DK",
+    "KD.WH.gSSg.HW.DK",
+    "KD.WH.gSSg.HW.DK",
+    "KD.WH.gggg.HW.DK",
+    "KD.WHHHHHHHHW.DK",
+    "KD..WWWWWWWW..DK",
+    "KDDDDDDDDDDDDDDK",
+    "KD...WWWWWW...DK",
+    "KD..WHggggHW..DK",
+    "KD...WWWWWW...DK",
+    "KDDDDDDDDDDDDDDK",
+    "KKKKKKKKKKKKKKKK",
+]
+speaker_side = [
+    "KKKKKKKKKKKKKKKK",
+    "KDDDDDDDDDDDDDDK",
+    "KDBBBBBBBBBBBBDK",
+    "KDBLLLLLLLLLLBDK",
+    "KDBLBBBBBBBBLBDK",
+    "KDBLBDDDDDDBLBDK",
+    "KDBLBDDDDDDBLBDK",
+    "KDBLBDDDDDDBLBDK",
+    "KDBLBBBBBBBBLBDK",
+    "KDBLLLLLLLLLLBDK",
+    "KDBBBBBBBBBBBBDK",
+    "KDDDDDDDDDDDDDDK",
+    "KDBBBBBBBBBBBBDK",
+    "KDDDDDDDDDDDDDDK",
+    "KDDDDDDDDDDDDDDK",
+    "KKKKKKKKKKKKKKKK",
+]
+paint(speaker_front, TEX + "/block/speaker_front.png")
+paint(speaker_side, TEX + "/block/speaker_side.png")
+
 # ---------------- mod simgesi (16x16 piksel sanati, 8x buyutulmus) ----------------
 mod_icon = [
     "................",
