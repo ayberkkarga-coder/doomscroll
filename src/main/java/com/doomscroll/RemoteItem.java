@@ -30,28 +30,6 @@ public class RemoteItem extends Item {
 	public InteractionResult useOn(UseOnContext ctx) {
 		Level level = ctx.getLevel();
 		BlockPos pos = ctx.getClickedPos();
-		// Hoparlore sag tik: kumandanin bagli oldugu ekrana baglar
-		if (level.getBlockEntity(pos) instanceof SpeakerBlockEntity sp) {
-			if (!level.isClientSide()) {
-				Player p = ctx.getPlayer();
-				BlockPos target = ctx.getItemInHand().get(Doomscroll.REMOTE_TARGET);
-				if (p != null && p.isShiftKeyDown()) {
-					sp.setScreen(null);
-					p.sendOverlayMessage(Component.translatable("message.doomscroll.speaker.unbound"));
-				} else if (target == null) {
-					if (p != null) {
-						p.sendOverlayMessage(Component.translatable("message.doomscroll.speaker.need_remote"));
-					}
-				} else {
-					sp.setScreen(target);
-					if (p != null) {
-						p.sendOverlayMessage(Component.translatable("message.doomscroll.speaker.bound",
-								target.getX(), target.getY(), target.getZ()));
-					}
-				}
-			}
-			return InteractionResult.SUCCESS;
-		}
 		if (!(level.getBlockEntity(pos) instanceof ScreenBlockEntity be)) {
 			return InteractionResult.PASS; // ekran degil: normal davranis (use -> panel)
 		}

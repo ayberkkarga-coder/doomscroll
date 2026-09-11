@@ -35,14 +35,13 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 4. A one-time welcome message appears on your first join. `/ds help` lists every command.
 
 ## Items
-Everything is crafted at a crafting table (screen: glass pane + redstone + iron → 2; remote: stone button / redstone / iron; tablet: 6 glass panes + iron, redstone, iron; speaker: iron around a note block with redstone under it). They are in the Functional Blocks tab in creative.
+Everything is crafted at a crafting table (screen: glass pane + redstone + iron → 2; remote: stone button / redstone / iron; tablet: 6 glass panes + iron, redstone, iron). They are in the Functional Blocks tab in creative.
 
 | Item | What it does |
 |---|---|
 | **Screen** (`doomscroll:screen`) | Place them side by side or stacked and they become one panel (the bottom-right block is the anchor); the panel size is reported when you place one. Sneak-place on a floor or ceiling for a floor / ceiling screen. It emits light while on. No frame. |
 | **Screen Remote** (`doomscroll:remote`) | Right-click a screen to pair with it. Right-click the air for the panel. Sneak + right-click to unpair. While unpaired it drives nothing. |
 | **Tablet** (`doomscroll:tablet`) | Right-click for its own browser. It renders in 3D while held; R switches portrait/landscape. While it is in your main hand the scroll wheel goes to the tablet (TikTok/Shorts/Reels: next video, other pages: scroll); sneak-scroll still changes your hotbar. Other people's tablets show their page. |
-| **Speaker** (`doomscroll:speaker`) | Plays a screen's sound from somewhere else. Pair the remote with a screen, then right-click a speaker to bind it; sneak + right-click unbinds. Right-click it empty-handed to see what it is bound to. |
 
 ## Using a screen
 - **Look and click:** with an empty hand (or while holding the remote or tablet), look at a screen and your crosshair becomes a cursor. Left click clicks, the wheel scrolls (on Shorts/Reels one tick is one video), right click binds your keyboard to the screen (ESC releases it), sneak + right click plays/pauses. If you are holding a block you get a hint instead, so the click goes to the game and you can build next to the screen.
@@ -90,16 +89,6 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 - **Screen light (ambilight):** walls, floor and ceiling in front of the screen are lit by the colour of the nearest part of the screen, blending into the whole screen's average as you move away. The panel behaves like an area light, so surfaces flush with its edge still catch light. It is entirely client-side and works with shader packs (the same emissive draw path as the screen). The surface list is recomputed on a background thread every 2 s with a line-of-sight check so light does not leak through walls; colours come from the browser's 8×5 colour map every frame, brightened while keeping their hue. Settings → "Screen light" (off / low / normal / high) and "Smooth light" (on: a continuous gradient across neighbouring surfaces, off: a block-by-block mosaic); `/ds light off|low|normal|high|smooth|range <2-24>`; More → light range. `/ds light` prints diagnostics (patch count, average screen colour).
 - **Redstone control:** the screen's owner enables it with `/ds redstone` (or More → Redstone): a rising edge on any block of the panel toggles the screen. One lever to kill the lights and start the film.
 - **Block light:** a screen that is on emits light level 12 (server setting `screenLightLevel`).
-- **Speakers.** In a big room the sound coming only off the panel is not enough. Place speaker blocks where
-  people sit, in the corridor, around the stands, and bind them to the screen with the remote (pair the remote
-  with the screen first, then right-click a speaker). The browser gives one audio stream, so the mod cannot
-  really drive two outputs — two players would read the same buffer and eat each other's samples. Instead each
-  client builds **one virtual source** and places it at the inverse-square-weighted average of everything it
-  can hear: the panel's surface and every bound speaker within 24 blocks. Next to a single speaker the sound
-  sits on it; standing between two it comes from the middle rather than snapping to the closer one; walking
-  toward one it slides over smoothly. The source is never brought closer than half the distance to the nearest
-  emitter, so standing between two speakers is louder than one but does not blow your ears out. Audio is
-  client-side, so two people by different speakers each get their own mix.
 
 ## Ad blocking and SponsorBlock
 - **Filter lists (real blocker logic):** [EasyList](https://easylist.to) and the [AdGuard Turkish filter](https://filters.adtidy.org/extension/ublock/filters/13.txt) are applied at request level with the full rule syntax (domain and path patterns, `$third-party`, type, `domain=`, `$popup`, `@@` exceptions, `$generichide`, `@@$document`), plus the [StevenBlack hosts](https://github.com/StevenBlack/hosts) domain list. The lists' `##` cosmetic rules (site-specific and generic) are injected as styles into every page and iframe. Cached in `config/mcef-codec/adblock/` and refreshed every 7 days. Video CDNs are allowlisted; a page redirecting itself to an ad or gambling site is blocked, while an address you type yourself never is.
