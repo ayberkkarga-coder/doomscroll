@@ -7,7 +7,10 @@
 <style>
 /*__KIT__*/
 :root{--safe:34px}
-body{background:#0d0e13;overflow-x:hidden;overflow-y:auto;position:relative;font-size:18px}
+/* Sayfanin kendisi kaysin: kit.css'teki html,body{height:100%} govdeyi sabit yukseklikte bir
+   kaydirma kutusuna cevirip tekerlegi ise yaramaz hale getiriyordu (kok ogede kaydirilacak sey yok). */
+html,body{height:auto;min-height:100%}
+body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 
 /* zemin: piksel karo + duz koyulastirma */
 .atmo{position:fixed;inset:0;z-index:-2;background:var(--tile-screen) repeat;background-size:64px 64px}

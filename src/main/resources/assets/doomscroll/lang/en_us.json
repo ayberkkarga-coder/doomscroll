@@ -434,15 +434,15 @@
   "home.doomscroll.help.cinema.t": "Fullscreen",
   "home.doomscroll.help.cinema.d": "The Cinema button on the remote fills the screen with the video.",
   "home.doomscroll.help.tscroll.t": "Scrolling",
-  "home.doomscroll.help.tscroll.d": "With the tablet in hand the wheel scrolls the page. Sneak-scroll for your hotbar.",
+  "home.doomscroll.help.tscroll.d": "The mouse wheel scrolls the page.",
   "home.doomscroll.help.trotate.t": "R: portrait / landscape",
-  "home.doomscroll.help.trotate.d": "Press R while holding the tablet to turn the screen.",
+  "home.doomscroll.help.trotate.d": "Press R to turn the screen.",
   "home.doomscroll.help.tcast.t": "Cast",
-  "home.doomscroll.help.tcast.d": "Sends the open page to the screen you are looking at.",
+  "home.doomscroll.help.tcast.d": "Sends the page to the screen you face.",
   "home.doomscroll.help.tqueue.t": "Queue",
-  "home.doomscroll.help.tqueue.d": "Adds the page to the screen's queue, where everyone can vote.",
+  "home.doomscroll.help.tqueue.d": "Adds the page to the screen's queue.",
   "home.doomscroll.help.tmark.t": "Bookmarks and history",
-  "home.doomscroll.help.tmark.d": "The star saves a page, the menu button opens both.",
+  "home.doomscroll.help.tmark.d": "The star saves, the menu opens both.",
   "home.doomscroll.help.thome.t": "Getting back here",
-  "home.doomscroll.help.thome.d": "The Home button in the toolbar always opens this page."
+  "home.doomscroll.help.thome.d": "The Home button returns here."
 }
