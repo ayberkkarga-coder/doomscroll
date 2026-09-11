@@ -124,7 +124,7 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `/ds gecikme dusuk\|normal\|yuksek` | ses gecikmesi profili: düşük ~150 ms, normal ~180 ms, yüksek ~320 ms |
 | `/ds reklam [ac\|kapat]` · `/ds popup` | reklam engelleyici / son engellenen popup'ı aç |
 | `/ds altyazi` | HUD altyazısını göster/gizle |
-| `/ds ytgiris` | Google girişi için Firefox kimliği |
+| `/ds ytgiris` | YouTube giriş modu. **Atılabilir hesap kullan.** Aşağıdaki uyarıya bak. |
 | `/ds rapor [not]` | baktığın ekranı yöneticilere bildir |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / durum |
 
@@ -240,6 +240,11 @@ Bir de not: izin listesi alt alan adlarını doğru kapsıyor. `example.com` eng
 
 ## Güvenlik notları
 - Gömülü tarayıcıya **ana Google/Instagram hesabını girme**; ikinci/atılabilir hesap + 2FA kullan. Bankacılık, e-posta gibi sayfaları hiç açma.
+- **YouTube giriş modu ve riski.** `/ds ytgiris` ekranda Google'ın giriş sayfasını açıyor ve mod açıkken
+  tarayıcıyı Firefox gibi gösteriyor. Google gömülü tarayıcılardan girişi bilerek engelliyor, bu da o engeli
+  aşıyor. Google bunu şüpheli giriş sayabilir ve hesabı kilitleyebilir. Ana hesabını burada kullanma.
+  Atılabilir bir hesap aç, 2FA'yı aç. Sunucuda herkes kendi tarayıcısına giriyor, yani kimse senin oturumunu
+  devralmıyor.
 - Tüm tarayıcılar (ekranlar, tablet) aynı Chromium profilini paylaşır; profil `config/mcef-codec/` altındadır.
 - İkililer resmi CinemaMod mirror'ından SHA-256 ile doğrulanarak iner; `--disable-web-security` kullanılmaz.
 - Sunucular için: `blockedDomains` / `allowedDomains` ile içerik politikası, `announce` ile bildirimler, kilit ile ekran sahipliği.

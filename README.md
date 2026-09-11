@@ -129,7 +129,7 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `/ds latency low\|normal\|high` | audio delay profile: low ~150 ms, normal ~180 ms, high ~320 ms |
 | `/ds adblock [on\|off]` · `/ds popup` | ad blocker / open the last blocked popup |
 | `/ds captions` | show or hide HUD captions |
-| `/ds ytlogin` | a Firefox identity for signing in to Google |
+| `/ds ytlogin` | YouTube sign-in mode. **Use a throwaway account.** See the warning below. |
 | `/ds report [note]` | report the screen you are looking at to the admins |
 | `/ds remote` · `/ds tablet` · `/ds debug` | panel / tablet / status |
 
@@ -247,6 +247,11 @@ One thing worth knowing: the allowlist matches subdomains correctly. Blocking `e
 
 ## Safety notes
 - Do **not** sign into your main Google or Instagram account in the embedded browser. Use a second, throwaway account with 2FA. Never open banking or email pages on it.
+- **YouTube sign-in mode, and its risk.** `/ds ytlogin` opens Google's sign-in page on the screen and, while it
+  is on, presents the browser as Firefox. Google blocks sign-in from embedded browsers deliberately, and this
+  gets past that block. Google may treat it as a suspicious sign-in and lock the account. Never use your main
+  account here. Use a throwaway one, turn on 2FA, and remember that on a server every player signs in to their
+  own browser, so nobody inherits your session.
 - Every browser (all screens and the tablet) shares one Chromium profile, under `config/mcef-codec/`.
 - Binaries are downloaded from the official CinemaMod mirror and verified with SHA-256. `--disable-web-security` is never used.
 - For servers: `blockedDomains` / `allowedDomains` give you a content policy, `announce` gives you notices, and the lock gives screens an owner.
