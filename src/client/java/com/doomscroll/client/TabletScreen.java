@@ -163,8 +163,7 @@ public class TabletScreen extends Screen {
 		bar.add(new Ui.Btn(menuX, cur[1], small, 16, () -> "", () -> Ui.ICON_MENU, Ui.BTN, Ui.BTN_HOVER, this::toggleMenu, () -> menuOpen));
 		// Ses: tabletin kendi seviyesi (kumandadaki ekran sesinden ayri)
 		int speakerX = place.applyAsInt(small);
-		int speakerY = cur[1];
-		bar.add(new Ui.Btn(speakerX, speakerY, small, 16, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
+		bar.add(new Ui.Btn(speakerX, cur[1], small, 16, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
 				Ui.BTN, Ui.BTN_HOVER, this::toggleVolume, () -> volOpen || Browsers.isTabletMuted()));
 
 		// Adres satiri: genis cubukta ayni satirin sagi, darda kendi satiri
@@ -201,7 +200,7 @@ public class TabletScreen extends Screen {
 		volW = Math.min(176, bw);
 		volH = 44;
 		volX = Math.max(bxStart, Math.min(speakerX - 6, bxStart + bw - volW));
-		volY = speakerY + BAR_ROW + 2;
+		volY = fy + BEZEL + barH + 6; // butun cubugun altinda: adres satirini ortmesin
 		vsx = volX + 34;
 		vsw = Math.max(40, volW - 76);
 		vsy = volY + 12;
