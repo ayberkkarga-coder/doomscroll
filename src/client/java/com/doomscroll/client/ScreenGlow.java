@@ -101,6 +101,12 @@ public final class ScreenGlow {
 		return e == null ? List.of() : e.patches();
 	}
 
+	/** Tek ekran gitti (kirildi ya da chunk'i bosaldi): yalnizca onun kaydini birak. */
+	public static void forget(BlockPos pos) {
+		CACHE.remove(pos);
+		PENDING.remove(pos);
+	}
+
 	public static void clear() {
 		CACHE.clear();
 		PENDING.clear();

@@ -46,15 +46,15 @@ public final class TabletBookmarks {
 
 	private TabletBookmarks() {}
 
-	private static Data data() {
+	private static synchronized Data data() {
 		if (data == null) {
 			data = new Data();
 			try {
 				if (Files.exists(FILE)) {
 					Data d = GSON.fromJson(Files.readString(FILE), Data.class);
 					if (d != null) {
-						if (d.bookmarks != null) data.bookmarks = d.bookmarks;
-						if (d.history != null) data.history = d.history;
+						if (d.bookmarks != null) data.bookmarks = new java.util.concurrent.CopyOnWriteArrayList<>(d.bookmarks);
+						if (d.history != null) data.history = new java.util.concurrent.CopyOnWriteArrayList<>(d.history);
 					}
 				}
 			} catch (Exception ignored) {

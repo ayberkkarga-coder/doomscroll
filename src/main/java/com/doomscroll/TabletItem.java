@@ -3,7 +3,13 @@ package com.doomscroll;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.Item.TooltipContext;
+import java.util.function.Consumer;
 import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -23,6 +29,12 @@ public class TabletItem extends Item {
 			Doomscroll.tabletOpener.run();
 		}
 		return InteractionResult.SUCCESS;
+	}
+
+	@Override
+	public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> out, TooltipFlag flag) {
+		out.accept(Component.translatable("item.doomscroll.tablet.tooltip").withStyle(ChatFormatting.GRAY));
+		out.accept(Component.translatable("item.doomscroll.tablet.tooltip.hint").withStyle(ChatFormatting.DARK_GRAY));
 	}
 
 	/** Sunucu: tablet kimin envanterindeyse sahibi o olsun (baskasinin tabletini cizerken ona bakilir). */

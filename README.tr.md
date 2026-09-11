@@ -5,8 +5,8 @@
 Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTube / film izle. Dünyaya dev ekranlar kur, elinde tablet taşı, kumandayla yönet, sinema salonu yap. Şakaydı, gerçek oldu.
 
 - Minecraft **26.2** · Fabric · Java 25
-- Her komutun bir de İngilizce adı var, ikisi karışık kullanılabilir: `/ds ekranlar` = `/ds screens`, `/ds sira temizle` = `/ds queue clear`. Arayüz dili Minecraft'ın dil ayarını izler.
-- Gerçek Chromium (CEF 126, H.264/AAC kodekli) — kardeş proje [`mcef-codec`](../mcef-codec) sağlar
+- Komutların çoğunun bir de İngilizce adı var, ikisi karışık kullanılabilir: `/ds ekranlar` = `/ds screens`, `/ds sira temizle` = `/ds queue clear`. Arayüz dili Minecraft'ın dil ayarını izler.
+- Gerçek Chromium (CEF 126, H.264/AAC kodekli) — kardeş proje [`mcef-codec`](https://modrinth.com/mod/mcef-codec) sağlar
 - Konumsal ses (panelin sana en yakın noktasından gelir, Sound Physics Remastered ile uyumlu), shader'larda ışık yayan ekran, ekrandaki görüntüye göre renklenen oda (ambilight)
 
 ## İçindekiler
@@ -14,20 +14,24 @@ Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTub
 2. [Eşyalar](#eşyalar)
 3. [Ekranı kullanmak](#ekranı-kullanmak)
 4. [Birlikte izleme](#birlikte-izleme-senkron)
-5. [Sinema salonu özellikleri](#sinema-salonu-özellikleri)
-6. [Reklam engelleme ve SponsorBlock](#reklam-engelleme-ve-sponsorblock)
-7. [Komutlar](#komutlar-ds)
-8. [İstemci ayarları](#istemci-ayarları--configdoomscrolljson)
-9. [Sunucu yönetici ayarları ve komutları](#sunucu-yönetici-ayarları--configdoomscroll-serverjson)
-10. [Moderasyon ve güvenlik](#moderasyon-ve-güvenlik)
-11. [Performans](#performans)
-11. [Güvenlik notları](#güvenlik-notları)
-12. [Geliştirme](#geliştirme)
+5. [Ana menüler](#ana-menüler)
+6. [Yere ve tavana ekran](#yere-ve-tavana-ekran)
+7. [Yayın modu](#yayın-modu-herkes-senin-gördüğünü-görür)
+8. [Sinema salonu özellikleri](#sinema-salonu-özellikleri)
+9. [Reklam engelleme ve SponsorBlock](#reklam-engelleme-ve-sponsorblock)
+10. [Komutlar](#komutlar-ds)
+11. [İstemci ayarları](#i%CC%87stemci-ayarları--configdoomscrolljson)
+12. [Sunucu yönetici ayarları ve komutları](#sunucu-yönetici-ayarları--configdoomscroll-serverjson)
+13. [Moderasyon ve güvenlik](#moderasyon-ve-güvenlik)
+14. [Performans](#performans)
+15. [Güvenlik notları](#güvenlik-notları)
+16. [Geliştirme](#geliştirme)
+17. [Lisans](#lisans)
 
 ## Kurulum
 1. `fabric-api`, `mcef-codec-0.1.0.jar` ve `doomscroll-0.1.0.jar` dosyalarını `mods/` klasörüne koy.
-2. İlk açılışta mcef-codec Chromium ikililerini indirir (~136 MB, SHA-256 doğrulamalı) → `config/mcef-codec/`.
-3. Sunucuda oynayacaksan her oyuncuda iki jar da olmalı (sunucuya da `doomscroll` gerekir; tarayıcı yalnızca istemcide çalışır). Modu olmayan biri ekranı boş görür.
+2. İlk açılışta mcef-codec Chromium ikililerini indirir (birkaç yüz MB, SHA-256 doğrulamalı) → `config/mcef-codec/libraries/`.
+3. Sunucuda oynayacaksan iki jar da hem her oyuncuda hem sunucunun `mods/` klasöründe olmalı: `doomscroll`, `mcef-codec`'e bağlı olduğu için Fabric onu iki tarafta da arıyor. Tarayıcının kendisi yalnızca istemcide çalışır; sunucuda mcef-codec yüklenir ve hiçbir şey yapmaz. Modu olmayan biri ekranı boş görür.
 4. İlk girişte tek seferlik karşılama mesajı çıkar; `/ds yardim` tüm komutları listeler.
 
 ## Eşyalar
@@ -36,7 +40,7 @@ Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2
 | Eşya | Ne yapar |
 |---|---|
 | **Ekran** (`doomscroll:screen`) | Yan yana / üst üste dizince tek panel olur (sağ-alt blok "anchor"), yerleştirince panel boyutu yazılır. Eğilerek (Shift) yere ya da tavana koyunca yer / tavan ekranı. Açıkken ışık yayar. Çerçevesiz. |
-| **Kumanda** (`doomscroll:remote`) | Ekrana sağ tık: o ekrana bağlanır. Havaya sağ tık: panel. Shift + sağ tık: bağı keser. Bağlı değilken hiçbir ekranı yönetmez. |
+| **Ekran Kumandası** (`doomscroll:remote`) | Ekrana sağ tık: o ekrana bağlanır. Havaya sağ tık: panel. Shift + sağ tık: bağı keser. Bağlı değilken hiçbir ekranı yönetmez. |
 | **Tablet** (`doomscroll:tablet`) | Sağ tık: kendi tarayıcısı. Elde tutulunca 3D görünür, R ile dik/yatay. Ana eldeyken fare tekerleği tablete gider (TikTok/Shorts/Reels: video değiştir, diğer sayfalar: kaydır); eğilerek (Shift) çevirince hotbar değişir. Başkalarının tabletinde onların sayfası görünür. |
 
 ## Ekranı kullanmak
@@ -66,7 +70,7 @@ Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2
 - Yeni yerleştirilen ekran ve tablet, siteye değil **ana menüye** açılır (`doomscroll://home/screen`, `doomscroll://home/tablet`; kumanda ve tabletteki "Ana" tuşu da buraya döner).
 - **İki menüde de yardım.** Ekran menüsünün altında **Nasıl kullanılır** rayı, tablette Geçmiş'in yanında bir yardım widget'ı var: bak-tıkla, klavye, kaydırma, kumanda, sıra ve oylama, sinema modu, R ile dik/yatay, Yansıt ve Sıraya. Benzer modların kullanıcıları sürekli nasıl kaydırılacağını ve ana sayfaya nasıl dönüleceğini soruyor; bakacakları yer burası.
 - **Ekran menüsü** (Smart TV launcher): üstte marka, arama (adres değilse Google) ve saat; büyük **hero** alanı (sırada video varsa küçük resmi ve başlığıyla "Şimdi oynat", yoksa günün selamı ve Shorts daveti); yatay raylar: Uygulamalar (YouTube, Shorts, Reels, TikTok, Twitch, Kick), Kanallar (+ Kanal ekle, ✕), Sırada (YouTube küçük resimli kartlar; tıkla oynat, ✕ çıkar). Üzerine gelince TV odak halkası.
-- **Tablet menüsü** (iPad ana ekranı): duvar kâğıdı, durum çubuğu (saat, tarih), arama hapı, yuvarlak köşeli uygulama simgeleri, **Geçmiş** widget'ı ("Temizle"), yer imleri ve kanallar web-klip simgesi olarak (üzerine gelince ✕ ile silinir), altta dock (YouTube, Shorts, Reels, TikTok, Twitch). Dik modda 4 sütun.
+- **Tablet menüsü** (iPad ana ekranı): duvar kâğıdı, durum çubuğu (saat, tarih), arama hapı, yuvarlak köşeli uygulama simgeleri, **Geçmiş** widget'ı ("Temizle"), yer imleri ve kanallar web-klip simgesi olarak (üzerine gelince ✕ ile silinir), altta dock (YouTube, Shorts, Reels, TikTok, Twitch). Dik modda 5 sütun.
 - Her iki menüde **+ Ekle** simgesi: ad ve adres girince tablete yer imi, ekrana kanal olarak eklenir (üzerine gelince ✕ ile silinir). Yıldız ve `/ds kanal ekle` de aynı listeleri besler.
 - Sayfa mod içinden üretilir (`assets/doomscroll/home/home.html` + `HomePages`), internete gitmez; sunucu adres kuralları `doomscroll://` için hep izinli.
 
@@ -131,13 +135,11 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `sponsorBlock` | true | SponsorBlock |
 | `subtitles` | true | HUD altyazısı (24 blok içindeki en yakın ekran) |
 | `pointer` | true | paylaşımlı işaretçi (gönder + göster) |
-| `screenVolume`, `screenMuted` | 0.8 | ekranların kişisel sesi (kumandadaki kaydırıcı) |
-| `tabletVolume`, `tabletMuted` | 0.8 | elindeki tabletin kendi sesi (tablet araç çubuğundaki hoparlör) |
+| `screenVolume` / `screenMuted` | 0.8 / false | ekranların kişisel sesi (kumandadaki kaydırıcı) |
+| `tabletVolume` / `tabletMuted` | 0.8 / false | elindeki tabletin kendi sesi (tablet araç çubuğundaki hoparlör) |
 | `remoteTabletVolume` | 0.8 | başkalarının tabletinden duyulan ses (0 = duyma) |
 | `othersScreenVolume` | 1.0 | senin koymadığın ekranların sesi (sunucu bunu 0'dan başlatabilir) |
 | `separateScreenCookies` | false | ekranlar tabletin kalıcı profilinden ayrı, bellekteki bir Chromium bağlamında çalışır. Açıkken ekranda yapılan giriş oyun kapanınca kaybolduğu için varsayılan kapalı; sunucu zorlayabilir |
-
-Ses üç kademeli: **cihazın sesi** (tabletin kaydırıcısı, herkes o seviyeden duyar; ekranınki blokta durur, kumanda → Diğer → "Ekranın sesi"), üstüne **senin kaydırıcın**, en üstte Minecraft'ın "Bloklar" ayarı.
 | `tabletSway` | 0.35 | tablet eldeyken yürüme sallanmasının kalan oranı (0 sabit, 1 vanilla) |
 | `screenGlow` / `screenGlowRange` / `screenGlowSmooth` | 1.0 / 10 / true | ekran ışığı yoğunluğu (0 kapalı, 0.5 az, 1 normal, 1.8 çok), menzil, yumuşak geçiş |
 | `autoScroll` | true | video bitince sonraki (Shorts/Reels/TikTok) |
@@ -146,6 +148,9 @@ Ses üç kademeli: **cihazın sesi** (tabletin kaydırıcısı, herkes o seviyed
 | `userAgent` | Chrome/128 | tarayıcı kimliği |
 | `tvLogin` | false | YouTube giriş modu |
 | `welcomeShown` | false | karşılama mesajı gösterildi |
+| `broadcastWidth` / `broadcastFps` / `broadcastKbps` | 960 / 24 / 1200 | yayın kodlayıcı ayarları (`/ds yayin kalite` bunları yazar) |
+
+Ses üç kademeli: **cihazın sesi** (tabletin kaydırıcısı, herkes o seviyeden duyar; ekranınki blokta durur, kumanda → Diğer → "Ekranın sesi"), üstüne **senin kaydırıcın**, en üstte Minecraft'ın "Bloklar" ayarı.
 
 ## Sunucu yönetici ayarları — `config/doomscroll-server.json`
 Tek oyunculuda da aynı dosya (iç sunucu). Yanında iki şey var:
@@ -187,7 +192,12 @@ ellerinde hiçbir şey kalmaması. Bunun için olan araçlar şunlar.
 
 - **Denetim kaydı.** Açılan her adres, engellenen her deneme, her yayın ve açma/kapama `config/doomscroll-audit.log`
   dosyasına kim, ne zaman, hangi dünya, hangi blok olarak yazılır. `/doomscroll kayit [n]` son kayıtları sohbete
-  döker. Adres hiçbir zaman biçim dizesi olarak kullanılmaz, yani içinde `%` olan bir adres logu kıramaz.
+  döker. Adres hiçbir zaman biçim dizesi olarak kullanılmaz (içinde `%` olan bir adres logu kıramaz) ve
+  `§` renk kodları temizlenir, böylece kimse o çıktıda satır gizleyemez ya da sahte satır uyduramaz. Yazma arka
+  planda yapılır, dosya 8 MB'ta `doomscroll-audit.log.1` olarak devredilir.
+- **Tablet de aynı kurallara tabi.** Birinin tabletindeki sayfayı etrafındaki herkes gördüğü için
+  adres aynı kapıdan geçer: engel/izin listeleri, yerel ağ kuralı, acil kapatma ve `doomscroll.url` izni.
+  Reddedilen adres başkalarının gördüğü tablette boş kalır ve deneme kayda geçer.
 - **Acil kapatma.** `/doomscroll acil ac` yüklü bütün ekranları karartır ve hiçbirinin açılmasına izin vermez.
   `/doomscroll karart` kilitsiz, tek seferlik hâli. İkisi de anında etki eder, kimsenin yeniden girmesi gerekmez.
 - **Yönlendirme denetimi.** Sunucu paylaşılan adresi denetler ama yönlendirme önce tarayıcıda olur. Alan adı
@@ -242,7 +252,7 @@ Bir de not: izin listesi alt alan adlarını doğru kapsıyor. `example.com` eng
 
 ## Geliştirme
 - `JAVA_HOME` = Java 25 (Minecraft launcher'ın kendi JDK'sı olur). `./gradlew build` → `build/libs/doomscroll-0.1.0.jar`. mcef-codec önce derlenmeli (`../mcef-codec/build/libs/mcef-codec-0.1.0.jar` compileOnly bağımlılık).
-- 26.x obfuscate edilmemiş: gerçek Mojang adlarıyla yazılır. İmza notları: `api-notes*.txt`.
+- 26.x obfuscate edilmemiş: gerçek Mojang adlarıyla yazılır. İmza notları: ilgili commit.
 - Mimari: `ScreenBrowsers` (ekran başına tarayıcı, kontrol, senkron, SponsorBlock, kalite) · `Browsers` (tablet + sayfa JS'leri: raporcu, temizleyici, sinema) · `DirectControl` (bak-tıkla, klavye, işaretçi) · `ScreenGlow` (ambilight) · `ScreenQueue` / `SponsorBlock` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (sunucu: paketler, kontrol süresi, kilit, adres kuralı) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel birleştirme, ışık, redstone).
 - **Duman testi:** `./gradlew runClient` dev istemciyi `-Ddoomscroll.selftest=true` ile açar; `SelfTest` dünyaya girince oyuncunun yanına 3×2 panel kurar, YouTube açar ve sayfa raporu, başlık, SponsorBlock atlama, ekran ışığı, sıra (atla + video bitince), sunucu adres engeli, redstone, yönetici komutları ve işaretçi adımlarını sınar; sonucu `[selftest]` satırlarıyla loga yazar ve oyunu kapatır (`run/config/doomscroll-server.json` içinde `example.org` engelli olmalı).
 - **Tasarım:** blok/eşya dokuları, GUI simgeleri (`textures/gui/sprites/icon/*.png`, 9×9) ve mod simgesi `tools/make_art.py` ile üretilir (piksel haritaları betiğin içinde; `pip install pillow`). Arayüz çizim dili `Ui.java` (kabartma panel/tuş, çukur alan, simge).

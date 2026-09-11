@@ -86,6 +86,32 @@ public final class ScreenMultiblock {
 				}
 			}
 
+			// Yeni anchor'a gecmeden once eski anchor'un durumunu (adres, sahip, kilit, guc)
+			// devral: en cok bloga sahip olan eski panel kazanir. Yoksa panele tek blok
+			// ekleyen biri baskasinin ekranini sifirlamis oluyordu.
+			java.util.Map<BlockPos, Integer> oldAnchors = new java.util.HashMap<>();
+			for (int i = 0; i < w; i++) {
+				for (int j = 0; j < h; j++) {
+					BlockPos p = anchor.relative(extend, i).relative(up, j);
+					if (level.getBlockEntity(p) instanceof ScreenBlockEntity sbe) {
+						oldAnchors.merge(sbe.getAnchor().immutable(), 1, Integer::sum);
+					}
+				}
+			}
+			BlockPos donor = null;
+			int donorCount = 0;
+			for (java.util.Map.Entry<BlockPos, Integer> e : oldAnchors.entrySet()) {
+				if (e.getValue() > donorCount) {
+					donor = e.getKey();
+					donorCount = e.getValue();
+				}
+			}
+			if (donor != null && !donor.equals(anchor)
+					&& level.getBlockEntity(donor) instanceof ScreenBlockEntity donorBe
+					&& level.getBlockEntity(anchor) instanceof ScreenBlockEntity newBe) {
+				newBe.adoptPanelState(donorBe);
+			}
+
 			for (int i = 0; i < w; i++) {
 				for (int j = 0; j < h; j++) {
 					BlockPos p = anchor.relative(extend, i).relative(up, j);

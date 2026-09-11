@@ -275,7 +275,9 @@ public final class SelfTest {
 				return false;
 			}
 			ScreenBlockEntity b = be();
-			return tick - stageStart > 100 && b != null && !b.getUrl().contains("example.org") && !screen().localUrl.contains("example.org");
+			var sc = screen();
+				return tick - stageStart > 100 && b != null && sc != null
+						&& !b.getUrl().contains("example.org") && !sc.localUrl.contains("example.org");
 		}));
 		// 10b) yayin: baslat -> yakalama + parcalar; test modunda sunucu parcalari geri yansitir, tabletteki alici oynatir
 		STEPS.add(new Step("yayin basladi ve parca gonderiyor", 800, () -> {

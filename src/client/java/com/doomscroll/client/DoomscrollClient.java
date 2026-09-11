@@ -146,17 +146,13 @@ public class DoomscrollClient implements ClientModInitializer {
 		Doomscroll.remoteOpener = () -> Minecraft.getInstance().setScreenAndShow(new RemoteScreen());
 		Doomscroll.tabletOpener = () -> Minecraft.getInstance().setScreenAndShow(new TabletScreen());
 
-		// Ekran blogu kirilinca: baska canli ekran yoksa tarayiciyi aninda kapat
+		// Ekran blogu kirildi YA DA chunk'i bosaldi. Ikisi de ayni kancaya dusuyor, bu yuzden
+		// burada yalnizca o ekrana ait kayitlar birakilir: eskiden burasi butun tarayicilari
+		// kapatip izleme/isik/isaretci onbelleklerini siliyordu, uzaklasinca oynayan video oluyordu.
 		Doomscroll.screenRemoved = pos -> {
 			ScreenTracker.forget(pos);
 			ScreenBrowsers.removed(pos);
-			var lvl = Minecraft.getInstance().level;
-			boolean others = lvl != null && ScreenTracker.hasOtherLive(pos, lvl);
-			Doomscroll.LOGGER.info("ekran kaldirildi {} — baska canli ekran: {}", pos, others);
-			if (!others) {
-				Browsers.close();
-				DirectControl.reset();
-			}
+			DirectControl.screenGone(pos);
 		};
 
 
@@ -234,11 +230,17 @@ public class DoomscrollClient implements ClientModInitializer {
 			Browsers.close();
 			Browsers.closeTablet();
 			DirectControl.reset();
+			// Sunucu degistiginde "ayni durumu zaten gonderdim" hatirasi kalmasin; yoksa
+			// yeni sunucuda tabletin hic bildirilmiyor ve kimse ekranini goremiyor.
+			lastTabletUrlSent = "";
+			lastTabletPortraitSent = false;
+			lastTabletVolumeSent = -1f;
 		});
 		// Oyun kapanirken tarayicilari MCEF'ten once kapat (kapanis takilmasini azaltir) ve videolari sil
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			Browsers.close();
 			Browsers.closeTablet();
+			RemoteTablets.clear(); // ayrilma olayi gelmeden cikilirsa acik kalan yardimci surecler
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {

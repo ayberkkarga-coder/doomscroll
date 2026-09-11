@@ -123,6 +123,9 @@ public final class Broadcast {
 
 	// ---------- tick (ScreenBrowsers, 10 tick'te bir) ----------
 
+	/** Bir parcanin en fazla dilim sayisi; dizi boyutu asla dogrudan paketten alinmaz. */
+	private static final int MAX_PIECES = 512;
+
 	public static void tick(ScreenBrowsers.Screen s) {
 		UUID me = me();
 		if (me == null || s.browser == null) {
@@ -181,6 +184,13 @@ public final class Broadcast {
 		s.hostActive = true;
 		s.bcUrl = s.localUrl;
 		LOGGER.info("[yayin] {} yakalama baslatildi ({})", s.pos.toShortString(), s.localUrl);
+	}
+
+	/** Ekran kapandi: kodlayici bos yere calismasin (ekran kapaliyken tick() buraya ugramiyordu). */
+	public static void onScreenOff(ScreenBrowsers.Screen s) {
+		if (s.hostActive) {
+			stopCapture(s);
+		}
 	}
 
 	private static void stopCapture(ScreenBrowsers.Screen s) {
@@ -303,9 +313,12 @@ public final class Broadcast {
 		}
 		if (target == null) return;
 		Assembler as = ASM.computeIfAbsent(b.pos().immutable(), k -> new Assembler());
+		if (b.pieces() < 1 || b.pieces() > MAX_PIECES) {
+			return; // bozuk ya da kotu niyetli paket: dizi boyutu paketten gelmez
+		}
 		if (b.piece() == 0 || as.seq != b.seq()) {
 			as.seq = b.seq();
-			as.parts = new byte[Math.max(1, b.pieces())][];
+			as.parts = new byte[b.pieces()][];
 			as.have = 0;
 			as.init = b.init();
 		}

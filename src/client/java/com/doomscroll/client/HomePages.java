@@ -119,7 +119,9 @@ public final class HomePages {
 				data.add("history", entries(TabletBookmarks.history()));
 			} else {
 				BlockPos pos = parsePos(u.getQuery());
-				ScreenQueue.refresh(pos);
+				// Sira tazeleme paket gonderir; burasi CEF'in IO is parcaciginda calistigi
+				// icin istegi oyun is parcacigina birak.
+				net.minecraft.client.Minecraft.getInstance().execute(() -> ScreenQueue.refresh(pos));
 				JsonArray q = new JsonArray();
 				for (com.doomscroll.net.QueueBroadcast.Row r : ScreenQueue.list(pos)) {
 					JsonObject o = new JsonObject();

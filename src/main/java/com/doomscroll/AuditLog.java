@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +18,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Denetim kaydi: hangi oyuncu, ne zaman, nerede, hangi adresi acti.
@@ -35,6 +39,12 @@ public final class AuditLog {
 	private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 	private static final Deque<Entry> RECENT = new ArrayDeque<>();
 	private static final Object LOCK = new Object();
+	/** Dosya buyudugunde .1'e tasinir; kayit sonsuza kadar buyumesin. */
+	private static final long MAX_BYTES = 8L * 1024 * 1024;
+	/** Yazma kuyrugu: sunucu is parcacigi dosyaya hic dokunmaz. Dolarsa en eski dusurulur. */
+	private static final BlockingQueue<Entry> PENDING = new ArrayBlockingQueue<>(4096);
+	private static volatile Thread writer;
+	private static volatile boolean warned;
 
 	/** Adres acildi. */
 	public static final String OPEN = "open";
@@ -82,27 +92,97 @@ public final class AuditLog {
 			while (RECENT.size() > MEMORY) {
 				RECENT.removeFirst();
 			}
-			if (!ServerConfig.get().auditLog) {
+		}
+		if (!ServerConfig.get().auditLog) {
+			return;
+		}
+		ensureWriter();
+		if (!PENDING.offer(e)) {
+			PENDING.poll(); // kuyruk doluysa en eskiyi birak, sunucuyu bekletme
+			PENDING.offer(e);
+		}
+	}
+
+	/** Yazici is parcacigi: ilk olayda baslar, sunucuyla birlikte kapanir. */
+	private static void ensureWriter() {
+		if (writer != null) {
+			return;
+		}
+		synchronized (LOCK) {
+			if (writer != null) {
 				return;
 			}
+			Thread t = new Thread(AuditLog::drainLoop, "doomscroll-audit");
+			t.setDaemon(true);
+			writer = t;
+			t.start();
+		}
+	}
+
+	private static void drainLoop() {
+		while (true) {
 			try {
-				Files.createDirectories(FILE.getParent());
-				try (BufferedWriter w = Files.newBufferedWriter(FILE, StandardCharsets.UTF_8,
-						StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+				Entry first = PENDING.take();
+				List<Entry> batch = new ArrayList<>();
+				batch.add(first);
+				PENDING.drainTo(batch, 256);
+				append(batch);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			} catch (Throwable t) {
+				warnOnce(t.toString());
+			}
+		}
+	}
+
+	private static void append(List<Entry> batch) {
+		try {
+			Files.createDirectories(FILE.getParent());
+			rotateIfBig();
+			try (BufferedWriter w = Files.newBufferedWriter(FILE, StandardCharsets.UTF_8,
+					StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+				for (Entry e : batch) {
 					w.write(e.time());
-					w.write('\t');
+					w.write('	');
 					w.write(e.player());
-					w.write('\t');
+					w.write('	');
 					w.write(e.action());
-					w.write('\t');
+					w.write('	');
 					w.write(e.where());
-					w.write('\t');
+					w.write('	');
 					w.write(e.detail());
 					w.newLine();
 				}
-			} catch (IOException ex) {
-				// Kayit tutulamiyorsa oyun durmasin; uyariyi bir kez basmak yeterli.
-				Doomscroll.LOGGER.warn("denetim kaydi yazilamadi: {}", ex.toString());
+			}
+		} catch (IOException ex) {
+			// Kayit tutulamiyorsa oyun durmasin.
+			warnOnce(ex.toString());
+		}
+	}
+
+	private static void rotateIfBig() throws IOException {
+		if (!Files.exists(FILE) || Files.size(FILE) < MAX_BYTES) {
+			return;
+		}
+		Files.move(FILE, FILE.resolveSibling(FILE.getFileName() + ".1"), StandardCopyOption.REPLACE_EXISTING);
+	}
+
+	private static void warnOnce(String what) {
+		if (!warned) {
+			warned = true;
+			Doomscroll.LOGGER.warn("denetim kaydi yazilamadi: {}", what);
+		}
+	}
+
+	/** Sunucu kapanirken: kuyrukta kalanlari diske yaz (en fazla iki saniye bekler). */
+	public static void flush() {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+		while (!PENDING.isEmpty() && System.nanoTime() < deadline) {
+			List<Entry> batch = new ArrayList<>();
+			PENDING.drainTo(batch, 512);
+			if (!batch.isEmpty()) {
+				append(batch);
 			}
 		}
 	}
@@ -125,7 +205,13 @@ public final class AuditLog {
 		if (s == null || s.isEmpty()) {
 			return "-";
 		}
-		String t = s.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
-		return t.length() > 512 ? t.substring(0, 512) + "..." : t;
+		StringBuilder b = new StringBuilder(Math.min(s.length(), 512));
+		for (int i = 0; i < s.length() && b.length() < 512; i++) {
+			char c = s.charAt(i);
+			// Sekme/satir sonu kayit bicimini bozar; § ise /doomscroll kayit
+			// ciktisinda satiri gizlemeye ya da sahte satir uydurmaya yarar.
+			b.append(c == '§' || c < ' ' || c == 127 ? ' ' : c);
+		}
+		return s.length() > 512 ? b + "..." : b.toString();
 	}
 }

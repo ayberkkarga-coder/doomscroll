@@ -10,6 +10,7 @@ import com.doomscroll.net.TabletStateBroadcast;
 import com.doomscroll.net.TabletStatePayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
@@ -92,6 +93,10 @@ public class Doomscroll implements ModInitializer {
 	private static final Map<UUID, long[]> CHUNK_RATE = new ConcurrentHashMap<>();
 	/** Sunucu: isaretci yayin hiz siniri (oyuncu -> son yayin ms). */
 	public static final Map<UUID, Long> POINTER_LAST = new ConcurrentHashMap<>();
+	/** Sunucu: tablet paketleri icin hiz siniri (oyuncu -> {son durum ms, son konum ms}). */
+	private static final Map<UUID, long[]> TABLET_RATE = new ConcurrentHashMap<>();
+	/** Sunucu: kontrolcunun pasif adres degisiklikleri icin hiz siniri (ekran -> son ms). */
+	private static final Map<ScreenKey, Long> PASSIVE_URL = new ConcurrentHashMap<>();
 
 	// Client tarafinin doldurdugu kancalar
 	public static Consumer<BlockPos> screenOpener = pos -> {};
@@ -234,6 +239,29 @@ public class Doomscroll implements ModInitializer {
 	}
 
 	/** Adres degisikligi bekleme suresi (spam ve lag makinesi icin). */
+	/** Tablet paketleri icin oyuncu basina en az {@code gapMs} aralik. */
+	private static boolean tabletFlood(ServerPlayer p, int slot, long gapMs) {
+		long[] r = TABLET_RATE.computeIfAbsent(p.getUUID(), k -> new long[2]);
+		long now = System.currentTimeMillis();
+		if (now - r[slot] < gapMs) {
+			return true;
+		}
+		r[slot] = now;
+		return false;
+	}
+
+	/** Sayfanin kendi yonlendirmeleri: ekran basina saniyede en fazla iki degisiklik kayda gecer. */
+	private static boolean passiveFlood(ServerPlayer p, ScreenBlockEntity a) {
+		ScreenKey k = keyOf(p.level(), a);
+		long now = System.currentTimeMillis();
+		Long last = PASSIVE_URL.get(k);
+		if (last != null && now - last < 500L) {
+			return true;
+		}
+		PASSIVE_URL.put(k, now);
+		return false;
+	}
+
 	private static boolean onCooldown(ServerPlayer p) {
 		int ms = ServerConfig.get().urlCooldownMs;
 		if (ms <= 0 || Perms.has(p, Perms.BYPASS, Perms.GAMEMASTER)) {
@@ -308,6 +336,14 @@ public class Doomscroll implements ModInitializer {
 				BROADCASTERS.remove(e.getKey());
 				BROADCAST_SUBS.remove(e.getKey());
 				continue;
+			}
+			java.util.Set<UUID> subs = BROADCAST_SUBS.get(e.getKey());
+			if (subs != null) {
+				subs.removeIf(id -> {
+					ServerPlayer sp = server.getPlayerList().getPlayer(id);
+					return sp == null || sp.level() != level
+							|| sp.position().distanceToSqr(Vec3.atCenterOf(pos)) > REACH * REACH;
+				});
 			}
 			ServerPlayer h = server.getPlayerList().getPlayer(e.getValue());
 			boolean gone = h == null || h.level() != level
@@ -483,11 +519,13 @@ public class Doomscroll implements ModInitializer {
 						denyMessage(deny, url)));
 				return;
 			}
-			if (payload.explicit()) {
-				if (!Perms.has(player, Perms.URL, Perms.EVERYONE)) {
+			if (!Perms.has(player, Perms.URL, Perms.EVERYONE)) {
+				if (payload.explicit()) {
 					notice(player, a, Component.translatable("message.doomscroll.no_permission"));
-					return;
 				}
+				return;
+			}
+			if (payload.explicit()) {
 				if (onCooldown(player)) {
 					notice(player, a, Component.translatable("message.doomscroll.too_fast"));
 					return;
@@ -512,10 +550,16 @@ public class Doomscroll implements ModInitializer {
 					return; // kilitli ekranda izleyici sessizce izler
 				}
 				giveControl(player, a);
+				if (!url.equals(a.getUrl())) {
+					AuditLog.record(player, a, AuditLog.OPEN, url);
+				}
 				a.setUrl(url);
 			} else if (c.equals(player.getUUID())) {
 				touch(player, a);
 				if (!url.equals(a.getUrl())) {
+					if (passiveFlood(player, a)) {
+						return; // sayfanin kendi yonlendirmeleri sunucuyu doldurmasin
+					}
 					AuditLog.record(player, a, AuditLog.OPEN, url);
 				}
 				a.setUrl(url);
@@ -603,13 +647,18 @@ public class Doomscroll implements ModInitializer {
 			if (a == null) {
 				return;
 			}
+			float pu = payload.u();
+			float pv = payload.v();
+			if (Float.isNaN(pu) || Float.isNaN(pv) || Float.isInfinite(pu) || Float.isInfinite(pv)) {
+				return;
+			}
 			long now = System.currentTimeMillis();
 			Long last = POINTER_LAST.get(player.getUUID());
-			if (last != null && now - last < 60L && payload.u() >= 0) {
-				return; // sn'de en fazla ~16
+			if (last != null && now - last < 60L) {
+				return; // sn'de en fazla ~16 (ayrilma bildirimi de dahil)
 			}
 			POINTER_LAST.put(player.getUUID(), now);
-			var b = new com.doomscroll.net.ScreenPointerBroadcast(a.getBlockPos(), player.getUUID(), player.getName().getString(), payload.u(), payload.v());
+			var b = new com.doomscroll.net.ScreenPointerBroadcast(a.getBlockPos(), player.getUUID(), player.getName().getString(), pu, pv);
 			boolean echo = Boolean.getBoolean("doomscroll.selftest"); // duman testi: gonderene de yansit
 			for (ServerPlayer p : PlayerLookup.around(player.level(), Vec3.atCenterOf(a.getBlockPos()), 48.0)) {
 				if (p != player || echo) {
@@ -673,7 +722,9 @@ public class Doomscroll implements ModInitializer {
 					if (host == null) {
 						return;
 					}
-					BROADCAST_SUBS.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player.getUUID());
+					if (!BROADCAST_SUBS.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player.getUUID())) {
+						return; // zaten aboneydi: yayinciyi yeniden baslatma
+					}
 					ServerPlayer hp = ctx.server().getPlayerList().getPlayer(host);
 					if (hp != null) {
 						ServerPlayNetworking.send(hp, new com.doomscroll.net.BroadcastControlBroadcast(a.getBlockPos(), com.doomscroll.net.BroadcastControlBroadcast.RESTART));
@@ -747,12 +798,34 @@ public class Doomscroll implements ModInitializer {
 
 		// ---------- kisisel tablet durumu (herkes baskasinin tabletinde onun izledigini gorsun) ----------
 		ServerPlayNetworking.registerGlobalReceiver(TabletStatePayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
+			ServerPlayer player = ctx.player();
+			if (player.hasDisconnected()) {
+				return; // baglanti koptuktan sonra gelen paket kalici hayalet birakmasin
+			}
 			String url = payload.url();
-			if (url.length() > 2048 || (!url.isEmpty() && !(url.startsWith("http://") || url.startsWith("https://") || url.startsWith("doomscroll://")))) {
+			if (!url.isEmpty() && !validUrl(url)) {
 				return;
 			}
-			float vol = Math.max(0f, Math.min(1f, payload.volume()));
-			TabletStateBroadcast b = new TabletStateBroadcast(ctx.player().getUUID(), url, payload.portrait(), vol);
+			if (tabletFlood(player, 0, 250L)) {
+				return;
+			}
+			// Ekranla ayni kurallar: engelli/izinli alan adi, yerel ag, acil kapatma, izin dugumu.
+			if (!url.isEmpty()) {
+				boolean bypass = Perms.has(player, Perms.BYPASS, Perms.GAMEMASTER);
+				if (!bypass && !Perms.has(player, Perms.URL, Perms.EVERYONE)) {
+					return;
+				}
+				int deny = ServerConfig.check(url);
+				if (deny != ServerConfig.OK && !bypass) {
+					AuditLog.record(player, null, AuditLog.BLOCKED, "tablet " + url);
+					ServerPlayNetworking.send(player, new ScreenNoticePayload(player.blockPosition(),
+							ScreenNoticePayload.BLOCKED, denyMessage(deny, url)));
+					url = ""; // baskalarinin tabletinde bos gorunsun; kendi sayfasi acik kalir
+				}
+			}
+			float vol = payload.volume();
+			vol = Float.isNaN(vol) ? 0f : Math.max(0f, Math.min(1f, vol));
+			TabletStateBroadcast b = new TabletStateBroadcast(player.getUUID(), url, payload.portrait(), vol);
 			TABLET_STATES.put(b.player(), b);
 			for (ServerPlayer p : PlayerLookup.all(ctx.server())) {
 				ServerPlayNetworking.send(p, b);
@@ -760,8 +833,14 @@ public class Doomscroll implements ModInitializer {
 		}));
 		// tablet konumu: izleyenler ayni ana hizalansin (anlik, saklanmaz)
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.TabletTimePayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
+			if (!(payload.time() >= 0f) || !(payload.duration() >= 0f)) {
+				return; // NaN de buraya dusuyor
+			}
+			if (tabletFlood(ctx.player(), 1, 200L)) {
+				return;
+			}
 			com.doomscroll.net.TabletTimeBroadcast b = new com.doomscroll.net.TabletTimeBroadcast(
-					ctx.player().getUUID(), payload.time(), Math.max(0f, payload.duration()), payload.paused());
+					ctx.player().getUUID(), payload.time(), payload.duration(), payload.paused());
 			for (ServerPlayer p : PlayerLookup.all(ctx.server())) {
 				if (p != ctx.player()) {
 					ServerPlayNetworking.send(p, b);
@@ -885,6 +964,9 @@ public class Doomscroll implements ModInitializer {
 			dropControlsOf(server, id);
 			POINTER_LAST.remove(id);
 			CHUNK_RATE.remove(id);
+			TABLET_RATE.remove(id);
+			URL_COOLDOWN.remove(id);
+			REPORT_COOLDOWN.remove(id);
 			// yayinci ciktiysa yayin biter; abonelikleri sil
 			for (var e : BROADCASTERS.entrySet()) {
 				if (id.equals(e.getValue())) {
@@ -933,6 +1015,24 @@ public class Doomscroll implements ModInitializer {
 				expireControllers(server);
 				expireBroadcasts(server);
 			}
+		});
+
+		// Dunya kapaninca sunucu tarafi tablolar sifirlanir; yoksa bir sonraki dunyada
+		// ayni koordinattaki ekran eski sirayi ve eski kontrolcuyu devralir.
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+			URL_COOLDOWN.clear();
+			REPORT_COOLDOWN.clear();
+			CONTROL_ACTIVITY.clear();
+			BROADCASTERS.clear();
+			BROADCAST_SUBS.clear();
+			CHUNK_RATE.clear();
+			POINTER_LAST.clear();
+			TABLET_RATE.clear();
+			PASSIVE_URL.clear();
+			TABLET_STATES.clear();
+			ServerQueue.clearAll();
+			ScreenBlockEntity.clearServerLive();
+			AuditLog.flush();
 		});
 
 		LOGGER.info("doomscroll yuklendi - kaydirmaya hazir");

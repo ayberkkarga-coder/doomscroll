@@ -30,6 +30,8 @@ public final class Channels {
 	public static List<Channel> list() {
 		List<Channel> out = new ArrayList<>();
 		List<DoomscrollConfig.ChannelEntry> cfg = DoomscrollConfig.get().channels;
+		// Kopya uzerinde gez: bu metot ana sayfa uretilirken CEF'in IO is parcaciginda da cagriliyor.
+		cfg = cfg == null ? null : List.copyOf(cfg);
 		if (cfg != null) {
 			for (DoomscrollConfig.ChannelEntry e : cfg) {
 				if (e != null && e.url != null && !e.url.isBlank()) {

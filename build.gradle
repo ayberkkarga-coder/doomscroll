@@ -1,20 +1,5 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
-	id 'maven-publish'
-}
-
-repositories {
-	exclusiveContent {
-		forRepository {
-			maven {
-				name = "Modrinth"
-				url = "https://api.modrinth.com/maven"
-			}
-		}
-		filter {
-			includeGroup "maven.modrinth"
-		}
-	}
 }
 
 loom {
@@ -36,16 +21,29 @@ loom {
 	}
 }
 
+// Kardes proje mcef-codec'in jar'i: surum numarasini kaliba yazmiyoruz ki mcef-codec
+// surum atlayinca burasi sessizce bos kalmasin. Bos kalirsa derleme anlasilir bir hata versin.
+def mcefJars = fileTree(dir: "../mcef-codec/build/libs", include: "mcef-codec-*.jar", excludes: ["*-sources.jar"])
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	// Codec'li Chromium katmani (kardes proje); calisma zamaninda mods klasorunde ayri jar
-	compileOnly files("../mcef-codec/build/libs/mcef-codec-0.1.0.jar")
+	// Codec'li Chromium katmani; calisma zamaninda mods klasorunde ayri jar olarak durur
+	compileOnly mcefJars
 	// Gelistirme istemcisi (./gradlew runClient) icin ayni jar mod olarak yuklensin
-	runtimeOnly files("../mcef-codec/build/libs/mcef-codec-0.1.0.jar")
+	runtimeOnly mcefJars
+}
 
+tasks.named("compileJava").configure {
+	doFirst {
+		if (mcefJars.isEmpty()) {
+			throw new GradleException("mcef-codec jar'i bulunamadi. Once kardes projeyi derle:\n" +
+					"  cd ../mcef-codec && ./gradlew build\n" +
+					"Beklenen yer: ../mcef-codec/build/libs/mcef-codec-*.jar")
+		}
+	}
 }
 
 processResources {
@@ -62,7 +60,6 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 java {
-	withSourcesJar()
 	sourceCompatibility = JavaVersion.VERSION_25
 	targetCompatibility = JavaVersion.VERSION_25
 }
@@ -72,15 +69,11 @@ jar {
 	inputs.property "projectName", projectName
 
 	from("LICENSE") {
-		rename { "${it}_$projectName"}
+		rename { "${it}_$projectName" }
 	}
-}
-
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			from components.java
-		}
+	// Jersey 10 yazi tipi font.css icine gomulu geliyor; OFL 1.1 metnin de her kopyayla
+	// birlikte dagitilmasini istiyor.
+	from("LICENSE-jersey10") {
+		into "META-INF"
 	}
-	repositories {}
 }

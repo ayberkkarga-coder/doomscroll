@@ -203,6 +203,11 @@ public final class ServerQueue {
 		return null;
 	}
 
+	/** Ekran kirildi: sirasi da gitsin (yoksa sunucu boyunca birikir). */
+	public static void forget(Doomscroll.ScreenKey key) {
+		QUEUES.remove(key);
+	}
+
 	/** Sunucu kapanirken / dunya bosalirken. */
 	public static void clearAll() {
 		QUEUES.clear();

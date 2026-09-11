@@ -3,6 +3,7 @@ package com.doomscroll.client;
 import com.doomscroll.cef.api.CefBrowserView;
 import net.minecraft.client.sounds.AudioStream;
 import org.lwjgl.BufferUtils;
+import org.jetbrains.annotations.Nullable;
 
 import javax.sound.sampled.AudioFormat;
 import java.nio.ByteBuffer;
@@ -26,6 +27,10 @@ public final class CefAudioStream implements AudioStream {
 		this.chunkBytes = (rate * DoomscrollConfig.get().audioChunkMs() / 1000) * 2;
 	}
 
+	/** Her okumada yeniden ayirmak yerine tek arabellek (akis basina saniyede ~40 okuma). */
+	@Nullable
+	private ByteBuffer buffer;
+
 	@Override
 	public AudioFormat getFormat() {
 		return format;
@@ -33,7 +38,12 @@ public final class CefAudioStream implements AudioStream {
 
 	@Override
 	public ByteBuffer read(int size) {
-		ByteBuffer buf = BufferUtils.createByteBuffer(chunkBytes);
+		ByteBuffer buf = buffer;
+		if (buf == null) {
+			buf = BufferUtils.createByteBuffer(chunkBytes);
+			buffer = buf;
+		}
+		buf.clear();
 		CefBrowserView b = source.get();
 		if (b != null && b.hasAudioStream()) {
 			b.readAudio(buf, chunkBytes);

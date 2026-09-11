@@ -22,7 +22,15 @@ import java.util.concurrent.Executors;
  * gelene kadar ve diger sitelerde site adi + yol gosterilir. Sira listesi ve gecmis icin.
  */
 public final class PageTitles {
-	private static final Map<String, String> CACHE = new ConcurrentHashMap<>();
+	/** Adres -> baslik. En fazla bu kadar; en eskisi dusulur (SponsorBlock onbellegi gibi). */
+	private static final int MAX_CACHE = 500;
+	private static final Map<String, String> CACHE = java.util.Collections.synchronizedMap(
+			new java.util.LinkedHashMap<>(64, 0.75f, true) {
+				@Override
+				protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+					return size() > MAX_CACHE;
+				}
+			});
 	private static final Set<String> PENDING = ConcurrentHashMap.newKeySet();
 	private static final HttpClient HTTP = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(8)).followRedirects(HttpClient.Redirect.ALWAYS).build();

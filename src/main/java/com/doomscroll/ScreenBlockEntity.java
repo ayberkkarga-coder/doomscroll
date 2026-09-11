@@ -62,6 +62,31 @@ public class ScreenBlockEntity extends BlockEntity {
 		return owner == null || owner.equals(uuid);
 	}
 
+	/** Yalnizca gercekten bu oyuncuya ait mi (sahipsiz ekran kimseye sayilmaz). */
+	public boolean isOwnedBy(UUID uuid) {
+		return owner != null && owner.equals(uuid);
+	}
+
+	/**
+	 * Paneller birlesip anchor degistiginde eski anchor'un durumunu yeni anchor'a tasir.
+	 * Bunu yapmazsak yanina tek blok koyan biri adresi, kilidi ve sahibi sifirlar.
+	 * Kontrolcu ve yayinci oturumluk oldugu icin tasinmaz.
+	 */
+	public void adoptPanelState(ScreenBlockEntity from) {
+		if (from == this) {
+			return;
+		}
+		this.url = from.url;
+		this.owner = from.owner;
+		this.ownerName = from.ownerName;
+		this.locked = from.locked;
+		this.on = from.on;
+		this.volume = from.volume;
+		this.redstone = from.redstone;
+		this.powered = from.powered;
+		sync();
+	}
+
 	/** Sunucu: sahibi ayarla ve istemcilere yolla. */
 	public void setOwner(UUID uuid, String name) {
 		this.owner = uuid;
@@ -289,6 +314,11 @@ public class ScreenBlockEntity extends BlockEntity {
 	 * Kaldirilmis ya da dunyasi gitmis girdiler burada ayiklanir: chunk bosaltmasi
 	 * setRemoved cagirir ama tek oyunculuda dunya kapanisinda birkac girdi kalabiliyor.
 	 */
+	/** Sunucu kapanirken: bir sonraki dunyaya eski girdiler sizmasin. */
+	public static void clearServerLive() {
+		SERVER_LIVE.clear();
+	}
+
 	public static java.util.List<ScreenBlockEntity> liveOnServer() {
 		SERVER_LIVE.removeIf(s -> s.isRemoved() || s.level == null);
 		return java.util.List.copyOf(SERVER_LIVE);

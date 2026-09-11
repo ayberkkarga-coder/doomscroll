@@ -116,7 +116,15 @@ public final class ScreenQueue {
 	}
 
 	/** Guncel listeyi iste (kumanda acilinca, ana sayfa yuklenince). */
+	/** Son tazeleme istegi (arayuz her yeniden kuruldugunda cagriliyor; sunucuyu doldurmasin). */
+	private static long lastRefreshMs;
+
 	public static void refresh(@Nullable BlockPos anchor) {
+		long now = System.currentTimeMillis();
+		if (now - lastRefreshMs < 250L) {
+			return;
+		}
+		lastRefreshMs = now;
 		send(anchor, QueueActionPayload.REFRESH, "", "");
 	}
 

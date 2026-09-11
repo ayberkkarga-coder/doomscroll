@@ -138,6 +138,10 @@ public class ScreenBlock extends BaseEntityBlock {
 				return;
 			}
 			be.setOwner(p.getUUID(), p.getName().getString());
+			if (level.getBlockEntity(be.getAnchor()) instanceof ScreenBlockEntity anchorBe
+					&& anchorBe != be && anchorBe.getOwner() == null) {
+				anchorBe.setOwner(p.getUUID(), p.getName().getString());
+			}
 			if (be.getWidth() * be.getHeight() > 1) {
 				p.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.doomscroll.screen.panel", be.getWidth(), be.getHeight()));
 			}
@@ -175,7 +179,7 @@ public class ScreenBlock extends BaseEntityBlock {
 	private static int ownedBy(Player p) {
 		int n = 0;
 		for (ScreenBlockEntity s : ScreenBlockEntity.liveOnServer()) {
-			if (s.isOwner(p.getUUID())) {
+			if (s.isOwnedBy(p.getUUID())) {
 				n++;
 			}
 		}
@@ -239,6 +243,7 @@ public class ScreenBlock extends BaseEntityBlock {
 	@Override
 	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
 		super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+		ServerQueue.forget(new Doomscroll.ScreenKey(level.dimension(), pos.immutable()));
 		ScreenMultiblock.recomputeAround(level, pos, state);
 	}
 

@@ -5,7 +5,7 @@
 Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. Build huge screens in the world, carry a tablet, drive everything with a remote, turn a room into a cinema. It started as a joke and became real.
 
 - Minecraft **26.2** · Fabric · Java 25
-- A real Chromium (CEF 126 with H.264/AAC codecs), supplied by the sibling project [`mcef-codec`](../mcef-codec)
+- A real Chromium (CEF 126 with H.264/AAC codecs), supplied by the sibling project [`mcef-codec`](https://modrinth.com/mod/mcef-codec)
 - Positional audio (it comes from the nearest point of the panel, works with Sound Physics Remastered), a screen that emits light under shaders, and a room that takes on the colours of what is playing (ambilight)
 
 ## Contents
@@ -26,12 +26,12 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 15. [Safety notes](#safety-notes)
 16. [Development](#development)
 
-> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Every command has an English name and a Turkish one, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`.
+> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Most commands have both an English and a Turkish name, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`. Names that read the same in both languages (`go`, `fps`, `boost`, `pause`, `sponsor`, `remote`, `tablet`, ...) have just one.
 
 ## Install
 1. Put `fabric-api`, `mcef-codec-0.1.0.jar` and `doomscroll-0.1.0.jar` in your `mods/` folder.
-2. On first launch mcef-codec downloads the Chromium binaries (~136 MB, SHA-256 verified) into `config/mcef-codec/`.
-3. On a server every player needs both jars, and the server needs `doomscroll` too. The browser only ever runs on the client. Anyone without the mod sees a blank screen.
+2. On first launch mcef-codec downloads the Chromium binaries (a few hundred MB, SHA-256 verified) into `config/mcef-codec/libraries/`.
+3. On a server both jars go in the server's `mods/` folder as well as every player's: `doomscroll` declares `mcef-codec` as a dependency, so Fabric looks for it on both sides. The browser itself only ever runs on the client - on a server mcef-codec loads and does nothing. Anyone without the mod sees a blank screen.
 4. A one-time welcome message appears on your first join. `/ds help` lists every command.
 
 ## Items
@@ -47,7 +47,7 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - **Look and click:** with an empty hand (or while holding the remote or tablet), look at a screen and your crosshair becomes a cursor. Left click clicks, the wheel scrolls (on Shorts/Reels one tick is one video), right click binds your keyboard to the screen (ESC releases it), sneak + right click plays/pauses. If you are holding a block you get a hint instead, so the click goes to the game and you can build next to the screen.
 - **Text fields:** clicking a visible text field binds your keyboard automatically, and it is released when you press Enter, the page changes, or focus is lost. Fields a site focuses behind your back never steal your keyboard.
 - **The remote panel:** a compact embossed dark remote body (vanilla button feel: a 1 px outline with light and shadow edges), a green LCD status display, three tabs (REMOTE / SETTINGS / MORE), pixel-icon buttons and a volume slider.
-  - **REMOTE:** power, mute + volume, Shorts/Reels/TikTok, channel (◀ name ▶), back/forward/reload/home/cinema, address bar + go (arrow) + **+** (add to queue), "Cast the screen to the tablet" (the page on the screen opens on the tablet, on YouTube from the same second; the tablet → screen direction is the tablet's **Cast** button).
+  - **REMOTE:** power, mute + volume, Shorts/Reels/TikTok, channel (◀ name ▶), back/forward/reload/home/cinema, address bar + go (arrow) + **+** (add to queue), "Send screen to tablet" (the page on the screen opens on the tablet, on YouTube from the same second; the tablet → screen direction is the tablet's **Cast** button).
   - **SETTINGS:** auto-advance, playback sync, ad blocker, captions (HUD), YouTube sign-in mode, lock, resolution, frame rate, audio delay.
   - **MORE:** SponsorBlock, shared pointer, redstone, broadcast, screen light, smooth light, light range, queue → the **queue list** page (with titles; play / remove / clear, scrollable).
   - LCD rows: state · owner · volume, page title + duration (+N queued), control/lock.
@@ -70,7 +70,7 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - A newly placed screen and the tablet open the **home menu**, not a site (`doomscroll://home/screen`, `doomscroll://home/tablet`; the Home button on the remote and tablet also comes back here).
 - **Help on both menus.** The bottom of the screen menu carries a **How to use it** rail, and the tablet has a help widget next to History: look-and-click, the keyboard, scrolling, the remote, the queue and voting, cinema mode, R for portrait, Cast and Queue. Players of comparable mods repeatedly ask how to scroll or how to get back to the home page; this is where they will look.
 - **Screen menu** (a smart-TV launcher): brand, search (anything that is not an address goes to Google) and a clock across the top; a large **hero** area (if something is queued, its thumbnail and title with "Play now"; otherwise a greeting for the time of day and an invitation to Shorts); horizontal rails: Apps (YouTube, Shorts, Reels, TikTok, Twitch, Kick), Channels (+ Add a channel, ✕), Up next (cards with YouTube thumbnails; click to play, ✕ to remove). A TV focus ring on hover.
-- **Tablet menu** (an iPad home screen): wallpaper, status bar (clock, date), a search pill, rounded app icons, a **History** widget ("Clear"), bookmarks and channels as web-clip icons (hover for ✕), and a dock at the bottom (YouTube, Shorts, Reels, TikTok, Twitch). Four columns in portrait.
+- **Tablet menu** (an iPad home screen): wallpaper, status bar (clock, date), a search pill, rounded app icons, a **History** widget ("Clear"), bookmarks and channels as web-clip icons (hover for ✕), and a dock at the bottom (YouTube, Shorts, Reels, TikTok, Twitch). Five columns in portrait.
 - Both menus have a **+ Add** icon: give it a name and an address and it becomes a tablet bookmark or a screen channel (hover for ✕). The star and `/ds channel add` feed the same lists.
 - The pages are generated inside the mod (`assets/doomscroll/home/home.html` + `HomePages`) and never touch the internet; server address rules always allow `doomscroll://`.
 
@@ -128,15 +128,15 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 |---|---|---|
 | `screenWidth`, `screenHeight` | 1280×720 | screen browser resolution (it also caps stream quality) |
 | `audioSampleRate` | 0 | 0 = auto-detect; set 44100 or 48000 if audio sounds pitched |
-| `browserFps` | 60 | paint rate of the screen you are looking at; off-screen ones drop to 10, distant ones to half |
+| `browserFps` | 60 | paint rate of the screen you are looking at; off-screen ones drop to 10, distant ones to half (never below 20 fps, and never above the cap you set) |
 | `audioBoost` | 2.5 | digital gain on browser audio |
 | `audioLatency` | normal | `dusuk` / `normal` / `yuksek` |
 | `adBlock` | true | ad blocker |
 | `sponsorBlock` | true | SponsorBlock |
 | `subtitles` | true | HUD captions (nearest screen within 24 blocks) |
 | `pointer` | true | shared pointer (send and show) |
-| `screenVolume`, `screenMuted` | 0.8 | your personal volume for screens (the slider on the remote) |
-| `tabletVolume`, `tabletMuted` | 0.8 | the volume of the tablet in your hand (the speaker in its toolbar) |
+| `screenVolume` / `screenMuted` | 0.8 / false | your personal volume for screens (the slider on the remote) |
+| `tabletVolume` / `tabletMuted` | 0.8 / false | the volume of the tablet in your hand (the speaker in its toolbar) |
 | `remoteTabletVolume` | 0.8 | how loud other people's tablets are for you (0 = never hear them) |
 | `othersScreenVolume` | 1.0 | how loud screens you did not place are (the server can make this start at 0) |
 | `separateScreenCookies` | false | screens use an in-memory Chromium context, separate from the tablet's persistent profile. A sign-in made on a screen is then lost when you close the game, so it is off by default; the server can force it on |
@@ -148,6 +148,7 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `userAgent` | Chrome/128 | browser identity |
 | `tvLogin` | false | YouTube sign-in mode |
 | `welcomeShown` | false | the welcome message has been shown |
+| `broadcastWidth` / `broadcastFps` / `broadcastKbps` | 960 / 24 / 1200 | broadcast encoder settings (`/ds broadcast quality` writes these) |
 
 Volume has three stages: the **device's own volume** (the tablet's slider, which everyone hears it at; a screen's lives on the block, remote → More → "Screen volume"), then **your own slider**, and on top of that Minecraft's "Blocks" setting.
 
@@ -180,7 +181,7 @@ The JSON is rewritten on every start too, so a mod update adds its new fields wi
 | `maxScreensPerPlayer` | `0` | Screen blocks one player may have (0 = unlimited). |
 | `urlCooldownMs` | `0` | Minimum gap between one player's address changes (0 = none). Set 1000-2000 on a public server. |
 
-**Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `duyuru` / `announce` · `isaretci` / `pointer` · `redstone` · `kontrolsuresi` / `controltime` `<seconds>` · `kayit` / `audit` `[n]` · `denetim` / `auditlog` · `acil` / `emergency` · `karart` / `blackout` · `ozelag` / `privatenet` · `onay` / `consent` · `sessiz` / `muteothers` · `alanadi` / `showdomain` · `cerez` / `cookies` · `panelsinir` / `maxpanel` `<n>` · `ekransinir` / `maxscreens` `<n>` · `bekleme` / `cooldown` `<ms>` · `yayin` / `broadcast`. Changes are written to the file and pushed to every client at once.
+**Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `liste` / `list` · `duyuru` / `announce` `on|off` · `isaretci` / `pointer` `on|off` · `redstone` `on|off` · `kontrolsuresi` / `controltime` `<seconds>` · `kayit` / `audit` `[n]` · `denetim` / `auditlog` `on|off` · `acil` / `emergency` `on|off` · `karart` / `blackout` · `ozelag` / `privatenet` `on|off` · `onay` / `consent` `on|off` · `sessiz` / `muteothers` `on|off` · `alanadi` / `showdomain` `on|off` · `cerez` / `cookies` `on|off` · `panelsinir` / `maxpanel` `<n>` · `ekransinir` / `maxscreens` `<n>` · `bekleme` / `cooldown` `<ms>` · `yayin` / `broadcast` `on|off`. Changes are written to the file and pushed to every client at once.
 
 ## Moderation and safety
 
@@ -189,7 +190,13 @@ authoritative and that nothing is available after an incident. These are the too
 
 - **Audit log.** Every address opened, every blocked attempt, every broadcast and power change is written to
   `config/doomscroll-audit.log` with who, when, which world and which block. `/doomscroll audit [n]` shows the
-  last entries in chat. Addresses are never used as a format string, so a `%` in a URL cannot break the log.
+  last entries in chat. Addresses are never used as a format string, so a `%` in a URL cannot break the log,
+  and `§` formatting codes are stripped so nobody can hide or forge a line in that output. Writing happens on
+  a background thread, and the file rotates to `doomscroll-audit.log.1` at 8 MB.
+- **The tablet obeys the same rules as screens.** A page on somebody's tablet is visible to everyone around
+  them, so the address goes through the same gate: the block and allow lists, the private-network rule,
+  emergency shutdown and the `doomscroll.url` permission. A refused address simply shows nothing on other
+  people's view of that tablet, and the attempt is logged.
 - **Emergency shutdown.** `/doomscroll emergency on` blacks out every loaded screen and stops any of them from
   being turned on again. `/doomscroll blackout` is the one-shot version without the lock. Both take effect
   immediately; nobody has to rejoin.
@@ -226,7 +233,7 @@ authoritative and that nothing is available after an incident. These are the too
   its address and its coordinates, and writes the same to the audit log. The address and owner are read on the
   server, never taken from the client.
 
-One thing worth knowing: the allowlist matches subdomains correctly. Blocking `example.com` also blocks
+One thing worth knowing: both lists match subdomains the same way. Blocking `example.com` also blocks
 `www.example.com` and `ads.example.com`.
 
 ## Performance
@@ -248,7 +255,7 @@ One thing worth knowing: the allowlist matches subdomains correctly. Blocking `e
 
 ## Development
 - `JAVA_HOME` must be a Java 25 (the Minecraft launcher's own JDK works). `./gradlew build` → `build/libs/doomscroll-0.1.0.jar`. Build mcef-codec first; `../mcef-codec/build/libs/mcef-codec-0.1.0.jar` is a compileOnly dependency.
-- 26.x is unobfuscated, so the code uses real Mojang names. Signature notes are in `api-notes*.txt`.
+- 26.x is unobfuscated, so the code uses real Mojang names. The signatures the mod relies on are listed in the commit that introduced them.
 - Architecture: `ScreenBrowsers` (a browser per screen, control, sync, SponsorBlock, quality) · `Browsers` (tablet and page scripts: reporter, cleaner, cinema) · `DirectControl` (look-and-click, keyboard, pointer) · `ScreenGlow` (ambilight) · `ScreenQueue` / `SponsorBlock` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (server: packets, control timeout, lock, address policy) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel merging, light, redstone).
 - **Text:** no user-facing string is hard-coded. Java uses `Component.translatable` or, where a plain `String` is needed, `Lang.tr(key, …)`; the home pages use `{{key}}` (HTML) and `{{js:key}}` (inside a JS string), resolved by `HomePages.translate()`. `en_us.json` and `tr_tr.json` must always hold the same set of keys.
 - **Smoke test:** `./gradlew runClient` starts the dev client with `-Ddoomscroll.selftest=true`; on joining the world `SelfTest` builds a 3×2 panel next to the player, opens YouTube and exercises the page reporter, titles, a SponsorBlock skip, screen light, the queue (skip and end-of-video), a server address block, redstone, admin commands and the pointer, writing `[selftest]` lines to the log before closing the game. `run/config/doomscroll-server.json` must have `example.org` blocked.

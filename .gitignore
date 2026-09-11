@@ -20,3 +20,6 @@ build-log*.txt
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Minecraft siniflarinin javap dokumu: gelistirme notu, depoya girmez
+api-notes-*.txt

@@ -19,7 +19,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBlockEntity, ScreenRenderState> {
-	public static final Identifier BROWSER_TEXTURE_ID = Doomscroll.id("browser");
 	private static final Identifier OFF_TEXTURE = Doomscroll.id("textures/block/screen_off.png");
 
 	public ScreenBlockEntityRenderer(BlockEntityRendererProvider.Context context) {

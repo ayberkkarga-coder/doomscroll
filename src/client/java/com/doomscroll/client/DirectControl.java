@@ -29,6 +29,12 @@ public final class DirectControl {
 	private static final double MAX_REACH = 48.0;
 
 	private static boolean keyboardCaptured = false;
+	/**
+	 * Klavye baglandigi andaki ekran. Tuslar hep bu ekrana gider: yoksa artiisaret
+	 * panelden kayinca yazdigin geri kalani yandaki ekran aliyordu.
+	 */
+	@Nullable
+	private static BlockPos capturedPos;
 	@Nullable
 	private static ScreenTracker.Hit currentHit;
 	@Nullable
@@ -289,7 +295,7 @@ public final class DirectControl {
 			}
 			return true;
 		}
-		CefBrowserView b = Browsers.getIfPresent();
+		CefBrowserView b = capturedBrowser();
 		if (b == null) {
 			return true;
 		}
@@ -306,7 +312,7 @@ public final class DirectControl {
 		if (!keyboardCaptured || mc.gui.screen() != null) {
 			return false;
 		}
-		CefBrowserView b = Browsers.getIfPresent();
+		CefBrowserView b = capturedBrowser();
 		if (b != null) {
 			ScreenBrowsers.noteExplicitActive();
 			b.onCharTyped(event);
@@ -318,8 +324,15 @@ public final class DirectControl {
 	 * Sayfa bir yazi alanina odaklandi (editing=true) ya da odagi birakti: bakilan ekransa klavyeyi
 	 * otomatik bagla; otomatik baglanan klavye odak gidince (Enter, sayfa degisimi) otomatik birakilir.
 	 */
+	private static long lastFocusChangeMs;
+
 	public static void onPageFocus(BlockPos pos, boolean editing) {
 		Minecraft mc = Minecraft.getInstance();
+		long now = System.currentTimeMillis();
+		if (now - lastFocusChangeMs < 500L) {
+			return; // sayfa odagi hizli yanip sonduruyorsa gormezden gel
+		}
+		lastFocusChangeMs = now;
 		if (editing) {
 			if (!keyboardCaptured && inWorld(mc) && currentHit != null && currentHit.pos().equals(pos)) {
 				setCaptured(mc, true);
@@ -330,11 +343,27 @@ public final class DirectControl {
 		}
 	}
 
+	/** Klavyenin bagli oldugu ekranin tarayicisi (bagli degilse bakilan/etkin ekran). */
+	@Nullable
+	private static CefBrowserView capturedBrowser() {
+		if (capturedPos != null) {
+			return ScreenBrowsers.browserAt(capturedPos);
+		}
+		return Browsers.getIfPresent();
+	}
+
 	public static void setCaptured(Minecraft mc, boolean captured) {
+		CefBrowserView old = capturedBrowser();
 		keyboardCaptured = captured;
 		autoCaptured = false;
 		hintCooldown = 0;
-		CefBrowserView b = Browsers.getIfPresent();
+		if (captured) {
+			ScreenTracker.Hit h = currentHit != null ? currentHit : lastHit;
+			capturedPos = h == null ? null : h.pos();
+		} else {
+			capturedPos = null;
+		}
+		CefBrowserView b = captured ? capturedBrowser() : old;
 		if (b != null) {
 			b.setFocus(captured);
 		}
@@ -345,8 +374,25 @@ public final class DirectControl {
 		}
 	}
 
+	/** Bir ekran yok oldu: yalnizca o ekrana bagli durumu birak. */
+	public static void screenGone(BlockPos pos) {
+		if (capturedPos != null && capturedPos.equals(pos)) {
+			keyboardCaptured = false;
+			capturedPos = null;
+			autoCaptured = false;
+		}
+		if (currentHit != null && currentHit.pos().equals(pos)) {
+			currentHit = null;
+		}
+		if (lastHit != null && lastHit.pos().equals(pos)) {
+			lastHit = null;
+		}
+		ScreenGlow.forget(pos);
+	}
+
 	public static void reset() {
 		keyboardCaptured = false;
+		capturedPos = null;
 		currentHit = null;
 		lastHit = null;
 		lastSentPx = -1;

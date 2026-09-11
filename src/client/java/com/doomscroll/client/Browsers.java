@@ -163,6 +163,9 @@ public final class Browsers {
 			}
 			tablet = null;
 		}
+		// Sunucu degisince ayni adrese donunce "zaten gonderdim" durumuna dusmeyelim.
+		tabletReportUrl = "";
+		tabletSbId = "";
 	}
 
 	/**
@@ -731,10 +734,7 @@ public final class Browsers {
 	}
 
 	public static String othersScreenLabel() {
-		float v = getOthersScreenVolume();
-		return Lang.tr(v <= 0.01f ? "gui.doomscroll.volume.off"
-				: v <= 0.4f ? "gui.doomscroll.volume.low"
-				: v <= 0.75f ? "gui.doomscroll.volume.mid" : "gui.doomscroll.volume.full");
+		return Lang.tr(com.doomscroll.ScreenBlockEntity.volumeKey(getOthersScreenVolume()));
 	}
 
 	/** Sunucu politikasi degisti: etkin deger yeniden hesaplansin. */
@@ -788,14 +788,13 @@ public final class Browsers {
 	public static float getRemoteTabletVolume() { return DoomscrollConfig.get().remoteTabletVolume; }
 
 	public static String remoteTabletLabel() {
-		float v = getRemoteTabletVolume();
-		return v <= 0.01f ? "KAPALI" : v <= 0.5f ? "KISIK" : "NORMAL";
+		return Lang.tr(com.doomscroll.ScreenBlockEntity.volumeKey(getRemoteTabletVolume()));
 	}
 
-	/** kapali -> kisik -> normal -> kapali */
+	/** kapali -> kisik -> tam -> kapali (etiketler ekran sesiyle ayni esiklerden okunur) */
 	public static void cycleRemoteTabletVolume() {
 		DoomscrollConfig cfg = DoomscrollConfig.get();
-		cfg.remoteTabletVolume = cfg.remoteTabletVolume <= 0.01f ? 0.35f : cfg.remoteTabletVolume <= 0.5f ? 0.8f : 0f;
+		cfg.remoteTabletVolume = cfg.remoteTabletVolume <= 0.01f ? 0.35f : cfg.remoteTabletVolume <= 0.5f ? 1f : 0f;
 		DoomscrollConfig.save();
 	}
 

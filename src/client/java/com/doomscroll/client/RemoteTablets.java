@@ -39,9 +39,9 @@ public final class RemoteTablets {
 		long remoteStampMs = 0L;
 	}
 
-	private static final Map<UUID, Remote> REMOTES = new HashMap<>();
+	private static final Map<UUID, Remote> REMOTES = new java.util.concurrent.ConcurrentHashMap<>();
 	/** Debug: gercek oyuncusu olmayan sahte tabletler (zirh askisi testi). */
-	public static final java.util.Set<UUID> DEBUG_FAKE = new java.util.HashSet<>();
+	public static final java.util.Set<UUID> DEBUG_FAKE = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	public static final UUID FAKE_UUID = Doomscroll.DEBUG_FAKE_OWNER;
 
 	private RemoteTablets() {}
@@ -49,7 +49,7 @@ public final class RemoteTablets {
 	/** Sunucudan gelen durum. */
 	public static void applyState(UUID player, String url, boolean portrait, float volume) {
 		Remote r = REMOTES.computeIfAbsent(player, k -> new Remote());
-		r.url = url == null ? "" : url;
+		r.url = safeUrl(url);
 		r.portrait = portrait;
 		r.volume = Math.max(0f, Math.min(1f, volume));
 		if (r.browser != null) {
@@ -59,6 +59,24 @@ public final class RemoteTablets {
 			}
 			r.browser.resize(portrait ? 720 : 1280, portrait ? 1280 : 644);
 		}
+	}
+
+	/**
+	 * Baskasinin tabletinde acilmasina izin verilen adres. Sunucudan gelen dizgi dogrudan
+	 * tarayiciya verilemez: sema kontrolu yoksa file:// ile yerel dosya, sunucu kurallari
+	 * atlanirsa engelli alan adi ya da yerel ag adresi acilabilir.
+	 */
+	private static String safeUrl(@Nullable String url) {
+		if (url == null || url.isEmpty()) {
+			return "";
+		}
+		if (url.length() > 2048) {
+			return "";
+		}
+		if (!(url.startsWith("http://") || url.startsWith("https://") || url.startsWith(HomePages.SCHEME))) {
+			return "";
+		}
+		return ServerPolicy.allows(url) ? url : "";
 	}
 
 	public static boolean isPortrait(UUID player) {
@@ -98,6 +116,7 @@ public final class RemoteTablets {
 				Doomscroll.LOGGER.info("uzak tablet tarayicisi acildi: {} -> {}", player, r.url);
 			} catch (Exception e) {
 				Doomscroll.LOGGER.error("uzak tablet tarayicisi acilamadi", e);
+				closeBrowser(r, Minecraft.getInstance().getSoundManager());
 				return null;
 			}
 		}
@@ -170,6 +189,7 @@ public final class RemoteTablets {
 			boolean fake = DEBUG_FAKE.contains(id);
 			if (stale || (p == null && !fake)) {
 				closeBrowser(r, sm);
+				it.remove();
 				continue;
 			}
 			// Baskasinin tableti: kendi ses ayari (kumanda -> Ayarlar). Kapaliysa ses kanali hic acilmaz.
@@ -211,6 +231,14 @@ public final class RemoteTablets {
 			}
 			r.browser = null;
 		}
+		if (r.textureId != null) {
+			try {
+				Minecraft.getInstance().getTextureManager().release(r.textureId);
+			} catch (Exception ignored) {
+			}
+			r.textureId = null;
+		}
+		r.texture = null;
 		r.loadedUrl = "";
 	}
 

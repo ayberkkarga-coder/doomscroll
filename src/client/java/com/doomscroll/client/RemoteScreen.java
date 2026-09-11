@@ -29,11 +29,17 @@ import java.util.function.Supplier;
  */
 public class RemoteScreen extends Screen {
 	private static final int BODY_W = 170;
-	/** En uzun sekmenin yuksekligi; ust kenar buna gore sabitlenir, govde sekme icerigi kadar uzar. */
-	private static final int BODY_H_MAX = 268;
-	private static final int BODY_H_REMOTE = 232;
+	/**
+	 * En uzun sekmenin yuksekligi; ust kenar buna gore sabitlenir, govde sekme icerigi kadar uzar.
+	 * Cerceveyle birlikte 238 piksel: Minecraft'in garanti ettigi en kucuk arayuz yuksekligi 240,
+	 * bundan buyuk olursa 1280x720 + olcek 3'te panelin ustu ve alti ekran disinda kaliyor.
+	 */
+	private static final int BODY_H_MAX = 234;
+	private static final int BODY_H_REMOTE = 214;
 	private static final int PAD = 10;
 	private static final int ROW = 16;
+	/** Ayar satiri araligi: on satir sigsin diye tuslardan bir tik dar. */
+	private static final int SROW = 14;
 
 	private static final int C_DISPLAY = 0xFF0A0E11;
 	private static final int C_DISPLAY_TXT = 0xFF7CE8A4;
@@ -182,17 +188,17 @@ public class RemoteScreen extends Screen {
 		int inner = BODY_W - 2 * PAD; // 150
 
 		// Guc (sag ust)
-		powerBtn = new Ui.Btn(bx + BODY_W - PAD - 26, by + 9, 26, 18, () -> "", () -> Ui.ICON_POWER, Ui.RED, Ui.RED_HOVER, guarded(this::togglePower), () -> false);
+		powerBtn = new Ui.Btn(bx + BODY_W - PAD - 26, by + 6, 26, 18, () -> "", () -> Ui.ICON_POWER, Ui.RED, Ui.RED_HOVER, guarded(this::togglePower), () -> false);
 		buttons.add(powerBtn);
 
 		// Sekmeler (durum ekraninin altinda)
-		tabY = by + 82;
+		tabY = by + 69;
 		int tw = (inner - 8) / 3;
 		for (int i = 0; i < 3; i++) {
 			final int p = i;
 			int x = left + i * (tw + 4);
 			int w = i == 2 ? inner - 2 * (tw + 4) : tw;
-			tabs[i] = new Ui.Btn(x, tabY, w, 14, () -> tabName(p), null, 0, 0, () -> switchPage(p), () -> false);
+			tabs[i] = new Ui.Btn(x, tabY, w, 16, () -> tabName(p), null, 0, 0, () -> switchPage(p), () -> false);
 			buttons.add(tabs[i]);
 		}
 
@@ -223,7 +229,7 @@ public class RemoteScreen extends Screen {
 		// Ses: sessiz + kaydirici
 		int volY = top;
 		buttons.add(new Ui.Btn(left, volY, 24, 14, () -> "", () -> Browsers.isMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
-				Ui.BTN, Ui.BTN_HOVER, guarded(Browsers::toggleMute), Browsers::isMuted));
+				Ui.BTN, Ui.BTN_HOVER, Browsers::toggleMute, Browsers::isMuted));
 		sx = left + 30;
 		sy = volY + 4;
 		sw = inner - 30;
@@ -274,30 +280,30 @@ public class RemoteScreen extends Screen {
 			cfg.autoScroll = !cfg.autoScroll;
 			DoomscrollConfig.save();
 		}, () -> cfg.autoScroll, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.sync"), () -> onOff(cfg.syncPlayback), () -> {
 			cfg.syncPlayback = !cfg.syncPlayback;
 			DoomscrollConfig.save();
 		}, () -> cfg.syncPlayback, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.adblock"), () -> onOff(cfg.adBlock), () -> {
 			cfg.adBlock = !cfg.adBlock;
 			DoomscrollConfig.save();
 			com.doomscroll.cef.api.CefLaunchOptions.adBlock = cfg.adBlock;
 		}, () -> cfg.adBlock, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.subtitles"), () -> onOff(cfg.subtitles), () -> {
 			cfg.subtitles = !cfg.subtitles;
 			DoomscrollConfig.save();
 		}, () -> cfg.subtitles, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.tv_login"), () -> onOff(cfg.tvLogin), () -> {
 			boolean on = DoomscrollClient.toggleTvLogin();
 			if (minecraft != null && minecraft.player != null) {
 				minecraft.player.sendSystemMessage(Component.literal(DoomscrollClient.tvLoginMessage(on)));
 			}
 		}, () -> cfg.tvLogin, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.lock"), () -> {
 			ScreenBlockEntity be = targetBe();
 			return be == null ? "—" : onOff(be.isLocked());
@@ -305,21 +311,21 @@ public class RemoteScreen extends Screen {
 			ScreenBlockEntity be = targetBe();
 			return be != null && be.isLocked();
 		}, true);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.resolution"), cfg::resolutionLabel, () -> {
 			cfg.cycleResolution();
 			Browsers.applyScreenResolution();
 		}, () -> false, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.fps"), () -> Lang.tr("gui.doomscroll.remote.fps_value", cfg.browserFps), () -> {
 			cfg.browserFps = cfg.browserFps >= 60 ? 30 : cfg.browserFps >= 45 ? 60 : 45;
 			DoomscrollConfig.save();
 			com.doomscroll.cef.api.CefLaunchOptions.frameRate = cfg.browserFps;
 		}, () -> false, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.remote_tablet"), Browsers::remoteTabletLabel, Browsers::cycleRemoteTabletVolume,
 				() -> Browsers.getRemoteTabletVolume() > 0.01f, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.audio_latency"), () -> latencyLabel(cfg.audioLatency), () -> {
 			cfg.audioLatency = switch (cfg.audioLatency == null ? "normal" : cfg.audioLatency) {
 				case "dusuk" -> "normal";
@@ -341,25 +347,25 @@ public class RemoteScreen extends Screen {
 			DoomscrollConfig.save();
 			ScreenBrowsers.refreshSponsorBlock();
 		}, () -> cfg.sponsorBlock, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.pointer"), () -> onOff(cfg.pointer), () -> {
 			cfg.pointer = !cfg.pointer;
 			DoomscrollConfig.save();
 			if (!cfg.pointer) Pointers.clear();
 		}, () -> cfg.pointer, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.others_screen"),
 				Browsers::othersScreenLabel, Browsers::cycleOthersScreenVolume,
 				() -> Browsers.getOthersScreenVolume() > 0.01f, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.screen_volume"), () -> {
 			ScreenBlockEntity be = targetBe();
-			return be == null ? "—" : Lang.tr(ScreenBlockEntity.volumeKey(be.getVolume())).toUpperCase(java.util.Locale.ROOT);
+			return be == null ? "—" : Lang.tr(ScreenBlockEntity.volumeKey(be.getVolume()));
 		}, () -> ScreenBrowsers.sendControl(target, ScreenControlPayload.CYCLE_VOLUME), () -> {
 			ScreenBlockEntity be = targetBe();
 			return be != null && be.getVolume() > 0.01f;
 		}, true);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.redstone"), () -> {
 			ScreenBlockEntity be = targetBe();
 			return be == null ? "—" : onOff(be.isRedstone());
@@ -367,7 +373,7 @@ public class RemoteScreen extends Screen {
 			ScreenBlockEntity be = targetBe();
 			return be != null && be.isRedstone();
 		}, true);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.broadcast"), () -> Broadcast.label(ScreenBrowsers.get(target)), () -> {
 			ScreenBrowsers.Screen s = ScreenBrowsers.get(target);
 			if (s == null) {
@@ -384,23 +390,23 @@ public class RemoteScreen extends Screen {
 			ScreenBrowsers.Screen s = ScreenBrowsers.get(target);
 			return s != null && s.broadcaster != null;
 		}, true);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.glow"), cfg::glowLabel, () -> {
 			cfg.cycleGlow();
 			DoomscrollConfig.save();
 		}, () -> cfg.screenGlow > 0.01f, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.glow_smooth"), () -> onOff(cfg.screenGlowSmooth), () -> {
 			cfg.screenGlowSmooth = !cfg.screenGlowSmooth;
 			DoomscrollConfig.save();
 		}, () -> cfg.screenGlowSmooth, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.glow_range"), () -> Lang.tr("gui.doomscroll.remote.blocks_value", cfg.screenGlowRange), () -> {
 			cfg.screenGlowRange = cfg.screenGlowRange >= 20 ? 6 : cfg.screenGlowRange >= 14 ? 20 : cfg.screenGlowRange >= 10 ? 14 : 10;
 			DoomscrollConfig.save();
 			ScreenGlow.clear();
 		}, () -> false, false);
-		y += ROW;
+		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.queue"), () -> Lang.tr("gui.doomscroll.remote.videos_value", ScreenQueue.size(target)), () -> switchPage(PAGE_QUEUE), () -> ScreenQueue.size(target) > 0, false);
 	}
 
@@ -411,11 +417,11 @@ public class RemoteScreen extends Screen {
 		int y = top;
 		buttons.add(new Ui.Btn(left, y, 20, 14, () -> "", () -> Ui.ICON_BACK, Ui.BTN, Ui.BTN_HOVER, () -> switchPage(PAGE_OTHER), () -> false));
 		labels.add(new Label(left + 26, y + 3, Lang.tr("gui.doomscroll.queue.title", q.size())));
-		buttons.add(new Ui.Btn(left + inner - 20, y, 20, 14, () -> "", () -> Ui.ICON_TRASH, Ui.BTN, Ui.BTN_HOVER, () -> {
+		buttons.add(new Ui.Btn(left + inner - 20, y, 20, 14, () -> "", () -> Ui.ICON_TRASH, Ui.BTN, Ui.BTN_HOVER, guarded(() -> {
 			ScreenQueue.clear(target);
 			hint(Lang.tr("message.doomscroll.queue.cleared"));
 			rebuildWidgets();
-		}, () -> false));
+		}), () -> false));
 		y += ROW + 2;
 		if (q.isEmpty()) {
 			labels.add(new Label(left, y + 3, Lang.tr("gui.doomscroll.queue.empty")));
@@ -442,14 +448,14 @@ public class RemoteScreen extends Screen {
 							: Lang.tr("message.doomscroll.queue.added_by", shortName(ScreenQueue.label(row), 18), row.by())),
 					() -> false));
 			buttons.add(new Ui.Btn(left + inner - 44, y, 24, 14, () -> String.valueOf(row.votes()), null,
-					row.mine() ? C_TAB_ON : Ui.BTN, Ui.BTN_HOVER, () -> {
+					row.mine() ? C_TAB_ON : Ui.BTN, Ui.BTN_HOVER, guarded(() -> {
 						ScreenQueue.vote(target, url);
 						rebuildWidgets();
-					}, row::mine));
-			buttons.add(new Ui.Btn(left + inner - 16, y, 16, 14, () -> "", () -> Ui.ICON_CLOSE, Ui.BTN, Ui.BTN_HOVER, () -> {
+					}), row::mine));
+			buttons.add(new Ui.Btn(left + inner - 16, y, 16, 14, () -> "", () -> Ui.ICON_CLOSE, Ui.BTN, Ui.BTN_HOVER, guarded(() -> {
 				ScreenQueue.remove(target, url);
 				rebuildWidgets();
-			}, () -> false));
+			}), () -> false));
 			y += ROW;
 		}
 		labels.add(new Label(left, y + 2, maxScroll > 0
@@ -466,12 +472,12 @@ public class RemoteScreen extends Screen {
 
 	/** Ayar satiri: solda etiket, sagda degeri gosteren tus (acik ise yesil). */
 	private void settingRow(int left, int inner, int y, String label, Supplier<String> value, Runnable action, BooleanSupplier on, boolean needsScreen) {
-		labels.add(new Label(left, y + 3, label));
 		int bw = 52;
+		labels.add(new Label(left, y + 3, fit(label, inner - bw - 4)));
 		if (needsScreen) {
-			buttons.add(new Ui.Btn(left + inner - bw, y, bw, 14, value, null, Ui.BTN, Ui.BTN_HOVER, guarded(action), on));
+			buttons.add(new Ui.Btn(left + inner - bw, y, bw, 13, value, null, Ui.BTN, Ui.BTN_HOVER, guarded(action), on));
 		} else {
-			addFree(left + inner - bw, y, bw, 14, value, action, on);
+			addFree(left + inner - bw, y, bw, 13, value, action, on);
 		}
 	}
 
@@ -564,6 +570,18 @@ public class RemoteScreen extends Screen {
 		ScreenBrowsers.sendControl(be.getAnchor(), ScreenControlPayload.TOGGLE_LOCK);
 	}
 
+	/** Metni verilen genislige sigdirir; sigmazsa sonuna ".." koyar. */
+	private String fit(String text, int maxW) {
+		if (font.width(text) <= maxW) {
+			return text;
+		}
+		String t = text;
+		while (!t.isEmpty() && font.width(t + "..") > maxW) {
+			t = t.substring(0, t.length() - 1);
+		}
+		return t + "..";
+	}
+
 	private void togglePower() {
 		ScreenBlockEntity be = targetBe();
 		if (be == null) {
@@ -616,16 +634,16 @@ public class RemoteScreen extends Screen {
 
 		// Govde: kabartmali koyu kumanda, ustte biraz daha acik baslik bandi
 		Ui.panel(g, bx - 2, by - 2, BODY_W + 4, bodyH + 4, Ui.BODY, Ui.BODY_HI, Ui.BODY_LO);
-		g.fill(bx, by, bx + BODY_W, by + 36, 0xFF34343C);
-		g.fill(bx, by + 36, bx + BODY_W, by + 37, Ui.BODY_LO);
-		Ui.iconAt(g, Ui.ICON_TV, bx + PAD, by + 9, Ui.TXT_DIM);
-		g.text(font, "doomscroll", bx + PAD + 13, by + 9, Ui.TXT_DIM, false);
-		g.text(font, Lang.tr("gui.doomscroll.remote.subtitle"), bx + PAD, by + 21, Ui.TXT, false);
+		g.fill(bx, by, bx + BODY_W, by + 30, 0xFF34343C);
+		g.fill(bx, by + 30, bx + BODY_W, by + 31, Ui.BODY_LO);
+		Ui.iconAt(g, Ui.ICON_TV, bx + PAD, by + 6, Ui.TXT_DIM);
+		g.text(font, "doomscroll", bx + PAD + 13, by + 6, Ui.TXT_DIM, false);
+		g.text(font, Lang.tr("gui.doomscroll.remote.subtitle"), bx + PAD, by + 17, Ui.TXT, false);
 
 		// Durum ekrani (yesil LCD)
 		ScreenBlockEntity be = targetBe();
-		int dTop = by + 41;
-		Ui.inset(g, bx + PAD - 2, dTop - 2, BODY_W - 2 * PAD + 4, 40, C_DISPLAY);
+		int dTop = by + 34;
+		Ui.inset(g, bx + PAD - 2, dTop - 2, BODY_W - 2 * PAD + 4, 34, C_DISPLAY);
 		String l1;
 		String l2;
 		String l3;
@@ -665,9 +683,9 @@ public class RemoteScreen extends Screen {
 			l3 = shortName(hintText, 26);
 			c3 = C_DISPLAY_WARN;
 		}
-		g.centeredText(font, l1, bx + BODY_W / 2, dTop + 4, C_DISPLAY_TXT);
-		g.centeredText(font, l2, bx + BODY_W / 2, dTop + 15, C_DISPLAY_TXT);
-		g.centeredText(font, l3, bx + BODY_W / 2, dTop + 26, c3);
+		g.centeredText(font, l1, bx + BODY_W / 2, dTop + 2, C_DISPLAY_TXT);
+		g.centeredText(font, l2, bx + BODY_W / 2, dTop + 12, C_DISPLAY_TXT);
+		g.centeredText(font, l3, bx + BODY_W / 2, dTop + 22, c3);
 
 		// Sekmeler: metin + aktif sekmenin altinda mavi cizgi
 		int inner = BODY_W - 2 * PAD;
@@ -742,8 +760,12 @@ public class RemoteScreen extends Screen {
 	@Override
 	public boolean mouseScrolled(double x, double y, double dx, double dy) {
 		if (page == PAGE_QUEUE && dy != 0) {
-			queueScroll += dy < 0 ? 1 : -1;
-			rebuildWidgets();
+			int max = Math.max(0, ScreenQueue.size(target) - QUEUE_VISIBLE);
+			int want = Math.max(0, Math.min(max, queueScroll + (dy < 0 ? 1 : -1)));
+			if (want != queueScroll) {
+				queueScroll = want;
+				rebuildWidgets();
+			}
 			return true;
 		}
 		return super.mouseScrolled(x, y, dx, dy);

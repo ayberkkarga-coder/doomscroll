@@ -183,7 +183,7 @@ public final class ScreenBrowsers {
 		}
 	}
 
-	private static final Map<BlockPos, Screen> SCREENS = new HashMap<>();
+	private static final Map<BlockPos, Screen> SCREENS = new java.util.concurrent.ConcurrentHashMap<>();
 	@Nullable private static BlockPos activePos;
 	private static int tick = 0;
 
@@ -507,7 +507,9 @@ public final class ScreenBrowsers {
 				return;
 			}
 			if (o.has("home")) {
-				HomePages.onScreenCommand(s.pos, o); // ana menu komutu (siradan oynat / cikar)
+				if (HomePages.isHome(s.currentUrl())) {
+					HomePages.onScreenCommand(s.pos, o); // ana menu komutu (siradan oynat / cikar)
+				}
 				return;
 			}
 			if (o.has("ended")) {
@@ -826,7 +828,10 @@ public final class ScreenBrowsers {
 					s.browser.setFrameRate(want);
 				}
 			}
-			if (!s.on) continue;
+			if (!s.on) {
+				Broadcast.onScreenOff(s); // kapali ekranda kodlayici bos yere calismasin
+				continue;
+			}
 			// sayfa raporcusu (idempotent; sayfa degisince yeniden kurulur)
 			if (tick % 40 == 0) {
 				Browsers.jsAllFrames(s.browser, Browsers.reporterJs());
@@ -887,7 +892,7 @@ public final class ScreenBrowsers {
 		// Tam hiz yaricapi: 1x1 ekranda 24 blok, her ek blok 3 blok daha; tarayicinin kapanma mesafesinde durur
 		double full = Math.min(LIVE_DISTANCE, 24.0 + 3.0 * (span - 1));
 		if (dist <= full) return base;
-		return Math.max(20, base / 2);
+		return Math.min(base, Math.max(20, base / 2));
 	}
 
 	/** Aktif ekranda son engellenen popup adresi ("" yoksa). */
@@ -1077,6 +1082,14 @@ public final class ScreenBrowsers {
 			Doomscroll.LOGGER.info("ekran tarayicisi kapatildi {}", s.pos);
 			s.browser = null;
 		}
+		if (s.textureId != null) {
+			try {
+				Minecraft.getInstance().getTextureManager().release(s.textureId);
+			} catch (Exception ignored) {
+			}
+			s.textureId = null;
+		}
+		s.texture = null;
 		s.localStampMs = 0L;
 		s.appliedFps = -1;
 		s.startUrl = s.lastSent; // tekrar acilirsa kaldigi adresten

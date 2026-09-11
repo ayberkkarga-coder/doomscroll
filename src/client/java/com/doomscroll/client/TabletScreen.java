@@ -25,11 +25,15 @@ import java.util.List;
 public class TabletScreen extends Screen {
 	private long lastWheelKeyNanos = 0L;
 	private static final int BEZEL = 9;
-	/** Arac cubugu: genis cercevede tek satir, dar (dik/telefon) cercevede iki satir. */
+	/** Arac cubugu: genis cercevede tek satir; darlastikca tuslar alt satirlara gecer. */
 	private static final int BAR = 24;
-	private static final int BAR2 = 44;
+	private static final int BAR_ROW = 20;
 	private static final int NARROW = 640;
+	/** Adres satirinin istedigi en dar genislik: cerceve bundan dar olmaz. */
+	private static final int BAR_MIN_W = 137;
 	private int barH = BAR;
+	/** Arac cubugunun genisligi ve sol kenari; dik tablette tarayicidan genis olabilir. */
+	private int bw, bxStart;
 
 	private static final int C_SHELL = 0xFF1D1D22;
 	private static final int C_SHELL_HI = 0xFF3C3C46;
@@ -37,10 +41,6 @@ public class TabletScreen extends Screen {
 	private static final int C_BAR = 0xFF26262C;
 	private static final int C_GLASS = 0xFF000000;
 	private static final int C_LABEL = 0xFFA8A8B4;
-
-	private static final Identifier TABLET_TEXTURE_ID = Doomscroll.id("tablet_browser");
-	private static final CefTexture TABLET_TEXTURE = new CefTexture(Browsers::getIfPresent);
-	private static boolean textureRegistered = false;
 
 	private EditBox urlBox;
 	private final List<Ui.Btn> bar = new ArrayList<>();
@@ -115,73 +115,95 @@ public class TabletScreen extends Screen {
 	@Override
 	protected void init() {
 		bar.clear();
-		// Tablet: ekranin %92 yuksekligi, tarayici oraninda (bar + bezel dahil); dar cercevede cubuk iki satir
+		// Tablet: ekranin %92 yuksekligi, tarayici oraninda (bar + bezel dahil).
+		// Cubuk yuksekligi genisligi, genislik de satir sayisini etkiledigi icin birkac tur donulur.
 		int maxH = (int) (height * 0.92);
 		int maxW = (int) (width * 0.92);
-		barH = BAR;
-		layoutFrame(maxH, maxW);
-		boolean twoRows = vw < NARROW;
-		if (twoRows) {
-			barH = BAR2;
+		int rows = 1;
+		for (int i = 0; i < 5; i++) {
+			barH = BAR + (rows - 1) * BAR_ROW;
 			layoutFrame(maxH, maxW);
+			int need = barRows(bw);
+			if (need == rows) {
+				break;
+			}
+			rows = need;
 		}
+		boolean wide = bw >= NARROW;
 
-		int x = vx;
-		int y = fy + BEZEL + 4;
 		int small = 20;
 		int gap = 3;
-		bar.add(btn(x, y, small, "", Ui.ICON_BACK, Ui.BTN, Ui.BTN_HOVER, Browsers::goBackTablet));
-		x += small + gap;
-		bar.add(btn(x, y, small, "", Ui.ICON_FORWARD, Ui.BTN, Ui.BTN_HOVER, Browsers::goForwardTablet));
-		x += small + gap;
-		bar.add(btn(x, y, small, "", Ui.ICON_RELOAD, Ui.BTN, Ui.BTN_HOVER, Browsers::reloadTablet));
-		x += small + gap + 3;
-		int homeW = twoRows ? small : 40;
-		bar.add(btn(x, y, homeW, twoRows ? "" : Lang.tr("gui.doomscroll.remote.home"), Ui.ICON_HOME, Ui.BTN, Ui.BTN_HOVER, () -> Browsers.tabletNavigate(Browsers.TABLET_HOME_URL)));
-		x += homeW + gap;
-		int cinW = twoRows ? small : 54;
-		bar.add(btn(x, y, cinW, twoRows ? "" : Lang.tr("gui.doomscroll.remote.cinema"), Ui.ICON_CINEMA, Ui.BTN, Ui.BTN_HOVER, Browsers::toggleTabletCinema));
-		x += cinW + gap + 3;
+		int barRight = bxStart + bw;
+		int y = fy + BEZEL + 4;
+
+		// Simge tuslari sirayla yerlesir; sigmayan alt satira gecer.
+		int[] cur = {bxStart, y};
+		java.util.function.IntUnaryOperator place = w -> {
+			if (cur[0] > bxStart && cur[0] + w > barRight) {
+				cur[0] = bxStart;
+				cur[1] += BAR_ROW;
+			}
+			int at = cur[0];
+			cur[0] = at + w + gap;
+			return at;
+		};
+
+		bar.add(btn(place.applyAsInt(small), cur[1], small, "", Ui.ICON_BACK, Ui.BTN, Ui.BTN_HOVER, Browsers::goBackTablet));
+		bar.add(btn(place.applyAsInt(small), cur[1], small, "", Ui.ICON_FORWARD, Ui.BTN, Ui.BTN_HOVER, Browsers::goForwardTablet));
+		bar.add(btn(place.applyAsInt(small), cur[1], small, "", Ui.ICON_RELOAD, Ui.BTN, Ui.BTN_HOVER, Browsers::reloadTablet));
+		int homeW = wide ? 40 : small;
+		bar.add(btn(place.applyAsInt(homeW), cur[1], homeW, wide ? Lang.tr("gui.doomscroll.remote.home") : "", Ui.ICON_HOME, Ui.BTN, Ui.BTN_HOVER, () -> Browsers.tabletNavigate(Browsers.TABLET_HOME_URL)));
+		int cinW = wide ? 54 : small;
+		bar.add(btn(place.applyAsInt(cinW), cur[1], cinW, wide ? Lang.tr("gui.doomscroll.remote.cinema") : "", Ui.ICON_CINEMA, Ui.BTN, Ui.BTN_HOVER, Browsers::toggleTabletCinema));
 		// Yer imi (yildiz) + menu (yer imleri / gecmis)
-		bar.add(new Ui.Btn(x, y, small, 16, () -> "", () -> TabletBookmarks.isBookmarked(Browsers.tabletUrl()) ? Ui.ICON_STAR_FILLED : Ui.ICON_STAR,
+		int starX = place.applyAsInt(small);
+		bar.add(new Ui.Btn(starX, cur[1], small, 16, () -> "", () -> TabletBookmarks.isBookmarked(Browsers.tabletUrl()) ? Ui.ICON_STAR_FILLED : Ui.ICON_STAR,
 				Ui.BTN, Ui.BTN_HOVER, this::toggleBookmark, () -> TabletBookmarks.isBookmarked(Browsers.tabletUrl())));
-		x += small + gap;
-		bar.add(new Ui.Btn(x, y, small, 16, () -> "", () -> Ui.ICON_MENU, Ui.BTN, Ui.BTN_HOVER, this::toggleMenu, () -> menuOpen));
-		x += small + gap;
+		int menuX = place.applyAsInt(small);
+		bar.add(new Ui.Btn(menuX, cur[1], small, 16, () -> "", () -> Ui.ICON_MENU, Ui.BTN, Ui.BTN_HOVER, this::toggleMenu, () -> menuOpen));
 		// Ses: tabletin kendi seviyesi (kumandadaki ekran sesinden ayri)
-		int speakerX = x;
-		bar.add(new Ui.Btn(x, y, small, 16, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
+		int speakerX = place.applyAsInt(small);
+		int speakerY = cur[1];
+		bar.add(new Ui.Btn(speakerX, speakerY, small, 16, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
 				Ui.BTN, Ui.BTN_HOVER, this::toggleVolume, () -> volOpen || Browsers.isTabletMuted()));
-		x += small + gap + 3;
 
-		// Sag taraf: ekrana yolla / siraya ekle (dar cercevede ikinci satir, simge-only)
-		int right = vx + vw;
-		if (twoRows) {
-			y += 20;
-			x = vx;
+		// Adres satiri: genis cubukta ayni satirin sagi, darda kendi satiri
+		int urlY;
+		int urlX;
+		if (wide) {
+			urlY = y;
+			urlX = cur[0] + 3;
+		} else {
+			urlY = cur[1] + BAR_ROW;
+			urlX = bxStart;
 		}
-		int castW = twoRows ? 22 : 58;
-		int qW = twoRows ? 22 : 58;
-		bar.add(btn(right - qW, y, qW, twoRows ? "" : Lang.tr("gui.doomscroll.tablet.queue_btn"), Ui.ICON_QUEUE, Ui.BTN, Ui.BTN_HOVER, this::queueToScreen));
-		bar.add(btn(right - qW - gap - castW, y, castW, twoRows ? "" : Lang.tr("gui.doomscroll.tablet.cast_btn"), Ui.ICON_CAST, Ui.BLUE, Ui.BLUE_HOVER, this::castToScreen));
+		int castW = wide ? 58 : 22;
+		int qW = wide ? 58 : 22;
+		bar.add(btn(barRight - qW, urlY, qW, wide ? Lang.tr("gui.doomscroll.tablet.queue_btn") : "", Ui.ICON_QUEUE, Ui.BTN, Ui.BTN_HOVER, this::queueToScreen));
+		bar.add(btn(barRight - qW - gap - castW, urlY, castW, wide ? Lang.tr("gui.doomscroll.tablet.cast_btn") : "", Ui.ICON_CAST, Ui.BLUE, Ui.BLUE_HOVER, this::castToScreen));
 		int goW = 24;
-		int goX = right - qW - gap - castW - gap - 3 - goW;
-		bar.add(btn(goX, y, goW, "", Ui.ICON_GO, Ui.BLUE, Ui.BLUE_HOVER, this::go));
+		int goX = barRight - qW - gap - castW - gap - 3 - goW;
+		bar.add(btn(goX, urlY, goW, "", Ui.ICON_GO, Ui.BLUE, Ui.BLUE_HOVER, this::go));
 
-		int urlW = Math.max(60, goX - gap - x);
-		urlBox = new EditBox(font, x, y, urlW, 16, Component.literal("url"));
-		urlBox.setMaxLength(2048);
-		urlBox.setHint(Component.translatable("gui.doomscroll.tablet.url.hint"));
-		urlBox.setValue(Browsers.tabletUrl());
-		addRenderableWidget(urlBox);
+		// Adres kutusu asla GO tusunun altina girmesin (girdiginde tiklar GO'ya gidiyordu)
+		int urlW = goX - gap - urlX;
+		if (urlW >= 24) {
+			urlBox = new EditBox(font, urlX, urlY, urlW, 16, Component.literal("url"));
+			urlBox.setMaxLength(2048);
+			urlBox.setHint(Component.translatable("gui.doomscroll.tablet.url.hint"));
+			urlBox.setValue(Browsers.tabletUrl());
+			addRenderableWidget(urlBox);
+		} else {
+			urlBox = null;
+		}
 
 		// Ses balonu: hoparlor tusunun altinda, cerceve icinde kalir
-		volW = 176;
+		volW = Math.min(176, bw);
 		volH = 44;
-		volX = Math.max(vx, Math.min(speakerX - 6, vx + vw - volW));
-		volY = fy + BEZEL + barH + 6;
+		volX = Math.max(bxStart, Math.min(speakerX - 6, bxStart + bw - volW));
+		volY = speakerY + BAR_ROW + 2;
 		vsx = volX + 34;
-		vsw = 100;
+		vsw = Math.max(40, volW - 76);
 		vsy = volY + 12;
 		vsh = 6;
 		volMute = new Ui.Btn(volX + 8, volY + 8, 20, 14, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
@@ -204,18 +226,32 @@ public class TabletScreen extends Screen {
 
 	/** Cerceve ve tarayici alani: mevcut barH ile hesaplar. */
 	private void layoutFrame(int maxH, int maxW) {
-		vh = maxH - 2 * BEZEL - barH;
+		int innerMax = Math.max(40, maxW - 2 * BEZEL);
+		vh = Math.max(20, maxH - 2 * BEZEL - barH);
 		vw = vh * Browsers.tabletWidth() / Browsers.tabletHeight();
-		if (vw > maxW - 2 * BEZEL) {
-			vw = maxW - 2 * BEZEL;
+		if (vw > innerMax) {
+			vw = innerMax;
 			vh = vw * Browsers.tabletHeight() / Browsers.tabletWidth();
 		}
-		fw = vw + 2 * BEZEL;
+		// Cerceve, arac cubugunun en dar halinden dar olamaz; dik tablette tarayici
+		// cercevenin icinde ortalanir (yoksa tuslar tabletin disina tasiyordu).
+		bw = Math.min(innerMax, Math.max(vw, BAR_MIN_W));
+		fw = bw + 2 * BEZEL;
 		fh = vh + 2 * BEZEL + barH;
 		fx = (width - fw) / 2;
 		fy = (height - fh) / 2;
-		vx = fx + BEZEL;
+		bxStart = fx + BEZEL;
+		vx = bxStart + (bw - vw) / 2;
 		vy = fy + BEZEL + barH;
+	}
+
+	/** Verilen cubuk genisliginde kac satir gerekir (genis cubukta hepsi tek satira sigar). */
+	private static int barRows(int barW) {
+		if (barW >= NARROW) {
+			return 1;
+		}
+		int cap = Math.max(1, (barW + 3) / 23); // 20 piksel tus + 3 piksel bosluk
+		return (8 + cap - 1) / cap + 1;         // sekiz simge tusu + adres satiri
 	}
 
 	// ---------- yer imleri / gecmis ----------
@@ -278,7 +314,10 @@ public class TabletScreen extends Screen {
 		if (hist.isEmpty()) rows.add(new MenuRow(ROW_HINT_HISTORY, null));
 
 		int rowH = 16;
-		int visible = Math.max(1, (mh - 8) / rowH);
+		// Alt satirin kaydirma ipucuyla ust uste binmemesi icin 12 piksel ayrilir.
+		int visible = Math.max(1, (mh - 20) / rowH);
+		// Panel genisligine sigan karakter sayisi (yaklasik 6 piksel/karakter)
+		final int chars = Math.max(8, (mw - 34) / 6);
 		int maxScroll = Math.max(0, rows.size() - visible);
 		menuScroll = Math.max(0, Math.min(menuScroll, maxScroll));
 		int x = mx + 4;
@@ -302,7 +341,7 @@ public class TabletScreen extends Screen {
 				case ROW_BOOKMARK -> {
 					final String url = r.e().url;
 					final TabletBookmarks.Entry e = r.e();
-					menu.add(new Ui.Btn(x, y, w - 21, 14, () -> RemoteScreen.shortName(e.label(), 42), () -> Ui.ICON_STAR_FILLED, Ui.BTN, Ui.BTN_HOVER, () -> openFromMenu(url), () -> false));
+					menu.add(new Ui.Btn(x, y, w - 21, 14, () -> RemoteScreen.shortName(e.label(), chars), () -> Ui.ICON_STAR_FILLED, Ui.BTN, Ui.BTN_HOVER, () -> openFromMenu(url), () -> false));
 					menu.add(new Ui.Btn(x + w - 18, y, 18, 14, () -> "", () -> Ui.ICON_CLOSE, Ui.BTN, Ui.BTN_HOVER, () -> {
 						TabletBookmarks.removeBookmark(url);
 						buildMenu();
@@ -311,7 +350,7 @@ public class TabletScreen extends Screen {
 				case ROW_HISTORY -> {
 					final String url = r.e().url;
 					final TabletBookmarks.Entry e = r.e();
-					menu.add(new Ui.Btn(x, y, w - 21, 14, () -> RemoteScreen.shortName(e.label(), 42), () -> Ui.ICON_CLOCK, Ui.BTN, Ui.BTN_HOVER, () -> openFromMenu(url), () -> false));
+					menu.add(new Ui.Btn(x, y, w - 21, 14, () -> RemoteScreen.shortName(e.label(), chars), () -> Ui.ICON_CLOCK, Ui.BTN, Ui.BTN_HOVER, () -> openFromMenu(url), () -> false));
 					menu.add(new Ui.Btn(x + w - 18, y, 18, 14, () -> "", () -> TabletBookmarks.isBookmarked(url) ? Ui.ICON_STAR_FILLED : Ui.ICON_STAR, Ui.BTN, Ui.BTN_HOVER, () -> {
 						TabletBookmarks.toggleBookmark(url, e.title);
 						buildMenu();
@@ -371,6 +410,9 @@ public class TabletScreen extends Screen {
 	}
 
 	private void go() {
+		if (urlBox == null) {
+			return;
+		}
 		Browsers.tabletNavigate(urlBox.getValue());
 		clearFocus();
 		CefBrowserView b = Browsers.getTabletIfPresent();
@@ -406,8 +448,8 @@ public class TabletScreen extends Screen {
 		// Kasa: kabartmali koyu govde
 		Ui.panel(g, fx - 2, fy - 2, fw + 4, fh + 4, C_SHELL, C_SHELL_HI, C_SHELL_LO);
 		// Arac cubugu zemini
-		g.fill(vx, fy + BEZEL, vx + vw, fy + BEZEL + barH, C_BAR);
-		g.fill(vx, fy + BEZEL + barH - 1, vx + vw, fy + BEZEL + barH, C_SHELL_LO);
+		g.fill(bxStart, fy + BEZEL, bxStart + bw, fy + BEZEL + barH, C_BAR);
+		g.fill(bxStart, fy + BEZEL + barH - 1, bxStart + bw, fy + BEZEL + barH, C_SHELL_LO);
 		// Cam (cukur)
 		Ui.inset(g, vx - 1, vy - 1, vw + 2, vh + 2, C_GLASS);
 		// Kamera noktasi + ana tus (susleme)

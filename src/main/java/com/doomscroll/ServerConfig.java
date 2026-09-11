@@ -229,31 +229,74 @@ public final class ServerConfig {
 		return isPrivateIpv4(h);
 	}
 
+	/**
+	 * Yerel/ozel IPv4 mu? Tarayicilar "127.1", "0x7f.0.0.1", "010.1" gibi kisa ve
+	 * sekizlik/onaltilik yazimlari da ayni adrese cozer; duz dortlu ayristirma
+	 * bunlari kacirdigi icin burada inet_aton kurallari uygulanir.
+	 */
 	private static boolean isPrivateIpv4(String h) {
-		String[] parts = h.split("\\.");
-		if (parts.length != 4) {
+		long addr = parseIpv4(h);
+		if (addr < 0) {
 			return false;
 		}
-		int[] o = new int[4];
-		for (int i = 0; i < 4; i++) {
-			try {
-				o[i] = Integer.parseInt(parts[i]);
-			} catch (NumberFormatException e) {
-				return false; // alan adi, IP degil
-			}
-			if (o[i] < 0 || o[i] > 255) {
-				return false;
+		int o0 = (int) ((addr >> 24) & 0xff);
+		int o1 = (int) ((addr >> 16) & 0xff);
+		int o2 = (int) ((addr >> 8) & 0xff);
+		if (o0 == 0 || o0 == 127) return true;                           // bu ag / loopback
+		if (o0 == 10) return true;                                       // ozel
+		if (o0 == 172 && o1 >= 16 && o1 <= 31) return true;              // ozel
+		if (o0 == 192 && o1 == 168) return true;                         // ozel
+		if (o0 == 169 && o1 == 254) return true;                         // link-local + bulut metadata
+		if (o0 == 100 && o1 >= 64 && o1 <= 127) return true;             // operator NAT
+		if (o0 == 192 && o1 == 0 && (o2 == 0 || o2 == 2)) return true;
+		if (o0 == 198 && (o1 == 18 || o1 == 19)) return true;            // olcum
+		return o0 >= 224;                                                // cok noktaya yayin + ayrilmis
+	}
+
+	/** Adres degilse -1. Bir ile dort parca; son parca kalan baytlari kapsar. */
+	private static long parseIpv4(String h) {
+		String[] parts = h.split("\\.", -1);
+		if (parts.length < 1 || parts.length > 4) {
+			return -1;
+		}
+		long[] v = new long[parts.length];
+		for (int i = 0; i < parts.length; i++) {
+			v[i] = parseOctet(parts[i]);
+			if (v[i] < 0) {
+				return -1;
 			}
 		}
-		if (o[0] == 0 || o[0] == 127) return true;                       // bu ag / loopback
-		if (o[0] == 10) return true;                                     // ozel
-		if (o[0] == 172 && o[1] >= 16 && o[1] <= 31) return true;        // ozel
-		if (o[0] == 192 && o[1] == 168) return true;                     // ozel
-		if (o[0] == 169 && o[1] == 254) return true;                     // link-local + bulut metadata
-		if (o[0] == 100 && o[1] >= 64 && o[1] <= 127) return true;       // operator NAT
-		if (o[0] == 192 && o[1] == 0 && (o[2] == 0 || o[2] == 2)) return true;
-		if (o[0] == 198 && (o[1] == 18 || o[1] == 19)) return true;      // olcum
-		return o[0] >= 224;                                              // cok noktaya yayin + ayrilmis
+		int n = parts.length;
+		long last = v[n - 1];
+		if (last >= (1L << (8 * (5 - n)))) {
+			return -1;
+		}
+		long addr = last;
+		for (int i = 0; i < n - 1; i++) {
+			if (v[i] > 255) {
+				return -1;
+			}
+			addr |= v[i] << (8 * (3 - i));
+		}
+		return addr;
+	}
+
+	/** Onluk, "0x" ile onaltilik, bas sifirla sekizlik. Sayi degilse -1. */
+	private static long parseOctet(String s) {
+		if (s.isEmpty() || s.length() > 11) {
+			return -1;
+		}
+		try {
+			if (s.length() > 2 && (s.charAt(0) == '0') && (s.charAt(1) == 'x' || s.charAt(1) == 'X')) {
+				return Long.parseLong(s.substring(2), 16);
+			}
+			if (s.length() > 1 && s.charAt(0) == '0') {
+				return Long.parseLong(s.substring(1), 8);
+			}
+			return Long.parseLong(s, 10);
+		} catch (NumberFormatException e) {
+			return -1;
+		}
 	}
 
 	private static boolean matches(String host, String rule) {
