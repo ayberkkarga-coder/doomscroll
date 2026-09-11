@@ -438,5 +438,5 @@ mod_icon = [
     ".KKKKKKKKKKKKKK.",
     "....KKKKKKKK....",
 ]
-paint(mod_icon, A + "/icon.png", scale=8)
+paint(mod_icon, A + "/icon.png", scale=32)  # Modrinth 512x512 istiyor
 print("tamam")
