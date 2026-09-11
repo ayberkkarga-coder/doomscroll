@@ -190,6 +190,7 @@ public class Doomscroll implements ModInitializer {
 		if (c.requireConsent) flags |= com.doomscroll.net.ServerPolicyBroadcast.REQUIRE_CONSENT;
 		if (c.muteOthersByDefault) flags |= com.doomscroll.net.ServerPolicyBroadcast.MUTE_OTHERS;
 		if (c.showDomain) flags |= com.doomscroll.net.ServerPolicyBroadcast.SHOW_DOMAIN;
+		if (c.separateScreenCookies) flags |= com.doomscroll.net.ServerPolicyBroadcast.SEPARATE_COOKIES;
 		return new com.doomscroll.net.ServerPolicyBroadcast(
 				List.copyOf(c.blockedDomains), List.copyOf(c.allowedDomains), flags, c.urlCooldownMs);
 	}

@@ -59,6 +59,11 @@ public final class ServerPolicy {
 		return (flags & ServerPolicyBroadcast.MUTE_OTHERS) != 0;
 	}
 
+	/** Sunucu ekran cerezlerinin ayrilmasini zorluyor mu? */
+	public static boolean separateCookies() {
+		return (flags & ServerPolicyBroadcast.SEPARATE_COOKIES) != 0;
+	}
+
 	public static boolean consentRequired() {
 		return (flags & ServerPolicyBroadcast.REQUIRE_CONSENT) != 0;
 	}

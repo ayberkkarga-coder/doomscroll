@@ -38,8 +38,12 @@ public final class DoomscrollConfig {
 	public String audioLatency = "normal";
 	/** Senin koymadigin ekranlarin sesi (0 = duyma). Sunucu "sessiz basla" derse oturum 0'dan baslar. */
 	public float othersScreenVolume = 1.0f;
-	/** Ekranlar kalici Chromium profilinden ayri, gecici bir cerez baglaminda calissin. */
-	public boolean separateScreenCookies = true;
+	/**
+	 * Ekranlar kalici Chromium profilinden ayri, gecici bir cerez baglaminda calissin.
+	 * Varsayilan kapali: acikken ekranda yapilan giris oyun kapaninca kaybolur.
+	 * Sunucu kendi ayarindan zorlayabilir; o zaman bu ayar kapali olsa da gecerli olur.
+	 */
+	public boolean separateScreenCookies = false;
 
 	/** Ses akisinin OpenAL parca suresi (ms). Profilden turetilir. */
 	public int audioChunkMs() {

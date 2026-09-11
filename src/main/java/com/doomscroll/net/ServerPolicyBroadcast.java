@@ -24,6 +24,7 @@ public record ServerPolicyBroadcast(List<String> blocked, List<String> allowed, 
 	public static final int REQUIRE_CONSENT = 1 << 2;
 	public static final int MUTE_OTHERS = 1 << 3;
 	public static final int SHOW_DOMAIN = 1 << 4;
+	public static final int SEPARATE_COOKIES = 1 << 5;
 
 	private static final int MAX_DOMAINS = 512;
 

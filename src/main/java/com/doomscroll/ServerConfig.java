@@ -21,6 +21,9 @@ public final class ServerConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("doomscroll-server.json");
 	private static ServerConfig instance;
+	private static final String README =
+			"Her ayarin ne ise yaradigi yanindaki doomscroll-server.txt dosyasinda ve oyun icinde /doomscroll yardim komutunda."
+			+ "  |  What each setting does: see doomscroll-server.txt next to this file, or run /doomscroll help in game.";
 
 	/** Adres reddedilme sebepleri; istemciye de ayni sirayla gider. */
 	public static final int OK = 0;
@@ -28,6 +31,12 @@ public final class ServerConfig {
 	public static final int DENY_NOT_ALLOWED = 2;
 	public static final int DENY_PRIVATE = 3;
 	public static final int DENY_LOCKDOWN = 4;
+
+	/**
+	 * JSON'a yorum yazilamiyor; yonetici dosyayi acinca nereye bakacagini bilsin diye
+	 * en uste konan yonlendirme. Degeri her yuklemede yenilenir.
+	 */
+	public String _readme = README;
 
 	/** Engelli alan adlari (alt alanlar dahil): ekranlarda acilamaz, acilirsa herkes eski adrese geri doner. */
 	public List<String> blockedDomains = new ArrayList<>();
@@ -69,6 +78,13 @@ public final class ServerConfig {
 	public boolean muteOthersByDefault = false;
 	/** Gercek alan adi ekranin altinda yazsin (sahte giris sayfasina karsi). */
 	public boolean showDomain = true;
+	/**
+	 * Ekranlar kalici Chromium profilinden ayri, gecici bir cerez baglaminda calissin.
+	 * Acikken oyuncunun kendi ayari kapali olsa da gecerli: baskasinin actigi sayfa,
+	 * oyuncunun giris yaptigi oturumla ayni baglamda calismaz. Yalnizca yeni acilan
+	 * tarayicilari etkiler; zaten acik ekranlar bir sonraki yuklemede gecer.
+	 */
+	public boolean separateScreenCookies = false;
 	/** Tek bir panelin en fazla kac blok olabilecegi (0 = sinirsiz). */
 	public int maxPanelBlocks = 0;
 	/** Bir oyuncunun ayni anda kac ekran blogu koyabilecegi (0 = sinirsiz). */
@@ -106,10 +122,11 @@ public final class ServerConfig {
 		c.maxPanelBlocks = Math.max(0, Math.min(4096, c.maxPanelBlocks));
 		c.maxScreensPerPlayer = Math.max(0, Math.min(4096, c.maxScreensPerPlayer));
 		c.urlCooldownMs = Math.max(0, Math.min(60000, c.urlCooldownMs));
+		c._readme = README;
 		instance = c;
-		if (!Files.isRegularFile(FILE)) {
-			save();
-		}
+		// Her acilista yeniden yaz: mod guncellenip yeni ayar geldiginde dosyada da gorunsun.
+		save();
+		ServerGuide.write(FILE.getParent());
 	}
 
 	public static synchronized void save() {

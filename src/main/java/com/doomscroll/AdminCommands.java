@@ -41,6 +41,9 @@ public final class AdminCommands {
 					return reply(c, Component.translatable("command.doomscroll.admin.reloaded", summary()));
 				}));
 			}
+			for (String n : new String[]{"yardim", "help"}) {
+				root.then(Commands.literal(n).executes(AdminCommands::help));
+			}
 			for (String n : new String[]{"liste", "list"}) {
 				root.then(Commands.literal(n).executes(c -> reply(c, summary())));
 			}
@@ -134,6 +137,12 @@ public final class AdminCommands {
 					return Component.translatable("command.doomscroll.admin.mute_others", onOff(v));
 				}));
 			}
+			for (String n : new String[]{"cerez", "cookies"}) {
+				root.then(toggle(n, v -> {
+					ServerConfig.get().separateScreenCookies = v;
+					return Component.translatable("command.doomscroll.admin.cookies", onOff(v));
+				}));
+			}
 			for (String n : new String[]{"alanadi", "showdomain"}) {
 				root.then(toggle(n, v -> {
 					ServerConfig.get().showDomain = v;
@@ -166,6 +175,70 @@ public final class AdminCommands {
 			}
 			dispatcher.register(root);
 		});
+	}
+
+	/**
+	 * /doomscroll yardim: her ayarin ne yaptigini ve su anki degerini tek satirda gosterir.
+	 * Ozet (/doomscroll) yalnizca degerleri yazar; burasi "bu ne ise yariyor" sorusunun yeri.
+	 */
+	private static int help(CommandContext<CommandSourceStack> c) {
+		ServerConfig s = ServerConfig.get();
+		CommandSourceStack src = c.getSource();
+		src.sendSuccess(() -> Component.translatable("command.doomscroll.admin.help.title"), false);
+
+		head(src, "safety");
+		line(src, "lockdown", onOff(s.lockdown));
+		line(src, "blackout", null);
+		line(src, "block", count(s.blockedDomains.size()));
+		line(src, "allow", count(s.allowedDomains.size()));
+		line(src, "private_net", onOff(s.allowPrivateNetwork));
+		line(src, "consent", onOff(s.requireConsent));
+		line(src, "cookies", onOff(s.separateScreenCookies));
+		line(src, "show_domain", onOff(s.showDomain));
+
+		head(src, "audit");
+		line(src, "audit", null);
+		line(src, "audit_log", onOff(s.auditLog));
+
+		head(src, "limits");
+		line(src, "max_panel", label(s.maxPanelBlocks));
+		line(src, "max_screens", label(s.maxScreensPerPlayer));
+		line(src, "cooldown", Component.literal(s.urlCooldownMs + " ms"));
+		line(src, "control_time", Component.literal(s.controlTimeoutSeconds + " s"));
+
+		head(src, "features");
+		line(src, "broadcast", onOff(s.broadcast));
+		line(src, "pointer", onOff(s.pointer));
+		line(src, "redstone", onOff(s.redstoneControl));
+		line(src, "announce", onOff(s.announce));
+		line(src, "light", Component.literal(String.valueOf(s.screenLightLevel)));
+		line(src, "reload", null);
+
+		src.sendSuccess(() -> Component.translatable("command.doomscroll.admin.help.foot",
+				AuditLog.file().toString()), false);
+		src.sendSuccess(() -> Component.translatable("command.doomscroll.admin.help.perms"), false);
+		return 1;
+	}
+
+	private static void head(CommandSourceStack src, String key) {
+		src.sendSuccess(() -> Component.translatable("command.doomscroll.admin.help.head." + key), false);
+	}
+
+	/** "  /doomscroll <komut>  aciklama  -> deger" satiri. */
+	private static void line(CommandSourceStack src, String key, @org.jetbrains.annotations.Nullable Component value) {
+		// Komut adi da dil dosyasindan gelir: Ingilizce oynayan yonetici Ingilizce adi gorur.
+		String cmd = Component.translatable("command.doomscroll.admin.help.cmd." + key).getString();
+		net.minecraft.network.chat.MutableComponent m = Component.literal("  \u00a7e/doomscroll " + cmd + "\u00a7r  ")
+				.append(Component.translatable("command.doomscroll.admin.help." + key));
+		if (value != null) {
+			m = m.append(Component.literal("  \u00a78\u2192 \u00a7f")).append(value);
+		}
+		final Component out = m;
+		src.sendSuccess(() -> out, false);
+	}
+
+	private static Component count(int n) {
+		return Component.translatable("command.doomscroll.admin.help.count", n);
 	}
 
 	// ---------- alt komut kaliplari ----------
@@ -282,7 +355,7 @@ public final class AdminCommands {
 				onOff(c.redstoneControl), onOff(c.pointer), c.controlTimeoutSeconds)
 				.copy().append(Component.translatable("command.doomscroll.admin.summary2",
 						onOff(c.lockdown), onOff(c.auditLog), onOff(c.allowPrivateNetwork), onOff(c.requireConsent),
-						onOff(c.muteOthersByDefault), onOff(c.showDomain),
+						onOff(c.muteOthersByDefault), onOff(c.showDomain), onOff(c.separateScreenCookies),
 						label(c.maxPanelBlocks), label(c.maxScreensPerPlayer), c.urlCooldownMs));
 	}
 

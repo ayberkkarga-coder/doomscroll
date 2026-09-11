@@ -139,7 +139,7 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `tabletVolume`, `tabletMuted` | 0.8 | the volume of the tablet in your hand (the speaker in its toolbar) |
 | `remoteTabletVolume` | 0.8 | how loud other people's tablets are for you (0 = never hear them) |
 | `othersScreenVolume` | 1.0 | how loud screens you did not place are (the server can make this start at 0) |
-| `separateScreenCookies` | true | screens use an in-memory Chromium context, separate from the tablet's persistent profile |
+| `separateScreenCookies` | false | screens use an in-memory Chromium context, separate from the tablet's persistent profile. A sign-in made on a screen is then lost when you close the game, so it is off by default; the server can force it on |
 | `tabletSway` | 0.35 | how much of the vanilla walking sway the held tablet keeps (0 still, 1 vanilla) |
 | `screenGlow` / `screenGlowRange` / `screenGlowSmooth` | 1.0 / 10 / true | screen light strength (0 off, 0.5 low, 1 normal, 1.8 high), range, smooth blending |
 | `autoScroll` | true | next video when one ends (Shorts/Reels/TikTok) |
@@ -152,7 +152,12 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 Volume has three stages: the **device's own volume** (the tablet's slider, which everyone hears it at; a screen's lives on the block, remote → More → "Screen volume"), then **your own slider**, and on top of that Minecraft's "Blocks" setting.
 
 ## Server admin settings — `config/doomscroll-server.json`
-Singleplayer uses the same file through its internal server.
+Singleplayer uses the same file through its internal server. Two things sit next to it:
+
+- `doomscroll-server.txt` is regenerated on every start and explains every field in English and Turkish, with three ready-made setups to copy.
+- `/doomscroll help` in game lists the same settings with their current values and one line each on what they do, in the admin's own language.
+
+The JSON is rewritten on every start too, so a mod update adds its new fields with their defaults instead of leaving you to add them by hand.
 
 | Field | Default | Description |
 |---|---|---|
@@ -170,11 +175,12 @@ Singleplayer uses the same file through its internal server.
 | `requireConsent` | `false` | A page outside the allowlist is not drawn until the viewer taps Show. Nothing is requested from the site before that. |
 | `muteOthersByDefault` | `false` | Screens you did not place start muted for you. |
 | `showDomain` | `true` | Show the real domain on the HUD when you look at a screen. |
+| `separateScreenCookies` | `false` | Force screens onto an in-memory cookie context, overriding each player's own setting. |
 | `maxPanelBlocks` | `0` | Largest panel in blocks (0 = unlimited). |
 | `maxScreensPerPlayer` | `0` | Screen blocks one player may have (0 = unlimited). |
 | `urlCooldownMs` | `0` | Minimum gap between one player's address changes (0 = none). Set 1000-2000 on a public server. |
 
-**Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `duyuru` / `announce` · `isaretci` / `pointer` · `redstone` · `kontrolsuresi` / `controltime` `<seconds>` · `kayit` / `audit` `[n]` · `denetim` / `auditlog` · `acil` / `emergency` · `karart` / `blackout` · `ozelag` / `privatenet` · `onay` / `consent` · `sessiz` / `muteothers` · `alanadi` / `showdomain` · `panelsinir` / `maxpanel` `<n>` · `ekransinir` / `maxscreens` `<n>` · `bekleme` / `cooldown` `<ms>` · `yayin` / `broadcast`. Changes are written to the file and pushed to every client at once.
+**Admin commands** (`/doomscroll ...`, gamemaster permission). Every subcommand has a Turkish and an English name: `/doomscroll` status · `yenile` / `reload` · `engelle` / `block` `<domain>` · `engelkaldir` / `unblock` · `izin` / `allow` · `izinkaldir` / `unallow` · `isik` / `light` `<0-15>` · `duyuru` / `announce` · `isaretci` / `pointer` · `redstone` · `kontrolsuresi` / `controltime` `<seconds>` · `kayit` / `audit` `[n]` · `denetim` / `auditlog` · `acil` / `emergency` · `karart` / `blackout` · `ozelag` / `privatenet` · `onay` / `consent` · `sessiz` / `muteothers` · `alanadi` / `showdomain` · `cerez` / `cookies` · `panelsinir` / `maxpanel` `<n>` · `ekransinir` / `maxscreens` `<n>` · `bekleme` / `cooldown` `<ms>` · `yayin` / `broadcast`. Changes are written to the file and pushed to every client at once.
 
 ## Moderation and safety
 
@@ -203,11 +209,13 @@ authoritative and that nothing is available after an incident. These are the too
   domain and the player who placed the screen, with Show and Home menu. Until you choose Show, the site gets no
   request at all, so neither shock content nor your IP reaches it. Your choice is remembered per domain for the
   session.
-- **Separate cookies.** Screens share an in-memory Chromium context that is separate from the persistent
+- **Separate cookies.** Screens can share an in-memory Chromium context that is separate from the persistent
   profile your tablet uses, so a page somebody else opened never runs in the same context as your own signed-in
-  session. Nothing is written to disk for screens. Turn `separateScreenCookies` off in the client config if you
-  want a YouTube sign-in on a screen to survive a restart. Per-screen contexts would be stricter, but CEF gives
-  every context its own render process, which is unaffordable with many screens.
+  session, and nothing is written to disk for screens. It is **off by default**, because a sign-in made on a
+  screen then disappears when you close the game. Each player can turn on `separateScreenCookies` in their
+  client config, and a server can force it for everyone with the same field in the server config. Per-screen
+  contexts would be stricter, but CEF gives every context its own render process, which is unaffordable with
+  many screens.
 - **The real domain on the HUD.** Looking at a screen shows its real domain next to the page title. A page
   cannot touch the game's HUD, so a fake sign-in page cannot hide where it actually is.
 - **Others' screens can start muted.** With `muteOthersByDefault` on, screens you did not place are silent

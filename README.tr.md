@@ -135,7 +135,7 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `tabletVolume`, `tabletMuted` | 0.8 | elindeki tabletin kendi sesi (tablet araç çubuğundaki hoparlör) |
 | `remoteTabletVolume` | 0.8 | başkalarının tabletinden duyulan ses (0 = duyma) |
 | `othersScreenVolume` | 1.0 | senin koymadığın ekranların sesi (sunucu bunu 0'dan başlatabilir) |
-| `separateScreenCookies` | true | ekranlar tabletin kalıcı profilinden ayrı, bellekteki bir Chromium bağlamında çalışır |
+| `separateScreenCookies` | false | ekranlar tabletin kalıcı profilinden ayrı, bellekteki bir Chromium bağlamında çalışır. Açıkken ekranda yapılan giriş oyun kapanınca kaybolduğu için varsayılan kapalı; sunucu zorlayabilir |
 
 Ses üç kademeli: **cihazın sesi** (tabletin kaydırıcısı, herkes o seviyeden duyar; ekranınki blokta durur, kumanda → Diğer → "Ekranın sesi"), üstüne **senin kaydırıcın**, en üstte Minecraft'ın "Bloklar" ayarı.
 | `tabletSway` | 0.35 | tablet eldeyken yürüme sallanmasının kalan oranı (0 sabit, 1 vanilla) |
@@ -148,7 +148,14 @@ Ses üç kademeli: **cihazın sesi** (tabletin kaydırıcısı, herkes o seviyed
 | `welcomeShown` | false | karşılama mesajı gösterildi |
 
 ## Sunucu yönetici ayarları — `config/doomscroll-server.json`
-Tek oyunculuda da aynı dosya (iç sunucu). Alanlar:
+Tek oyunculuda da aynı dosya (iç sunucu). Yanında iki şey var:
+
+- `doomscroll-server.txt` her açılışta yeniden yazılır ve her alanı Türkçe ile İngilizce anlatır, kopyalanabilir üç hazır kurulumla birlikte.
+- Oyun içinde `/doomscroll yardim` aynı ayarları şu anki değerleriyle ve ne işe yaradıklarıyla, yöneticinin kendi dilinde listeler.
+
+JSON da her açılışta yeniden yazılıyor, yani mod güncellenip yeni bir ayar geldiğinde elle eklemen gerekmiyor, varsayılanıyla dosyaya düşüyor.
+
+Alanlar:
 
 | Alan | Varsayılan | Açıklama |
 |---|---|---|
@@ -166,11 +173,12 @@ Tek oyunculuda da aynı dosya (iç sunucu). Alanlar:
 | `requireConsent` | `false` | İzin listesinde olmayan sayfa, izleyici Göster diyene kadar çizilmez. O ana kadar siteye hiçbir istek gitmez. |
 | `muteOthersByDefault` | `false` | Senin koymadığın ekranlar sende sessiz başlar. |
 | `showDomain` | `true` | Ekrana bakınca gerçek alan adı HUD'da yazsın. |
+| `separateScreenCookies` | `false` | Ekranları bellekteki çerez bağlamına zorla, oyuncunun kendi ayarını ezerek. |
 | `maxPanelBlocks` | `0` | En büyük panel, blok olarak (0 = sınırsız). |
 | `maxScreensPerPlayer` | `0` | Bir oyuncunun sahip olabileceği ekran bloğu (0 = sınırsız). |
 | `urlCooldownMs` | `0` | Aynı oyuncunun iki adres değişikliği arasındaki en az süre (0 = beklemesiz). Halka açık sunucuda 1000-2000. |
 
-**Yönetici komutları** (`/doomscroll ...`, gamemaster yetkisi): `/doomscroll` durum · `yenile` · `engelle <alan>` / `engelkaldir <alan>` · `izin <alan>` / `izinkaldir <alan>` · `isik <0-15>` · `duyuru ac|kapat` · `isaretci ac|kapat` · `redstone ac|kapat` · `kontrolsuresi <sn>` · `kayit [n]` · `denetim ac|kapat` · `acil ac|kapat` · `karart` · `ozelag ac|kapat` · `onay ac|kapat` · `sessiz ac|kapat` · `alanadi ac|kapat` · `panelsinir <n>` · `ekransinir <n>` · `bekleme <ms>` · `yayin ac|kapat`. Her komutun İngilizce adı da var (`reload`, `block`, `audit`, `emergency`, `blackout` ...). Değişiklikler dosyaya yazılır ve anında bütün istemcilere gider.
+**Yönetici komutları** (`/doomscroll ...`, gamemaster yetkisi): `/doomscroll` durum · `yenile` · `engelle <alan>` / `engelkaldir <alan>` · `izin <alan>` / `izinkaldir <alan>` · `isik <0-15>` · `duyuru ac|kapat` · `isaretci ac|kapat` · `redstone ac|kapat` · `kontrolsuresi <sn>` · `kayit [n]` · `denetim ac|kapat` · `acil ac|kapat` · `karart` · `ozelag ac|kapat` · `onay ac|kapat` · `sessiz ac|kapat` · `alanadi ac|kapat` · `cerez ac|kapat` · `panelsinir <n>` · `ekransinir <n>` · `bekleme <ms>` · `yayin ac|kapat`. Her komutun İngilizce adı da var (`reload`, `block`, `audit`, `emergency`, `blackout` ...). Değişiklikler dosyaya yazılır ve anında bütün istemcilere gider.
 
 ## Moderasyon ve güvenlik
 
@@ -198,10 +206,11 @@ ellerinde hiçbir şey kalmaması. Bunun için olan araçlar şunlar.
   oyuncuyu yazan bir kart çıkar; Göster ve Ana menü düğmeleri var. Sen Göster demeden siteye hiçbir istek
   gitmez, yani ne şok içerik ne de IP'n oraya ulaşır. Seçimin o oturum boyunca alan adı başına hatırlanır.
 - **Çerez ayrımı.** Ekranlar, tabletin kullandığı kalıcı profilden ayrı, bellekte duran ortak bir Chromium
-  bağlamını paylaşır. Başkasının açtığı bir sayfa senin giriş yaptığın oturumla aynı bağlamda çalışmaz ve
-  ekranlar için diske hiçbir şey yazılmaz. Ekrandaki YouTube girişinin yeniden başlatmadan sonra da kalmasını
-  istersen istemci ayarındaki `separateScreenCookies` kapatılabilir. Ekran başına ayrı bağlam daha sıkı olurdu
-  ama CEF her bağlama ayrı bir render süreci açıyor; çok ekranda bu kaldırılmaz.
+  bağlamını paylaşabilir. O zaman başkasının açtığı bir sayfa senin giriş yaptığın oturumla aynı bağlamda
+  çalışmaz ve ekranlar için diske hiçbir şey yazılmaz. **Varsayılan kapalı**, çünkü açıkken ekranda yaptığın
+  giriş oyunu kapatınca kayboluyor. Her oyuncu kendi istemci ayarındaki `separateScreenCookies` ile açabilir;
+  sunucu da aynı adlı sunucu ayarıyla herkes için zorlayabilir. Ekran başına ayrı bağlam daha sıkı olurdu ama
+  CEF her bağlama ayrı bir render süreci açıyor; çok ekranda bu kaldırılmaz.
 - **Gerçek alan adı HUD'da.** Ekrana bakınca sayfa başlığının yanında gerçek alan adı yazar. Sayfa oyunun
   arayüzüne dokunamaz, yani sahte bir giriş sayfası nerede olduğunu gizleyemez.
 - **Başkasının ekranı sessiz başlayabilir.** `muteOthersByDefault` açıkken senin koymadığın ekranlar sen

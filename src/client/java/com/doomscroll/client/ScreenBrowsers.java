@@ -281,8 +281,9 @@ public final class ScreenBrowsers {
 		try {
 			String start = !s.startUrl.isEmpty() ? s.startUrl : Browsers.homeUrlFor(s.pos);
 			start = gate(s, start);
-			s.browser = init.getFuture().join().createBrowser(start, false,
-					DoomscrollConfig.get().separateScreenCookies);
+			// Oyuncu istedi ya da sunucu zorluyor: ekranlar kalici profilden ayri cerez baglaminda.
+			boolean ephemeral = DoomscrollConfig.get().separateScreenCookies || ServerPolicy.separateCookies();
+			s.browser = init.getFuture().join().createBrowser(start, false, ephemeral);
 			s.browser.resize(Browsers.screenWidth(), Browsers.screenHeight());
 			s.lastSent = start;
 			final Screen ref = s;
