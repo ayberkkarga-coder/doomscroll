@@ -112,6 +112,7 @@ public final class ScreenBrowsers {
 		long localStampMs = 0L;
 		String localUrl = "";
 		long localFrame = 0; // raporu gonderen cerceve (film sitelerinde oynatici iframe icinde)
+		final Browsers.Cinema cinema = new Browsers.Cinema();
 		String localTitle = "";
 		String qualityAppliedId = ""; // YouTube kalite siniri uygulanan video
 		// yayin
@@ -492,8 +493,7 @@ public final class ScreenBrowsers {
 	private static void onPageMessage(Screen s, String json) {
 		try {
 			JsonObject o = JsonParser.parseString(json).getAsJsonObject();
-			if (o.has("fsArmed")) {
-				Browsers.armedClick(s.browser); // sinema: sayfa tam ekran icin tik bekliyor
+			if (Browsers.cinemaMessage(s.browser, s.cinema, o)) {
 				return;
 			}
 			if (o.has("popup")) {
@@ -897,6 +897,14 @@ public final class ScreenBrowsers {
 
 	/** Kumanda paneli acikken true: yalnizca kumandanin bagli oldugu ekran yonetilir (bakilan/en yakin devreye girmez). */
 	private static boolean remoteLock = false;
+
+	/** Cinema button / command: the active screen (the bound one while the remote is open). */
+	public static void toggleCinemaActive() {
+		Screen s = active();
+		if (s != null) {
+			Browsers.cinemaToggle(s.browser, s.cinema);
+		}
+	}
 
 	public static void setRemoteLock(boolean lock) {
 		remoteLock = lock;

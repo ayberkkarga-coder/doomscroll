@@ -250,6 +250,7 @@
   "command.doomscroll.list.control": "kontrol",
   "command.doomscroll.list.locked": "kilitli",
   "message.doomscroll.popup_blocked": "Popup engellendi: %s — gerçekten açmak için /ds popup",
+  "message.doomscroll.cinema.none": "Bu sayfada oynatıcı bulunamadı.",
   "command.doomscroll.glow.no_screen": "yakında açık ekran yok",
   "command.doomscroll.glow.not_computed": "yüzeyler henüz hesaplanmadı",
   "command.doomscroll.glow.patches": "%s ışık yaması (%s ms)",

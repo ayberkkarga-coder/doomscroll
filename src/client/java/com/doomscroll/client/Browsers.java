@@ -99,9 +99,17 @@ public final class Browsers {
 				tablet.resize(tabletWidth(), tabletHeight());
 				final CefBrowserView tb = tablet;
 				tb.setMessageListener(msg -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
-					if (msg.contains("fsArmed") && tablet == tb) {
-						armedClick(tb);
+					if (tablet != tb) {
 						return;
+					}
+					if (msg.contains("fsArmed") || msg.contains("\"cinema\"")) {
+						try {
+							if (cinemaMessage(tb, tabletCinema, com.google.gson.JsonParser.parseString(msg).getAsJsonObject())) {
+								return;
+							}
+						} catch (Exception ignored) {
+							// not JSON: fall through
+						}
 					}
 					if (msg.contains("\"popup\"")) {
 						tabletLastPopup = popupUrl(msg);
@@ -343,56 +351,150 @@ public final class Browsers {
 			+ "v.addEventListener('ended',next);});},1000);})();";
 
 	/**
-	 * Sinema modu (ac/kapat). Once sitenin kendi tam ekrani denenir: Fullscreen API kullanici hareketi ister,
-	 * bu yuzden sayfa sol ust koseye tek kullanimlik gorunmez bir kapak koyar, Java oraya sentetik bir tik
-	 * gonderir (__DS__ fsArmed mesaji), kapagin tiklama isleyicisi requestFullscreen cagirir. Olmazsa
-	 * (izin yok, reddedildi, 2,5 sn icinde tik gelmedi) en buyuk oynaticiyi CSS ile ekrana sabitleyen eski yol.
-	 * Kapatirken tam ekrandan cikilir ve CSS geri alinir.
+	 * Cinema mode, off. Runs in every frame (jsAllFrames): the frame that owns fullscreen leaves it, a CSS-pinned
+	 * player gets its styles back. Only the top frame reports: {"cinema":"off"} when something was undone,
+	 * {"cinema":"noop"} when nothing was on (Java then turns cinema on instead, so a stale flag never eats a press).
 	 */
-	private static final String CINEMA_JS =
-			"(function(){"
-			+ "var off=function(){if(window.__dsCinema){var c=window.__dsCinema;c.el.style.cssText=c.css;document.documentElement.style.overflow=c.ov;document.body.style.overflow=c.bov;if(c.inner){c.inner.style.cssText=c.innerCss;}window.__dsCinema=null;}};"
-			+ "var ov0=document.getElementById('__dsFsOv');if(ov0)ov0.remove();"
-			+ "if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}off();return 'off';}"
-			+ "if(window.__dsCinema){off();return 'off';}"
-			+ "var VW=innerWidth,VH=innerHeight,VA=VW*VH;"
+	private static final String CINEMA_OFF_JS =
+			"(function(){var TOP;try{TOP=(window===window.top);}catch(e){TOP=false;}var done=false;window.__dsCinBusy=0;"
+			+ "var ov=document.getElementById('__dsFsOv');if(ov)ov.remove();"
+			+ "if(window.__dsCinema){var c=window.__dsCinema;try{c.el.style.cssText=c.css;document.documentElement.style.overflow=c.ov;document.body.style.overflow=c.bov;if(c.inner)c.inner.style.cssText=c.innerCss;}catch(e){}window.__dsCinema=null;done=true;}"
+			+ "if(document.fullscreenElement){try{var p=document.exitFullscreen();if(p&&p.catch)p.catch(function(){});}catch(e){}done=true;}"
+			+ "if(TOP)console.log('__DS__{\"cinema\":\"'+(done?'off':'noop')+'\"}');})();";
+
+	/**
+	 * Top-frame side of the cinema hand-shake, installed with the page reporter so it is in place before any
+	 * sub-frame speaks (frames run the cinema script in no particular order). "claim": a sub-frame has a video and
+	 * takes the job. "armed": that frame waits for the click; answer with the centre of the iframe that contains it.
+	 * "fallback": fullscreen was refused inside; handle the iframe from up here.
+	 */
+	private static final String CINEMA_MSG_JS =
+			"(function(){var TOP;try{TOP=(window===window.top);}catch(e){TOP=false;}if(!TOP||window.__dsCinMsg)return;"
+			+ "window.__dsCinMsg=1;window.__dsCinClaim=0;window.__dsCinFb=0;"
+			+ "window.addEventListener('message',function(ev){var d=ev.data;if(!d||typeof d!=='object'||!d.__dsCin)return;"
+			+ "if(d.__dsCin==='claim'){window.__dsCinClaim=Date.now();return;}"
+			+ "var w=ev.source,f=null;try{var g=0;while(w&&w.parent!==window&&g++<16)w=w.parent;}catch(e){}"
+			+ "var ifr=document.querySelectorAll('iframe');for(var i=0;i<ifr.length;i++){try{if(ifr[i].contentWindow===w){f=ifr[i];break;}}catch(e){}}"
+			+ "if(d.__dsCin==='armed'){if(f){var r=f.getBoundingClientRect();console.log('__DS__{\"fsArmed\":1,\"x\":'+Math.round(r.left+r.width/2)+',\"y\":'+Math.round(r.top+r.height/2)+'}');}else{console.log('__DS__{\"fsArmed\":1}');}}"
+			+ "else if(d.__dsCin==='fallback'&&f&&Date.now()-window.__dsCinFb>3000){window.__dsCinFb=Date.now();if(window.__dsCinemaRun)window.__dsCinemaRun(f);}});})();";
+
+	/**
+	 * Cinema mode, on. Runs in every frame (jsAllFrames). The Fullscreen API needs a user gesture, so the frame that
+	 * takes the job puts a one-shot transparent cover on the page and Java clicks it (see {@link #armedClick}); the
+	 * cover's handler presses the site's own fullscreen button when there is one, otherwise calls requestFullscreen
+	 * on the player container. A sub-frame that holds the video claims the job (postMessage to top) and the top
+	 * frame answers with the click point (centre of that iframe); the top frame handles iframes itself only when no
+	 * sub-frame claimed within 300 ms. When fullscreen is refused, the top frame pins the player with CSS. Only the
+	 * top frame reports: {"cinema":"on"|"off"|"none"}, "none" meaning no player was found on the page.
+	 */
+	private static final String CINEMA_ON_JS = CINEMA_MSG_JS
+			+ "(function(){var TOP;try{TOP=(window===window.top);}catch(e){TOP=false;}"
+			+ "var rep=function(k){if(TOP)console.log('__DS__{\"cinema\":\"'+k+'\"}');};"
+			+ "var post=function(k){try{window.top.postMessage({__dsCin:k},'*');}catch(e){}};"
+			+ "if(!window.__dsFsRep){window.__dsFsRep=1;document.addEventListener('fullscreenchange',function(){rep(document.fullscreenElement?'on':'off');});}"
+			+ "if(window.__dsCinema||document.fullscreenElement){rep('on');return;}"
+			+ "var VW=innerWidth,VH=innerHeight,VA=Math.max(1,VW*VH);"
 			+ "function score(e){var r=e.getBoundingClientRect();var A=r.width*r.height;if(A<40000||r.width<160)return -99;var sc=0;"
-			+ "if(A>0.93*VA)sc-=3;var ar=r.width/Math.max(1,r.height);if(ar>1.2&&ar<2.5)sc+=1;"
+			+ "if(TOP&&A>0.93*VA)sc-=3;var ar=r.width/Math.max(1,r.height);if(ar>1.2&&ar<2.5)sc+=1;"
 			+ "var cx=r.left+r.width/2,cy=r.top+r.height/2;if(Math.abs(cx-VW/2)<VW*0.25&&Math.abs(cy-VH/2)<VH*0.35)sc+=1;"
 			+ "var st=getComputedStyle(e);if(st.pointerEvents==='none'||st.visibility==='hidden'||st.opacity==='0')sc-=3;"
 			+ "if(e.tagName==='VIDEO'){if(!e.paused&&e.currentTime>0)sc+=3;if(e.duration>60)sc+=1;if(e.loop&&e.muted)sc-=3;if(!e.src&&!e.currentSrc&&!e.querySelector('source'))sc-=2;}"
 			+ "else{var src=(e.src||'').toLowerCase();if(/player|embed|video|stream|play|vid|sibnet|ok[.]ru|dailymotion|vk[.]com/.test(src))sc+=2;if(/bet|casino|(^|[^a-z])ads?([^a-z]|$)|adserv|banner|promo|sponsor|track|pixel|analytics|doubleclick|recaptcha|hcaptcha/.test(src))sc-=5;if(!src)sc-=1;}"
 			+ "return sc+Math.min(2,A/VA*2);}"
-			+ "var cands=[].slice.call(document.querySelectorAll('video,iframe')).map(function(e){return {e:e,s:score(e)};}).filter(function(c){return c.s>-5;}).sort(function(a,b){return b.s-a.s;});"
-			+ "if(!cands.length)return 'none';var el=cands[0].e;var r=el.getBoundingClientRect();"
-			+ "var p=el;while(p.parentElement&&p.parentElement!==document.body){var pr=p.parentElement.getBoundingClientRect();if(pr.width*pr.height>r.width*r.height*1.35)break;p=p.parentElement;}"
+			+ "var FSBTN='.ytp-fullscreen-button,.vjs-fullscreen-control,.jw-icon-fullscreen,[data-plyr=\"fullscreen\"],.dplayer-full-icon,.art-control-fullscreen,.fp-fullscreen,.fullscreen-button,.btn-fullscreen,[aria-label=\"Full screen\"],[aria-label=\"Fullscreen\"],[aria-label=\"Tam ekran\"],[title=\"Full screen\"],[title=\"Fullscreen\"],[title=\"Tam ekran\"]';"
+			+ "function run(el){if(window.__dsCinBusy&&Date.now()-window.__dsCinBusy<3000)return;window.__dsCinBusy=Date.now();"
+			+ "var r=el.getBoundingClientRect();var p=el;while(p.parentElement&&p.parentElement!==document.body){var pr=p.parentElement.getBoundingClientRect();if(pr.width*pr.height>r.width*r.height*1.35)break;p=p.parentElement;}"
 			+ "var pin=function(){if(window.__dsCinema||document.fullscreenElement)return;"
 			+ "window.__dsCinema={el:p,css:p.style.cssText,ov:document.documentElement.style.overflow,bov:document.body.style.overflow,inner:el!==p?el:null,innerCss:el!==p?el.style.cssText:''};"
 			+ "p.style.cssText+=';position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;z-index:2147483647!important;background:#000!important;';"
 			+ "if(el!==p){el.style.width='100%';el.style.height='100%';el.style.objectFit='contain';}"
-			+ "document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';};"
-			+ "var fs=p.requestFullscreen||p.webkitRequestFullscreen;"
-			+ "if(!fs||!document.fullscreenEnabled){pin();return 'css';}"
-			+ "var ov=document.createElement('div');ov.id='__dsFsOv';ov.style.cssText='position:fixed;left:0;top:0;width:12px;height:12px;z-index:2147483647;background:transparent;';"
+			+ "document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';rep('on');};"
+			+ "var fail=function(){window.__dsCinBusy=0;if(TOP)pin();else post('fallback');};"
+			+ "var fs=p.requestFullscreen||p.webkitRequestFullscreen;if(!fs||!document.fullscreenEnabled){fail();return;}"
+			+ "var old=document.getElementById('__dsFsOv');if(old)old.remove();"
+			+ "var ov=document.createElement('div');ov.id='__dsFsOv';ov.style.cssText='position:fixed;left:0;top:0;z-index:2147483647;background:transparent;'+(TOP?'width:12px;height:12px;':'width:100vw;height:100vh;');"
 			+ "var fired=false;var go=function(ev){if(fired)return;fired=true;ev.stopPropagation();ev.preventDefault();ov.remove();"
-			+ "try{var pr=fs.call(p,{navigationUI:'hide'});if(pr&&pr.catch)pr.catch(function(){pin();});}catch(e){pin();}"
-			+ "setTimeout(function(){if(!document.fullscreenElement)pin();},700);};"
+			+ "var btn=null;try{var b=p.querySelector(FSBTN)||(el.parentElement?el.parentElement.querySelector(FSBTN):null);if(b&&b.offsetWidth)btn=b;}catch(e){}"
+			+ "try{if(btn){btn.click();}else{var pr=fs.call(p,{navigationUI:'hide'});if(pr&&pr.catch)pr.catch(function(){fail();});}}catch(e){fail();}"
+			+ "setTimeout(function(){if(!document.fullscreenElement)fail();},900);};"
 			+ "ov.addEventListener('mousedown',function(ev){ev.stopPropagation();ev.preventDefault();});"
 			+ "ov.addEventListener('mouseup',go);ov.addEventListener('click',go);"
 			+ "document.documentElement.appendChild(ov);"
-			+ "setTimeout(function(){if(document.getElementById('__dsFsOv')){ov.remove();if(!fired){fired=true;pin();}}},2500);"
-			+ "console.log('__DS__{\"fsArmed\":1}');"
-			+ "return 'armed';})();";
+			+ "setTimeout(function(){if(document.getElementById('__dsFsOv')===ov){ov.remove();if(!fired){fired=true;fail();}}},2500);"
+			+ "if(TOP)console.log('__DS__{\"fsArmed\":1}');else post('armed');}"
+			+ "window.__dsCinemaRun=function(f){if(f)run(f);};"
+			+ "var cands=[].slice.call(document.querySelectorAll(TOP?'video,iframe':'video')).map(function(e){return {e:e,s:score(e)};}).filter(function(c){return c.s>-5;}).sort(function(a,b){return b.s-a.s;});"
+			+ "var best=cands.length?cands[0].e:null;"
+			+ "if(!TOP){if(best){post('claim');setTimeout(function(){post('claim');},150);run(best);}return;}"
+			+ "if(!best){setTimeout(function(){if(Date.now()-window.__dsCinClaim>400)rep('none');},350);return;}"
+			+ "if(best.tagName==='VIDEO'){run(best);return;}"
+			+ "setTimeout(function(){if(Date.now()-window.__dsCinClaim>400)run(best);},300);"
+			+ "})();";
 
-	/** Sayfa tam ekran icin kullanici hareketi bekliyor: sol ust kosedeki tek kullanimlik kapaga tiklat. */
-	public static void armedClick(@Nullable CefBrowserView b) {
+	/** Cinema state of one browser (a screen or the tablet); kept in sync by the page's reports. */
+	public static final class Cinema {
+		public boolean on = false;
+		long offSentMs = 0L;
+	}
+
+	private static final Cinema tabletCinema = new Cinema();
+
+	/** Remote / command / tablet button: off if the page says it is on, otherwise on. */
+	public static void cinemaToggle(@Nullable CefBrowserView b, Cinema st) {
 		if (b == null) {
 			return;
 		}
+		if (st.on) {
+			st.offSentMs = System.currentTimeMillis();
+			jsAllFrames(b, CINEMA_OFF_JS);
+		} else {
+			jsAllFrames(b, CINEMA_ON_JS);
+		}
+	}
+
+	/** Page message about cinema / fullscreen; true when it was one. Game thread. */
+	public static boolean cinemaMessage(@Nullable CefBrowserView b, Cinema st, com.google.gson.JsonObject o) {
+		if (o.has("fsArmed")) {
+			armedClick(b, o.has("x") ? o.get("x").getAsInt() : 6, o.has("y") ? o.get("y").getAsInt() : 6);
+			return true;
+		}
+		if (!o.has("cinema")) {
+			return false;
+		}
+		switch (o.get("cinema").getAsString()) {
+			case "on" -> st.on = true;
+			case "off" -> st.on = false;
+			case "noop" -> {
+				st.on = false;
+				if (b != null && System.currentTimeMillis() - st.offSentMs < 2000L) {
+					st.offSentMs = 0L;
+					jsAllFrames(b, CINEMA_ON_JS); // the flag was stale: the press meant "on"
+				}
+			}
+			case "none" -> notice("message.doomscroll.cinema.none");
+			default -> { }
+		}
+		return true;
+	}
+
+	static void notice(String key) {
+		var mc = net.minecraft.client.Minecraft.getInstance();
+		if (mc.player != null) {
+			mc.player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(key));
+		}
+	}
+
+	/** The page waits for a user gesture: click its one-shot cover (top-left corner, or the centre of the claiming iframe). */
+	public static void armedClick(@Nullable CefBrowserView b, int x, int y) {
+		if (b == null) {
+			return;
+		}
+		x = Math.max(0, x);
+		y = Math.max(0, y);
 		var info = new net.minecraft.client.input.MouseButtonInfo(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT, 0);
-		b.onMouseMoved(6, 6);
-		b.onMouseClicked(new net.minecraft.client.input.MouseButtonEvent(6, 6, info), false);
-		b.onMouseReleased(new net.minecraft.client.input.MouseButtonEvent(6, 6, info));
+		b.onMouseMoved(x, y);
+		b.onMouseClicked(new net.minecraft.client.input.MouseButtonEvent(x, y, info), false);
+		b.onMouseReleased(new net.minecraft.client.input.MouseButtonEvent(x, y, info));
 	}
 
 	/**
@@ -448,7 +550,7 @@ public final class Browsers {
 
 	public static String reporterJs() {
 		// Atlayici bayragi guard disinda: ayar degisince sayfa yenilenmeden uygulanir
-		return REPORT_JS + "window.__dsAdSkip=" + DoomscrollConfig.get().adBlock + ";";
+		return REPORT_JS + "window.__dsAdSkip=" + DoomscrollConfig.get().adBlock + ";" + CINEMA_MSG_JS;
 	}
 
 	/**
@@ -535,11 +637,11 @@ public final class Browsers {
 	}
 
 	public static void toggleCinema() {
-		runJs(CINEMA_JS);
+		ScreenBrowsers.toggleCinemaActive();
 	}
 
 	public static void toggleTabletCinema() {
-		tabletJs(CINEMA_JS);
+		cinemaToggle(tablet, tabletCinema);
 	}
 
 	/** Her ~2 sn cagrilir: otomatik gecis acik ve sayfa kisa video sayfasiysa izleyiciyi kurar (idempotent). */

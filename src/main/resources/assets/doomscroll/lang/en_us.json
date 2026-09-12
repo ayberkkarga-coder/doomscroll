@@ -250,6 +250,7 @@
   "command.doomscroll.list.control": "control",
   "command.doomscroll.list.locked": "locked",
   "message.doomscroll.popup_blocked": "Popup blocked: %s — use /ds popup to really open it",
+  "message.doomscroll.cinema.none": "No video player found on this page.",
   "command.doomscroll.glow.no_screen": "no screen on nearby",
   "command.doomscroll.glow.not_computed": "surfaces not computed yet",
   "command.doomscroll.glow.patches": "%s light patches (%s ms)",
