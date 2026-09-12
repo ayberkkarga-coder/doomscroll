@@ -89,8 +89,6 @@ public final class DoomscrollConfig {
 	public float remoteTabletVolume = 0.8f;
 	/** Tablet eldeyken yurume/kosma sallanmasinin kalan orani: 0 = sabit, 1 = vanilla. */
 	public float tabletSway = 0.35f;
-	/** SponsorBlock: YouTube'da sponsor/intro/outro bolumlerini topluluk verisiyle atla. */
-	public boolean sponsorBlock = true;
 	/** Paylasimli isaretci: bakilan ekrandaki crosshair'i digerlerine yayinla ve digerlerininkini goster. */
 	public boolean pointer = true;
 	/** Yayin modu kodlama ayarlari: genislik (16:9), kare hizi, video bit hizi (kbps). */

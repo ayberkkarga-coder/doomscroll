@@ -342,12 +342,6 @@ public class RemoteScreen extends Screen {
 	private void initOther(int left, int inner, int top) {
 		int y = top;
 		DoomscrollConfig cfg = DoomscrollConfig.get();
-		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.sponsorblock"), () -> onOff(cfg.sponsorBlock), () -> {
-			cfg.sponsorBlock = !cfg.sponsorBlock;
-			DoomscrollConfig.save();
-			ScreenBrowsers.refreshSponsorBlock();
-		}, () -> cfg.sponsorBlock, false);
-		y += SROW;
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.pointer"), () -> onOff(cfg.pointer), () -> {
 			cfg.pointer = !cfg.pointer;
 			DoomscrollConfig.save();

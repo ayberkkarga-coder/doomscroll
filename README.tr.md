@@ -18,7 +18,7 @@ Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTub
 6. [Yere ve tavana ekran](#yere-ve-tavana-ekran)
 7. [Yayın modu](#yayın-modu-herkes-senin-gördüğünü-görür)
 8. [Sinema salonu özellikleri](#sinema-salonu-özellikleri)
-9. [Reklam engelleme ve SponsorBlock](#reklam-engelleme-ve-sponsorblock)
+9. [Reklam engelleme](#reklam-engelleme)
 10. [Komutlar](#komutlar-ds)
 11. [İstemci ayarları](#i%CC%87stemci-ayarları--configdoomscrolljson)
 12. [Sunucu yönetici ayarları ve komutları](#sunucu-yönetici-ayarları--configdoomscroll-serverjson)
@@ -49,7 +49,7 @@ Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2
 - **Kumanda paneli:** kompakt, kabartmalı koyu kumanda gövdesi (vanilla tuş hissi: 1 px kontur, ışık/gölge kenar), yeşil durum ekranı (LCD), üç sekme (KUMANDA / AYARLAR / DİĞER), piksel simgeli tuşlar ve ses kaydırıcısı.
   - **KUMANDA:** güç, sessiz + ses, Shorts/Reels/TikTok, kanal (◀ ad ▶), geri/ileri/yenile/ana/sinema, adres çubuğu + git (ok) + **+** (sıraya ekle), "Ekranı tablete yansıt" (ekrandaki sayfa, YouTube'da kaldığı saniyeden, tablette açılır; tablet → ekran yönü tabletin **Yansıt** tuşunda).
   - **AYARLAR:** otomatik geçiş, film senkronu, reklam engelle, altyazı (HUD), YouTube giriş modu, kilit, çözünürlük, kare hızı, ses gecikmesi.
-  - **DİĞER:** SponsorBlock, paylaşımlı işaretçi, redstone, yayın, ekran ışığı, yumuşak ışık, ışık menzili, sıra → **sıra listesi** sayfası (başlıklarıyla; oynat / sil / temizle, tekerlekle kaydır).
+  - **DİĞER:** paylaşımlı işaretçi, redstone, yayın, ekran ışığı, yumuşak ışık, ışık menzili, sıra → **sıra listesi** sayfası (başlıklarıyla; oynat / sil / temizle, tekerlekle kaydır).
   - Ekran (LCD) satırları: durum · sahip · ses, sayfa başlığı + süre (+N sıradaki), kontrol/kilit.
 - **Yeni bir ekrana bakınca** 1 sn sonra "▶ başlık · süre · kontrol" bildirimi çıkar.
 - **Sinema modu:** önce sitenin kendi tam ekranı denenir (sayfa tek kullanımlık bir kapak koyar, mod oraya tıklatır; böylece tarayıcının istediği "kullanıcı hareketi" sağlanır), olmazsa en büyük oynatıcı CSS ile ekrana sabitlenir (`/ds sinema`, kumanda ve tablette Sinema). Yeni pencere açmaya çalışan bağlantılar aynı sitedeyse aynı ekranda açılır, yabancı popup'lar (reklam) engellenir.
@@ -90,12 +90,11 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 - **Redstone kontrolü:** ekran sahibi `/ds redstone` (ya da Diğer → Redstone) ile açar: panelin herhangi bir bloğuna gelen sinyalin yükselen kenarı ekranı açar/kapatır. Tek levhayla ışıkları söndürüp ekranı açmak için.
 - **Blok ışığı:** açık ekran 12 seviye ışık yayar (sunucu ayarı `screenLightLevel`).
 
-## Reklam engelleme ve SponsorBlock
+## Reklam engelleme
 - **Filtre listeleri (gerçek engelleyici mantığı):** [EasyList](https://easylist.to) ve [AdGuard Türkçe filtresi](https://filters.adtidy.org/extension/ublock/filters/13.txt) tam kural diliyle (alan + yol kalıpları, `$third-party`, tür, `domain=`, `$popup`, `@@` istisnalar, `$generichide`, `@@$document`) istek düzeyinde uygulanır; [StevenBlack hosts](https://github.com/StevenBlack/hosts) alan adı listesi eklenir. Listelerin `##` kozmetik gizleme kuralları (site özel + genel) her sayfaya ve iframe'e stil olarak enjekte edilir. `config/mcef-codec/adblock/`, 7 günde bir yenilenir. Video CDN'leri izin listesindedir; sayfanın kendini reklam/bahis sitesine yönlendirmesi engellenir, adres çubuğundan yazılan adres engellenmez.
 - **Sayfa içi temizleyici (film siteleri):** standart boyutlu (300×250, 728×90...) reklam iframe'leri gizlenir; videonun üstündeki tıklama kapanları kaldırılır, "Reklamı geç / Skip ad / Atla" düğmesi otomatik basılır. Oynatıcı katmanları (ytp, vjs, jw, plyr...) dokunulmaz; YouTube, Instagram, TikTok, Twitch gibi büyük sitelerde bu temizleyici hiç çalışmaz.
 - **Popup'lar:** hiçbir yeni pencere kendiliğinden açılmaz; "Popup engellendi: alan adı" bildirimi çıkar, gerçekten açmak istersen `/ds popup`.
 - **YouTube reklamları** aynı alan adından geldiği için listeyle engellenemez; sayfa içi atlayıcı reklam başlayınca sonuna sarar ve "Atla"ya basar.
-- **SponsorBlock:** YouTube videolarındaki sponsor, kendi reklamı, "abone ol" hatırlatması, intro, outro ve önizleme bölümleri [SponsorBlock](https://sponsor.ajay.app) topluluk verisiyle otomatik atlanır ("⏩ Sponsor bölümü atlandı"). Ekranda ve tablette çalışır. Diğer → SponsorBlock ya da `/ds sponsor`.
 - Instagram/TikTok akış içi reklamlar sıradan içerik gibi geldiği için engellenmez.
 - Aç/kapat: Ayarlar → **Reklam engelle** ya da `/ds reklam ac|kapat`; `/ds reklam` yüklü kural sayısını ve engellenen istek sayısını gösterir; log'da `[reklam] engellendi: alan/yol` (ilk 20).
 
@@ -112,7 +111,7 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `/ds sinema` · `/ds pause` | tam ekran / oynat-durdur |
 | `/ds isik kapat\|az\|normal\|cok\|yumusak\|menzil <blok>` | ekran ışığı |
 | `/ds yayin [ac\|kapat]` | yayın modu (senin görüntün herkese) |
-| `/ds sponsor` · `/ds isaretci` · `/ds redstone` | SponsorBlock / paylaşımlı işaretçi / bu ekranda redstone (sahibi) |
+| `/ds isaretci` · `/ds redstone` | paylaşımlı işaretçi / bu ekranda redstone (sahibi) |
 | `/ds res 720p\|1080p\|1440p\|GxY` · `/ds audiorate <hz>` | çözünürlük / ses örnekleme hızı |
 | `/ds fps <10-60>` · `/ds perf` | tarayıcı kare hızı / performans ölçümü |
 | `/ds boost <0.5-6>` | tarayıcı ses kazancı (varsayılan 2.5; tepeler yumuşak sınırlanır) |
@@ -132,7 +131,6 @@ Normalde herkes aynı adresi kendi tarayıcısında açar (sıfır ek maliyet). 
 | `audioBoost` | 2.5 | tarayıcı sesine dijital kazanç |
 | `audioLatency` | normal | `dusuk` / `normal` / `yuksek` |
 | `adBlock` | true | reklam engelleyici |
-| `sponsorBlock` | true | SponsorBlock |
 | `subtitles` | true | HUD altyazısı (24 blok içindeki en yakın ekran) |
 | `pointer` | true | paylaşımlı işaretçi (gönder + göster) |
 | `screenVolume` / `screenMuted` | 0.8 / false | ekranların kişisel sesi (kumandadaki kaydırıcı) |
@@ -253,8 +251,8 @@ Bir de not: izin listesi alt alan adlarını doğru kapsıyor. `example.com` eng
 ## Geliştirme
 - `JAVA_HOME` = Java 25 (Minecraft launcher'ın kendi JDK'sı olur). `./gradlew build` → `build/libs/doomscroll-0.1.0.jar`. mcef-codec önce derlenmeli (`../mcef-codec/build/libs/mcef-codec-0.1.0.jar` compileOnly bağımlılık).
 - 26.x obfuscate edilmemiş: gerçek Mojang adlarıyla yazılır. İmza notları: ilgili commit.
-- Mimari: `ScreenBrowsers` (ekran başına tarayıcı, kontrol, senkron, SponsorBlock, kalite) · `Browsers` (tablet + sayfa JS'leri: raporcu, temizleyici, sinema) · `DirectControl` (bak-tıkla, klavye, işaretçi) · `ScreenGlow` (ambilight) · `ScreenQueue` / `SponsorBlock` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (sunucu: paketler, kontrol süresi, kilit, adres kuralı) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel birleştirme, ışık, redstone).
-- **Duman testi:** `./gradlew runClient` dev istemciyi `-Ddoomscroll.selftest=true` ile açar; `SelfTest` dünyaya girince oyuncunun yanına 3×2 panel kurar, YouTube açar ve sayfa raporu, başlık, SponsorBlock atlama, ekran ışığı, sıra (atla + video bitince), sunucu adres engeli, redstone, yönetici komutları ve işaretçi adımlarını sınar; sonucu `[selftest]` satırlarıyla loga yazar ve oyunu kapatır (`run/config/doomscroll-server.json` içinde `example.org` engelli olmalı).
+- Mimari: `ScreenBrowsers` (ekran başına tarayıcı, kontrol, senkron, kalite) · `Browsers` (tablet + sayfa JS'leri: raporcu, temizleyici, sinema) · `DirectControl` (bak-tıkla, klavye, işaretçi) · `ScreenGlow` (ambilight) · `ScreenQueue` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (sunucu: paketler, kontrol süresi, kilit, adres kuralı) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel birleştirme, ışık, redstone).
+- **Duman testi:** `./gradlew runClient` dev istemciyi `-Ddoomscroll.selftest=true` ile açar; `SelfTest` dünyaya girince oyuncunun yanına 3×2 panel kurar, YouTube açar ve sayfa raporu, başlık, ekran ışığı, sıra (atla + video bitince), sunucu adres engeli, redstone, yönetici komutları ve işaretçi adımlarını sınar; sonucu `[selftest]` satırlarıyla loga yazar ve oyunu kapatır (`run/config/doomscroll-server.json` içinde `example.org` engelli olmalı).
 - **Tasarım:** blok/eşya dokuları, GUI simgeleri (`textures/gui/sprites/icon/*.png`, 9×9) ve mod simgesi `tools/make_art.py` ile üretilir (piksel haritaları betiğin içinde; `pip install pillow`). Arayüz çizim dili `Ui.java` (kabartma panel/tuş, çukur alan, simge).
 
 ## Hata bildirme

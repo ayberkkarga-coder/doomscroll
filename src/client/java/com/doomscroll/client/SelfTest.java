@@ -17,7 +17,7 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Gelistirici duman testi (-Ddoomscroll.selftest=true ile). Dunyaya girince oyuncunun yanina 3x2 panel kurar,
- * YouTube acar ve ozellikleri sirayla sinar: sayfa raporu, baslik, SponsorBlock atlama, ekran isigi, sira,
+ * YouTube acar ve ozellikleri sirayla sinar: sayfa raporu, baslik, ekran isigi, sira,
  * video bitince siradaki, sunucu adres engeli, redstone. Sonucu loga yazar ve oyunu kapatir.
  */
 public final class SelfTest {
@@ -225,27 +225,6 @@ public final class SelfTest {
 				return true;
 			}
 			return false;
-		}));
-		// 5) SponsorBlock bolumleri geldi
-		STEPS.add(new Step("SponsorBlock bolumleri cekildi", 600, () -> {
-			ScreenBrowsers.Screen s = screen();
-			return s != null && "e-ORhEE9VVg".equals(s.sbVideoId) && SponsorBlock.cachedVideos() >= 1;
-		}));
-		// 6) asil video (272 sn) oynarken 232'ye sar, sponsor bolumu (235-272) atlanmali (reklam bitene kadar bekle)
-		STEPS.add(new Step("SponsorBlock bolumu atladi", 1800, () -> {
-			ScreenBrowsers.Screen s = screen();
-			if (s == null) return false;
-			if (s.localDuration < 200) {
-				if ((tick - stageStart) % 100 == 0) LOGGER.info("[selftest] asil video bekleniyor (sure={}, t={})", s.localDuration, s.localTime);
-				return false;
-			}
-			if (firstTime(2) || ((tick - stageStart) % 120 == 0 && s.localTime < 232)) {
-				js("if(window.__dsSetPaused)window.__dsSetPaused(false);if(window.__dsSeek)window.__dsSeek(232);");
-				LOGGER.info("[selftest] 232'ye sarildi (t={})", s.localTime);
-				return false;
-			}
-			if ((tick - stageStart) % 40 == 0) LOGGER.info("[selftest] t={}", s.localTime);
-			return s.localTime >= 271 && s.localTime < 300;
 		}));
 		// 7) ekran isigi yamalari
 		STEPS.add(new Step("ekran isigi yamalari > 0", 200, () -> {

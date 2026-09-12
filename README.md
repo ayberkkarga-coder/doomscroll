@@ -17,7 +17,7 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 6. [Floor and ceiling screens](#floor-and-ceiling-screens)
 7. [Broadcast mode](#broadcast-mode-everyone-sees-your-view)
 8. [Cinema-room features](#cinema-room-features)
-9. [Ad blocking and SponsorBlock](#ad-blocking-and-sponsorblock)
+9. [Ad blocking](#ad-blocking)
 10. [Commands](#commands-ds)
 11. [Client settings](#client-settings--configdoomscrolljson)
 12. [Server admin settings and commands](#server-admin-settings--configdoomscroll-serverjson)
@@ -26,7 +26,7 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 15. [Safety notes](#safety-notes)
 16. [Development](#development)
 
-> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Most commands have both an English and a Turkish name, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`. Names that read the same in both languages (`go`, `fps`, `boost`, `pause`, `sponsor`, `remote`, `tablet`, ...) have just one.
+> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Most commands have both an English and a Turkish name, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`. Names that read the same in both languages (`go`, `fps`, `boost`, `pause`, `remote`, `tablet`, ...) have just one.
 
 ## Install
 1. Put `fabric-api`, `mcef-codec-0.1.0.jar` and `doomscroll-0.1.0.jar` in your `mods/` folder.
@@ -49,7 +49,7 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - **The remote panel:** a compact embossed dark remote body (vanilla button feel: a 1 px outline with light and shadow edges), a green LCD status display, three tabs (REMOTE / SETTINGS / MORE), pixel-icon buttons and a volume slider.
   - **REMOTE:** power, mute + volume, Shorts/Reels/TikTok, channel (◀ name ▶), back/forward/reload/home/cinema, address bar + go (arrow) + **+** (add to queue), "Send screen to tablet" (the page on the screen opens on the tablet, on YouTube from the same second; the tablet → screen direction is the tablet's **Cast** button).
   - **SETTINGS:** auto-advance, playback sync, ad blocker, captions (HUD), YouTube sign-in mode, lock, resolution, frame rate, audio delay.
-  - **MORE:** SponsorBlock, shared pointer, redstone, broadcast, screen light, smooth light, light range, queue → the **queue list** page (with titles; play / remove / clear, scrollable).
+  - **MORE:** shared pointer, redstone, broadcast, screen light, smooth light, light range, queue → the **queue list** page (with titles; play / remove / clear, scrollable).
   - LCD rows: state · owner · volume, page title + duration (+N queued), control/lock.
 - **Looking at a new screen** shows a "▶ title · duration · control" notice after one second.
 - **Cinema mode:** the site's own fullscreen is tried first (the page drops a single-use cover and the mod clicks it, which supplies the "user gesture" the browser wants); if that fails the largest player is pinned to the screen with CSS (`/ds cinema`, and Cinema on the remote and tablet). Links that try to open a new window open on the same screen if they are on the same site; foreign popups (ads) are blocked.
@@ -90,12 +90,11 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 - **Redstone control:** the screen's owner enables it with `/ds redstone` (or More → Redstone): a rising edge on any block of the panel toggles the screen. One lever to kill the lights and start the film.
 - **Block light:** a screen that is on emits light level 12 (server setting `screenLightLevel`).
 
-## Ad blocking and SponsorBlock
+## Ad blocking
 - **Filter lists (real blocker logic):** [EasyList](https://easylist.to) and the [AdGuard Turkish filter](https://filters.adtidy.org/extension/ublock/filters/13.txt) are applied at request level with the full rule syntax (domain and path patterns, `$third-party`, type, `domain=`, `$popup`, `@@` exceptions, `$generichide`, `@@$document`), plus the [StevenBlack hosts](https://github.com/StevenBlack/hosts) domain list. The lists' `##` cosmetic rules (site-specific and generic) are injected as styles into every page and iframe. Cached in `config/mcef-codec/adblock/` and refreshed every 7 days. Video CDNs are allowlisted; a page redirecting itself to an ad or gambling site is blocked, while an address you type yourself never is.
 - **In-page cleaner (film sites):** standard-size ad iframes (300×250, 728×90 …) are hidden, click traps over the video are removed, and a "Skip ad" button is pressed automatically. Player layers (ytp, vjs, jw, plyr …) are left alone, and the cleaner does not run at all on large sites such as YouTube, Instagram, TikTok and Twitch.
 - **Popups:** no new window opens by itself; you get a "Popup blocked: domain" notice, and `/ds popup` opens it if you really want it.
 - **YouTube ads** come from the same domain, so lists cannot block them; the in-page skipper seeks to the end of an ad and presses Skip.
-- **SponsorBlock:** sponsor, self-promo, subscribe reminder, intro, outro and preview segments in YouTube videos are skipped automatically using [SponsorBlock](https://sponsor.ajay.app) community data. It works on screens and on the tablet. More → SponsorBlock, or `/ds sponsor`.
 - In-feed ads on Instagram and TikTok arrive as ordinary content and are not blocked.
 - Toggle: Settings → **Ad blocker** or `/ds adblock on|off`; `/ds adblock` reports the loaded rule count and how many requests were blocked; the log has `[reklam] engellendi: domain/path` for the first 20.
 
@@ -112,7 +111,7 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `/ds cinema` · `/ds pause` | fullscreen / play-pause |
 | `/ds light off\|low\|normal\|high\|smooth\|range <blocks>` | screen light |
 | `/ds broadcast [on\|off]` | broadcast mode (your view to everyone) |
-| `/ds sponsor` · `/ds pointer` · `/ds redstone` | SponsorBlock / shared pointer / redstone on this screen (owner) |
+| `/ds pointer` · `/ds redstone` | shared pointer / redstone on this screen (owner) |
 | `/ds res 720p\|1080p\|1440p\|WxH` · `/ds audiorate <hz>` | resolution / audio sample rate |
 | `/ds fps <10-60>` · `/ds perf` | browser frame rate / performance report |
 | `/ds boost <0.5-6>` | browser audio gain (default 2.5; peaks are soft-limited) |
@@ -132,7 +131,6 @@ Normally everyone opens the same address in their own browser, at zero extra cos
 | `audioBoost` | 2.5 | digital gain on browser audio |
 | `audioLatency` | normal | `dusuk` / `normal` / `yuksek` |
 | `adBlock` | true | ad blocker |
-| `sponsorBlock` | true | SponsorBlock |
 | `subtitles` | true | HUD captions (nearest screen within 24 blocks) |
 | `pointer` | true | shared pointer (send and show) |
 | `screenVolume` / `screenMuted` | 0.8 / false | your personal volume for screens (the slider on the remote) |
@@ -256,9 +254,9 @@ One thing worth knowing: both lists match subdomains the same way. Blocking `exa
 ## Development
 - `JAVA_HOME` must be a Java 25 (the Minecraft launcher's own JDK works). `./gradlew build` → `build/libs/doomscroll-0.1.0.jar`. Build mcef-codec first; `../mcef-codec/build/libs/mcef-codec-0.1.0.jar` is a compileOnly dependency.
 - 26.x is unobfuscated, so the code uses real Mojang names. The signatures the mod relies on are listed in the commit that introduced them.
-- Architecture: `ScreenBrowsers` (a browser per screen, control, sync, SponsorBlock, quality) · `Browsers` (tablet and page scripts: reporter, cleaner, cinema) · `DirectControl` (look-and-click, keyboard, pointer) · `ScreenGlow` (ambilight) · `ScreenQueue` / `SponsorBlock` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (server: packets, control timeout, lock, address policy) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel merging, light, redstone).
+- Architecture: `ScreenBrowsers` (a browser per screen, control, sync, quality) · `Browsers` (tablet and page scripts: reporter, cleaner, cinema) · `DirectControl` (look-and-click, keyboard, pointer) · `ScreenGlow` (ambilight) · `ScreenQueue` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (server: packets, control timeout, lock, address policy) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel merging, light, redstone).
 - **Text:** no user-facing string is hard-coded. Java uses `Component.translatable` or, where a plain `String` is needed, `Lang.tr(key, …)`; the home pages use `{{key}}` (HTML) and `{{js:key}}` (inside a JS string), resolved by `HomePages.translate()`. `en_us.json` and `tr_tr.json` must always hold the same set of keys.
-- **Smoke test:** `./gradlew runClient` starts the dev client with `-Ddoomscroll.selftest=true`; on joining the world `SelfTest` builds a 3×2 panel next to the player, opens YouTube and exercises the page reporter, titles, a SponsorBlock skip, screen light, the queue (skip and end-of-video), a server address block, redstone, admin commands and the pointer, writing `[selftest]` lines to the log before closing the game. `run/config/doomscroll-server.json` must have `example.org` blocked.
+- **Smoke test:** `./gradlew runClient` starts the dev client with `-Ddoomscroll.selftest=true`; on joining the world `SelfTest` builds a 3×2 panel next to the player, opens YouTube and exercises the page reporter, titles, screen light, the queue (skip and end-of-video), a server address block, redstone, admin commands and the pointer, writing `[selftest]` lines to the log before closing the game. `run/config/doomscroll-server.json` must have `example.org` blocked.
 - **Art:** block and item textures, GUI icons (`textures/gui/sprites/icon/*.png`, 9×9) and the mod icon are generated by `tools/make_art.py` (the pixel maps are in the script; `pip install pillow`). The interface draw language lives in `Ui.java` (embossed panels and buttons, sunken fields, icons).
 
 ## Bug reports

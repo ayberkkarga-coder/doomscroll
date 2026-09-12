@@ -165,7 +165,6 @@ public final class Browsers {
 		}
 		// Sunucu degisince ayni adrese donunce "zaten gonderdim" durumuna dusmeyelim.
 		tabletReportUrl = "";
-		tabletSbId = "";
 	}
 
 	/**
@@ -242,18 +241,12 @@ public final class Browsers {
 		return tabletPaused ? tabletTime : tabletTime + (System.currentTimeMillis() - tabletTimeStampMs) / 1000.0;
 	}
 	private static String tabletTitle = "";
-	private static String tabletSbId = "";
-
-	/** Tablet sayfa raporu (sure/adres/baslik, SponsorBlock atlama). Altyazi ve odak mesajlari tablette kullanilmaz. */
+	/** Tablet sayfa raporu (sure/adres/baslik). Altyazi ve odak mesajlari tablette kullanilmaz. */
 	private static void onTabletMessage(String json) {
 		try {
 			JsonObject o = JsonParser.parseString(json).getAsJsonObject();
 			if (o.has("home")) {
 				HomePages.onTabletCommand(o); // ana menu komutu (yer imi cikar, gecmisi temizle)
-				return;
-			}
-			if (o.has("sb")) {
-				ScreenBrowsers.sponsorSkipped(o.get("sb").getAsInt());
 				return;
 			}
 			if (o.has("bcinfo")) {
@@ -277,7 +270,6 @@ public final class Browsers {
 			String u = o.has("u") ? o.get("u").getAsString() : "";
 			if (!u.equals(tabletReportUrl)) {
 				tabletReportUrl = u;
-				tabletUrlChanged();
 				TabletBookmarks.noteVisit(u, tabletTitle()); // gecmis
 			} else if (o.has("ti")) {
 				TabletBookmarks.updateTitle(u, tabletTitle()); // baslik sonradan geldi (SPA)
@@ -287,23 +279,6 @@ public final class Browsers {
 			}
 		} catch (Exception ignored) {
 		}
-	}
-
-	private static void tabletUrlChanged() {
-		String id = SponsorBlock.videoId(tabletReportUrl);
-		if (id == null) {
-			tabletSbId = "";
-			return;
-		}
-		if (!DoomscrollConfig.get().sponsorBlock || id.equals(tabletSbId)) {
-			return;
-		}
-		tabletSbId = id;
-		SponsorBlock.request(id, segs -> {
-			if (tablet != null && id.equals(SponsorBlock.videoId(tabletReportUrl))) {
-				tabletJs(SponsorBlock.injectJs(id, segs));
-			}
-		});
 	}
 
 	/** Tabletteki sayfanin basligi (" - YouTube" eki atilmis) ya da "". */
@@ -463,8 +438,6 @@ public final class Browsers {
 			+ "}catch(e){}};setInterval(window.__dsSubTick,100);"
 			// Yazi alani odagi: yalnizca gorunur bir alana yakin zamanda (1.5 sn) tiklanmissa 1; odak surdukce 1 kalir.
 			// (Sitenin kendi kendine odakladigi gizli alanlar klavyeyi kapmasin; ESC'den sonra tik yeniden kapmasin.)
-			// SponsorBlock: Java'nin enjekte ettigi bolum listesi (window.__dsSegs={id,segs}); bolum icindeysek sonuna atla
-			+ "setInterval(function(){try{var S=window.__dsSegs;if(!S||!S.segs||!S.segs.length)return;if(location.href.indexOf(S.id)<0)return;var v=window.__dsVid();if(!v||v.paused)return;var t=v.currentTime;for(var i=0;i<S.segs.length;i++){var g=S.segs[i];if(t>=g[0]&&t<g[1]-0.3){v.currentTime=g[1];console.log('__DS__{\"sb\":'+Math.round(g[1]-g[0])+'}');break;}}}catch(e){}},250);"
 			+ "if(!window.__dsFocusHook){window.__dsFocusHook=1;window.__dsEdit=function(){var el=document.activeElement;if(!el)return 0;var tg=el.tagName;var ed=(tg==='TEXTAREA'||el.isContentEditable||(tg==='INPUT'&&!/^(button|submit|checkbox|radio|range|file|color|image|reset|hidden)$/i.test(el.type||'')));if(!ed)return 0;"
 			+ "var r=el.getBoundingClientRect();if(r.width<4||r.height<4||r.bottom<0||r.right<0||r.top>innerHeight||r.left>innerWidth)return 0;if(window.__dsLastFocus===1)return 1;"
 			+ "var cp=window.__dsClickPt;if(!cp||Date.now()-cp[2]>1500)return 0;if(cp[0]<r.left-6||cp[0]>r.right+6||cp[1]<r.top-6||cp[1]>r.bottom+6)return 0;return 1;};"
@@ -573,7 +546,7 @@ public final class Browsers {
 	/** Her ~2 sn cagrilir: otomatik gecis acik ve sayfa kisa video sayfasiysa izleyiciyi kurar (idempotent). */
 	public static void tickAutoNext() {
 		if (tablet != null) {
-			jsAllFrames(tablet, reporterJs()); // sure/baslik raporu + SponsorBlock (idempotent)
+			jsAllFrames(tablet, reporterJs()); // sure/baslik raporu (idempotent)
 		}
 		if (!DoomscrollConfig.get().autoScroll) return;
 		if (tablet != null && isShortFormPage(tabletUrl())) tabletJs(AUTO_NEXT_JS);

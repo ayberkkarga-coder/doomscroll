@@ -113,7 +113,6 @@ public final class ScreenBrowsers {
 		String localUrl = "";
 		long localFrame = 0; // raporu gonderen cerceve (film sitelerinde oynatici iframe icinde)
 		String localTitle = "";
-		String sbVideoId = ""; // SponsorBlock bolumleri enjekte edilen video
 		String qualityAppliedId = ""; // YouTube kalite siniri uygulanan video
 		// yayin
 		@Nullable UUID broadcaster;
@@ -523,7 +522,6 @@ public final class ScreenBrowsers {
 				return;
 			}
 			if (o.has("sb")) {
-				sponsorSkipped(o.get("sb").getAsInt());
 				return;
 			}
 			if (o.has("bc")) {
@@ -594,7 +592,7 @@ public final class ScreenBrowsers {
 
 	/** Video basina 3 deneme (2 sn arayla): oynatici API'si sayfa acilirken hazir olmayabilir. */
 	static void applyQualityCap(Screen s) {
-		String id = SponsorBlock.videoId(s.localUrl);
+		String id = YouTube.videoId(s.localUrl);
 		if (id == null || id.equals(s.qualityAppliedId)) return;
 		js(s, qualityJs());
 		if (++s.qualityTries >= 3) {
@@ -603,7 +601,6 @@ public final class ScreenBrowsers {
 		}
 	}
 
-	/** Sayfanin adresi degisti (SPA dahil): SponsorBlock bolumlerini getir ve enjekte et. */
 	private static final java.util.Set<String> BROADCAST_HINTED = new java.util.HashSet<>();
 
 	/** Kisiye gore degisen (buyuk video sitesi olmayan) bir sayfada video oynarken bir kez: yayin modunu hatirlat. */
@@ -626,36 +623,9 @@ public final class ScreenBrowsers {
 		}
 	}
 
+	/** Sayfanin adresi degisti (SPA dahil). */
 	private static void onLocalUrlChanged(Screen s) {
 		s.qualityTries = 0;
-		String id = SponsorBlock.videoId(s.localUrl);
-		if (id == null) {
-			s.sbVideoId = "";
-			return;
-		}
-		if (!DoomscrollConfig.get().sponsorBlock || id.equals(s.sbVideoId)) {
-			return;
-		}
-		s.sbVideoId = id;
-		final Screen ref = s;
-		SponsorBlock.request(id, segs -> {
-			if (ref.browser != null && id.equals(SponsorBlock.videoId(ref.localUrl))) {
-				js(ref, SponsorBlock.injectJs(id, segs));
-			}
-		});
-	}
-
-	private static long lastSponsorNoticeMs = 0L;
-
-	static void sponsorSkipped(int seconds) {
-		SponsorBlock.noteSkipped();
-		long now = System.currentTimeMillis();
-		if (now - lastSponsorNoticeMs < 3000L) return;
-		lastSponsorNoticeMs = now;
-		Minecraft mc = Minecraft.getInstance();
-		if (mc.player != null) {
-			mc.player.sendOverlayMessage(Component.translatable("message.doomscroll.sponsor_skipped", seconds));
-		}
 	}
 
 	/** Sayfa basligi (" - YouTube" gibi ekler atilmis); yoksa "". */
@@ -671,23 +641,10 @@ public final class ScreenBrowsers {
 	/** Cozunurluk degisince acik YouTube sayfalarina yeni kalite sinirini hemen uygula. */
 	public static void refreshQuality() {
 		for (Screen s : liveScreens()) {
-			String id = SponsorBlock.videoId(s.localUrl);
+			String id = YouTube.videoId(s.localUrl);
 			if (id != null) {
 				js(s, qualityJs());
 				s.qualityAppliedId = id;
-			}
-		}
-	}
-
-	/** SponsorBlock ayari degisince: acik videolar icin yeniden enjekte et / temizle. */
-	public static void refreshSponsorBlock() {
-		for (Screen s : liveScreens()) {
-			if (!DoomscrollConfig.get().sponsorBlock) {
-				js(s, "window.__dsSegs=null;");
-				s.sbVideoId = "";
-			} else {
-				s.sbVideoId = "";
-				onLocalUrlChanged(s);
 			}
 		}
 	}

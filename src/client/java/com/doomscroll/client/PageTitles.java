@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
  * gelene kadar ve diger sitelerde site adi + yol gosterilir. Sira listesi ve gecmis icin.
  */
 public final class PageTitles {
-	/** Adres -> baslik. En fazla bu kadar; en eskisi dusulur (SponsorBlock onbellegi gibi). */
+	/** Adres -> baslik. En fazla bu kadar; en eskisi dusulur. */
 	private static final int MAX_CACHE = 500;
 	private static final Map<String, String> CACHE = java.util.Collections.synchronizedMap(
 			new java.util.LinkedHashMap<>(64, 0.75f, true) {

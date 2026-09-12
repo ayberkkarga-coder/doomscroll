@@ -477,14 +477,6 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.broadcast.quality_set", Broadcast.presetLabel(), cfg.broadcastWidth, cfg.broadcastWidth * 9 / 16, cfg.broadcastFps, cfg.broadcastKbps));
 									return 1;
 								}))))
-						.then(ClientCommands.literal("sponsor").executes(c -> {
-							DoomscrollConfig cfg = DoomscrollConfig.get();
-							cfg.sponsorBlock = !cfg.sponsorBlock;
-							DoomscrollConfig.save();
-							ScreenBrowsers.refreshSponsorBlock();
-							c.getSource().sendFeedback(Component.translatable("command.doomscroll.sponsorblock_status", onOff(cfg.sponsorBlock), SponsorBlock.skippedTotal()));
-							return 1;
-						}))
 						.then(ClientCommands.literal("isaretci").executes(c -> {
 							DoomscrollConfig cfg = DoomscrollConfig.get();
 							cfg.pointer = !cfg.pointer;
