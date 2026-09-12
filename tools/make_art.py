@@ -430,24 +430,5 @@ ICONS = {
 for name, rows in ICONS.items():
     paint(rows, TEX + "/gui/sprites/icon/" + name + ".png")
 
-# ---------------- mod simgesi (16x16 piksel sanati, 8x buyutulmus) ----------------
-mod_icon = [
-    "................",
-    ".KKKKKKKKKKKKKK.",
-    "KHLLLLLLLLLLLLBK",
-    "KLSSSSSSSSSSSSDK",
-    "KLSSSWSSSSSSSSDK",
-    "KLSSSWWSSSSSSSDK",
-    "KLSSSWWWSSSSSSDK",
-    "KLSSSWWWWSSSSSDK",
-    "KLSSSWWWSSSSSSDK",
-    "KLSSSWWSSSSSSSDK",
-    "KLSSSWSSSSSSSSDK",
-    "KLSSSSSSSSSSSSDK",
-    "KLBBBBBBBBBEBBDK",
-    "KBDDDDDDDDDDDDDK",
-    ".KKKKKKKKKKKKKK.",
-    "....KKKKKKKK....",
-]
-paint(mod_icon, A + "/icon.png", scale=32)  # Modrinth 512x512 istiyor
+# Mod simgesi (Modrinth 512x512) ayri betikte: tools/make_icon.py
 print("tamam")

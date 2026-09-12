@@ -253,7 +253,7 @@ Bir de not: izin listesi alt alan adlarını doğru kapsıyor. `example.com` eng
 - 26.x obfuscate edilmemiş: gerçek Mojang adlarıyla yazılır. İmza notları: ilgili commit.
 - Mimari: `ScreenBrowsers` (ekran başına tarayıcı, kontrol, senkron, kalite) · `Browsers` (tablet + sayfa JS'leri: raporcu, temizleyici, sinema) · `DirectControl` (bak-tıkla, klavye, işaretçi) · `ScreenGlow` (ambilight) · `ScreenQueue` / `Pointers` · `RemoteScreen` / `TabletScreen` (GUI) · `Doomscroll` (sunucu: paketler, kontrol süresi, kilit, adres kuralı) · `ServerConfig` / `AdminCommands` · `ScreenMultiblock` (panel birleştirme, ışık, redstone).
 - **Duman testi:** `./gradlew runClient` dev istemciyi `-Ddoomscroll.selftest=true` ile açar; `SelfTest` dünyaya girince oyuncunun yanına 3×2 panel kurar, YouTube açar ve sayfa raporu, başlık, ekran ışığı, sıra (atla + video bitince), sunucu adres engeli, redstone, yönetici komutları ve işaretçi adımlarını sınar; sonucu `[selftest]` satırlarıyla loga yazar ve oyunu kapatır (`run/config/doomscroll-server.json` içinde `example.org` engelli olmalı).
-- **Tasarım:** blok/eşya dokuları, GUI simgeleri (`textures/gui/sprites/icon/*.png`, 9×9) ve mod simgesi `tools/make_art.py` ile üretilir (piksel haritaları betiğin içinde; `pip install pillow`). Arayüz çizim dili `Ui.java` (kabartma panel/tuş, çukur alan, simge).
+- **Tasarım:** blok/eşya dokuları, GUI simgeleri (`textures/gui/sprites/icon/*.png`, 9×9) `tools/make_art.py` ile (piksel haritaları betiğin içinde), mod simgesi `tools/make_icon.py` ile üretilir (32×32, kodla çizilir; `pip install pillow`). Arayüz çizim dili `Ui.java` (kabartma panel/tuş, çukur alan, simge).
 
 ## Hata bildirme
 Bir şey bozulduysa ya da bir site oynamıyorsa issue aç: https://github.com/menntdev/doomscroll/issues
