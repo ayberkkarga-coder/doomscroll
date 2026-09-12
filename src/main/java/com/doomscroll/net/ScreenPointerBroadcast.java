@@ -15,7 +15,7 @@ public record ScreenPointerBroadcast(BlockPos pos, UUID player, String name, flo
 	public static final StreamCodec<io.netty.buffer.ByteBuf, ScreenPointerBroadcast> CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, ScreenPointerBroadcast::pos,
 			UUIDUtil.STREAM_CODEC, ScreenPointerBroadcast::player,
-			ByteBufCodecs.STRING_UTF8, ScreenPointerBroadcast::name,
+			ByteBufCodecs.stringUtf8(64), ScreenPointerBroadcast::name,
 			ByteBufCodecs.FLOAT, ScreenPointerBroadcast::u,
 			ByteBufCodecs.FLOAT, ScreenPointerBroadcast::v,
 			ScreenPointerBroadcast::new

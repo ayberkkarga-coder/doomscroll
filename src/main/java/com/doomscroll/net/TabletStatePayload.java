@@ -9,7 +9,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 public record TabletStatePayload(String url, boolean portrait, float volume) implements CustomPacketPayload {
 	public static final Type<TabletStatePayload> TYPE = new Type<>(Doomscroll.id("tablet_state"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, TabletStatePayload> CODEC = StreamCodec.composite(
-			ByteBufCodecs.STRING_UTF8, TabletStatePayload::url,
+			ByteBufCodecs.stringUtf8(2048), TabletStatePayload::url,
 			ByteBufCodecs.BOOL, TabletStatePayload::portrait,
 			ByteBufCodecs.FLOAT, TabletStatePayload::volume,
 			TabletStatePayload::new

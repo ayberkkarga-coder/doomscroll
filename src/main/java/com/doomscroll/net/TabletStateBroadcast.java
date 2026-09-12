@@ -13,7 +13,7 @@ public record TabletStateBroadcast(UUID player, String url, boolean portrait, fl
 	public static final Type<TabletStateBroadcast> TYPE = new Type<>(Doomscroll.id("tablet_state_broadcast"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, TabletStateBroadcast> CODEC = StreamCodec.composite(
 			UUIDUtil.STREAM_CODEC, TabletStateBroadcast::player,
-			ByteBufCodecs.STRING_UTF8, TabletStateBroadcast::url,
+			ByteBufCodecs.stringUtf8(2048), TabletStateBroadcast::url,
 			ByteBufCodecs.BOOL, TabletStateBroadcast::portrait,
 			ByteBufCodecs.FLOAT, TabletStateBroadcast::volume,
 			TabletStateBroadcast::new

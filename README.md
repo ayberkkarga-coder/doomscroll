@@ -48,8 +48,8 @@ Everything is crafted at a crafting table (screen: glass pane + redstone + iron 
 - **Text fields:** clicking a visible text field binds your keyboard automatically, and it is released when you press Enter, the page changes, or focus is lost. Fields a site focuses behind your back never steal your keyboard.
 - **The remote panel:** a compact embossed dark remote body (vanilla button feel: a 1 px outline with light and shadow edges), a green LCD status display, three tabs (REMOTE / SETTINGS / MORE), pixel-icon buttons and a volume slider.
   - **REMOTE:** power, mute + volume, Shorts/Reels/TikTok, channel (◀ name ▶), back/forward/reload/home/cinema, address bar + go (arrow) + **+** (add to queue), "Send screen to tablet" (the page on the screen opens on the tablet, on YouTube from the same second; the tablet → screen direction is the tablet's **Cast** button).
-  - **SETTINGS:** auto-advance, playback sync, ad blocker, captions (HUD), YouTube sign-in mode, lock, resolution, frame rate, audio delay.
-  - **MORE:** shared pointer, redstone, broadcast, screen light, smooth light, light range, queue → the **queue list** page (with titles; play / remove / clear, scrollable).
+  - **SETTINGS:** auto-advance, playback sync, ad blocker, captions (HUD), YouTube sign-in mode, lock, resolution, frame rate, others' tablets, audio delay.
+  - **MORE:** shared pointer, others' screens, screen volume, redstone, broadcast, screen light, smooth light, light range, queue → the **queue list** page (with titles; play / remove / clear, scrollable).
   - LCD rows: state · owner · volume, page title + duration (+N queued), control/lock.
 - **Looking at a new screen** shows a "▶ title · duration · control" notice after one second.
 - **Cinema mode:** the site's own fullscreen is tried first (the page drops a single-use cover and the mod clicks it, which supplies the "user gesture" the browser wants); if that fails the largest player is pinned to the screen with CSS (`/ds cinema`, and Cinema on the remote and tablet). Links that try to open a new window open on the same screen if they are on the same site; foreign popups (ads) are blocked.

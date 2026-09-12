@@ -15,7 +15,7 @@ public record SetScreenUrlPayload(BlockPos pos, String url, boolean explicit) im
 	public static final Type<SetScreenUrlPayload> TYPE = new Type<>(Doomscroll.id("set_screen_url"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, SetScreenUrlPayload> CODEC = StreamCodec.composite(
 			BlockPos.STREAM_CODEC, SetScreenUrlPayload::pos,
-			ByteBufCodecs.STRING_UTF8, SetScreenUrlPayload::url,
+			ByteBufCodecs.stringUtf8(2048), SetScreenUrlPayload::url,
 			ByteBufCodecs.BOOL, SetScreenUrlPayload::explicit,
 			SetScreenUrlPayload::new
 	);

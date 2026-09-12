@@ -48,8 +48,8 @@ Hepsi çalışma masasında yapılır (ekran: cam levha + redstone + demir → 2
 - **Yazı alanları:** görünür bir yazı alanına tıklayınca klavye otomatik ekrana bağlanır; Enter'a basıp sayfa değişince ya da odak gidince kendiliğinden bırakılır. Sitenin gizlice odakladığı alanlar klavyeni almaz.
 - **Kumanda paneli:** kompakt, kabartmalı koyu kumanda gövdesi (vanilla tuş hissi: 1 px kontur, ışık/gölge kenar), yeşil durum ekranı (LCD), üç sekme (KUMANDA / AYARLAR / DİĞER), piksel simgeli tuşlar ve ses kaydırıcısı.
   - **KUMANDA:** güç, sessiz + ses, Shorts/Reels/TikTok, kanal (◀ ad ▶), geri/ileri/yenile/ana/sinema, adres çubuğu + git (ok) + **+** (sıraya ekle), "Ekranı tablete yansıt" (ekrandaki sayfa, YouTube'da kaldığı saniyeden, tablette açılır; tablet → ekran yönü tabletin **Yansıt** tuşunda).
-  - **AYARLAR:** otomatik geçiş, film senkronu, reklam engelle, altyazı (HUD), YouTube giriş modu, kilit, çözünürlük, kare hızı, ses gecikmesi.
-  - **DİĞER:** paylaşımlı işaretçi, redstone, yayın, ekran ışığı, yumuşak ışık, ışık menzili, sıra → **sıra listesi** sayfası (başlıklarıyla; oynat / sil / temizle, tekerlekle kaydır).
+  - **AYARLAR:** otomatik geçiş, film senkronu, reklam engelle, altyazı (HUD), YouTube giriş modu, kilit, çözünürlük, kare hızı, başkalarının tableti, ses gecikmesi.
+  - **DİĞER:** paylaşımlı işaretçi, başkalarının ekranı, ekranın sesi, redstone, yayın, ekran ışığı, yumuşak ışık, ışık menzili, sıra → **sıra listesi** sayfası (başlıklarıyla; oynat / sil / temizle, tekerlekle kaydır).
   - Ekran (LCD) satırları: durum · sahip · ses, sayfa başlığı + süre (+N sıradaki), kontrol/kilit.
 - **Yeni bir ekrana bakınca** 1 sn sonra "▶ başlık · süre · kontrol" bildirimi çıkar.
 - **Sinema modu:** önce sitenin kendi tam ekranı denenir (sayfa tek kullanımlık bir kapak koyar, mod oraya tıklatır; böylece tarayıcının istediği "kullanıcı hareketi" sağlanır), olmazsa en büyük oynatıcı CSS ile ekrana sabitlenir (`/ds sinema`, kumanda ve tablette Sinema). Yeni pencere açmaya çalışan bağlantılar aynı sitedeyse aynı ekranda açılır, yabancı popup'lar (reklam) engellenir.
