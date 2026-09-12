@@ -1,5 +1,7 @@
 # Doomscroll
 
+![Doomscroll](docs/media/banner.png)
+
 *[English](README.md) · **Türkçe***
 
 Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTube / film izle. Dünyaya dev ekranlar kur, elinde tablet taşı, kumandayla yönet, sinema salonu yap. Şakaydı, gerçek oldu.

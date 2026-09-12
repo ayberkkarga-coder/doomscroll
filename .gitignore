@@ -27,3 +27,6 @@ api-notes-*.txt
 # Ic gelistirme notlari: diskte kalir, depoya girmez
 GECE_RAPORU.md
 ARASTIRMA.md
+
+# Python
+__pycache__/

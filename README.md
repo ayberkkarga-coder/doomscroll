@@ -1,5 +1,7 @@
 # Doomscroll
 
+![Doomscroll](docs/media/banner.png)
+
 ***English** · [Türkçe](README.tr.md)*
 
 Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. Build huge screens in the world, carry a tablet, drive everything with a remote, turn a room into a cinema. It started as a joke and became real.
