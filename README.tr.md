@@ -261,5 +261,13 @@ Minecraft ve mod sürümünü, tek oyunculu mu sunucuda mı olduğunu ve sayfan�
 `.minecraft/logs/latest.log` dosyasında genelde cevap yazıyor olur.
 
 ## Lisans
-MIT — tam metin [LICENSE](LICENSE) dosyasında, üçüncü taraf bildirimleriyle birlikte. Chromium'u sağlayan
-kardeş kütüphane `mcef-codec` LGPL-2.1'dir (kendi `COPYING.LESSER` dosyasıyla dağıtılır).
+**Tüm hakları saklı** — [LICENSE](LICENSE) dosyasına bak. Kaynak, içine tarayıcı gömülü bir modun
+ne yaptığını kendin görebilesin diye açık duruyor; açık kaynak değil.
+
+Kullanabilirsin, modpack'e koyabilirsin (kaynak belirterek ve bağlantı vererek), kendin için
+değiştirebilirsin. Yeniden yükleyemez, fork'unun derlenmiş hâlini dağıtamaz, satamazsın.
+[Issue](https://github.com/menntdev/doomscroll/issues) açıp sorarsın, genelde izin verilir.
+
+Üçüncü taraf bileşenler kendi şartlarını koruyor, [NOTICE](NOTICE) dosyasında listeli: kardeş kütüphane
+`mcef-codec` (LGPL-2.1, ayrı jar), Jersey 10 yazı tipi (SIL OFL 1.1) ve WebDisplays'ten alınan tablet tutuşu
+(kamu malı).

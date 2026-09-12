@@ -1,41 +1,42 @@
-MIT License
-
+doomscroll
 Copyright (c) 2026 mennt
+All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+This mod is not open source. The source is published so that anyone can read
+it, check for themselves what the mod does with the network and with the
+browser it embeds, and report problems. Publishing it does not place it in the
+public domain and does not grant a licence to reuse it.
 
 
---------------------------------------------------------------------------
-Third-party notices
---------------------------------------------------------------------------
-
-This mod requires the companion library "mcef-codec", which embeds a fork of
-java-cef (Chromium Embedded Framework Java bindings) and downloads Chromium
-binaries at runtime. Those components carry their own licences; see the
-LICENSE and NOTICE files shipped with mcef-codec.
-
-The first-person held-tablet pose and the tablet model layout are ported from
-WebDisplays by montoyo, which its author released into the public domain.
-
-Jersey 10
+PERMITTED
 ---------
-The pixel typeface embedded in the in-game home pages
-(assets/doomscroll/home/font.css) is Jersey 10 by the Soft Type Project,
-Copyright 2023 The Soft Type Project Authors, licensed under the SIL Open
-Font License, Version 1.1. The full licence text is in LICENSE-jersey10.
+  * Using the mod, in single player and on servers.
+  * Including the released jar in a modpack, public or private, provided the
+    mod is credited and linked to its official page.
+  * Changing the mod for your own use, on your own machine.
+  * Reading and studying the source.
+
+
+NOT PERMITTED WITHOUT WRITTEN PERMISSION
+----------------------------------------
+  * Redistributing the mod, changed or unchanged, anywhere except inside a
+    modpack as described above. In particular, do not re-upload it to Modrinth,
+    CurseForge or any other host.
+  * Distributing a fork, or a build made from changed source.
+  * Selling the mod, or putting it behind a paywall.
+  * Copying the source, in whole or in part, into another project.
+
+Permission is usually given if you ask. Open an issue:
+https://github.com/menntdev/doomscroll/issues
+
+
+NO WARRANTY
+-----------
+The mod is provided "as is", without warranty of any kind, express or implied,
+including but not limited to the warranties of merchantability, fitness for a
+particular purpose and non-infringement. In no event shall the author be liable
+for any claim, damages or other liability arising from the mod or its use.
+
+
+Third-party components keep their own terms and are NOT covered by the above.
+See NOTICE.

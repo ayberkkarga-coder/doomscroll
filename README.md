@@ -265,4 +265,8 @@ Tell me your Minecraft and mod versions, whether it happens in singleplayer or o
 address of the page. The log under `.minecraft/logs/latest.log` usually has the answer in it.
 
 ## License
-MIT — the full text is in [LICENSE](LICENSE), together with third-party notices. The sibling library that supplies Chromium, `mcef-codec`, is LGPL-2.1 and ships its own `COPYING.LESSER`.
+**All rights reserved** — see [LICENSE](LICENSE). The source is published so you can read it and see for yourself what a mod that embeds a browser actually does; it is not open source.
+
+You may use it, put it in a modpack (with credit and a link) and change it for yourself. You may not re-upload it, distribute a fork's build, or sell it. Ask in an [issue](https://github.com/menntdev/doomscroll/issues) and permission is usually given.
+
+Third-party components keep their own terms, listed in [NOTICE](NOTICE): the sibling library `mcef-codec` (LGPL-2.1, a separate jar), the Jersey 10 typeface (SIL OFL 1.1) and the held-tablet pose from WebDisplays (public domain).

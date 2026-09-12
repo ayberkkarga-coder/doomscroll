@@ -71,6 +71,9 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_$projectName" }
 	}
+	from("NOTICE") {
+		rename { "${it}_$projectName" }
+	}
 	// Jersey 10 yazi tipi font.css icine gomulu geliyor; OFL 1.1 metnin de her kopyayla
 	// birlikte dagitilmasini istiyor.
 	from("LICENSE-jersey10") {
