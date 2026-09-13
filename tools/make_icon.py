@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""doomscroll mod simgesi: 32x32 piksel sanati, Modrinth icin 16x buyutulur (512x512).
+"""doomscroll mod icon: 32x32 pixel art, scaled up 16x for Modrinth (512x512).
 
-Tasarim: kabartmali koyu cerceveli ekran blogu; ekranda Reels gun batimi gradyani ve
-konturlu beyaz oynat ucgeni; cercevenin disinda, ekranin rengini satir satir alan
-ambilight parlamasi (modun ayirt edici ozelligi). Piksel dili oyun ici arayuzle ayni.
+Design: a screen block with an embossed dark frame; on the screen, a Reels sunset gradient and
+an outlined white play triangle; outside the frame, an ambilight glow that takes on the screen's
+color row by row (the mod's distinguishing feature). Same pixel style as the in-game UI.
 
 pip install pillow
 """
@@ -17,15 +17,15 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 N = 32
 SCALE = 16
 
-K = (11, 11, 15, 255)        # dis kontur
-D = (30, 30, 37, 255)        # cerceve golge
-F = (48, 48, 57, 255)        # cerceve
-H = (78, 78, 92, 255)        # cerceve isik
-B = (20, 20, 25, 255)        # alt bant
+K = (11, 11, 15, 255)        # outer outline
+D = (30, 30, 37, 255)        # frame shadow
+F = (48, 48, 57, 255)        # frame
+H = (78, 78, 92, 255)        # frame highlight
+B = (20, 20, 25, 255)        # bottom band
 LED = (88, 214, 107, 255)
 W = (246, 246, 250, 255)
 
-# ekran gradyani (ustten alta); parlama da ayni duraklardan okur
+# screen gradient (top to bottom); the glow reads from the same stops too
 STOPS = [
     (255, 150, 60),
     (255, 96, 82),
@@ -46,7 +46,7 @@ def rect(px, x0, y0, x1, y1, c):
 
 
 def stop_at(y):
-    """Gradyanin y satirindaki rengi (ekran araligina gore)."""
+    """Gradient color at row y (relative to the screen's row range)."""
     t = (y - 5) / 21.0
     pos = max(0.0, min(1.0, t)) * (len(STOPS) - 1)
     i = min(int(pos), len(STOPS) - 2)
@@ -56,7 +56,7 @@ def stop_at(y):
 
 
 def glow(px, x0, y0, x1, y1, rings):
-    """Kutunun disina halka halka parlama; koseler bos, son halka dama deseniyle seyrek."""
+    """Glow in rings around the outside of the box; corners left empty, the last ring thinned out with a checkerboard pattern."""
     for i, (alpha, dither) in enumerate(rings, start=1):
         for y in range(y0 - i, y1 + i + 1):
             for x in range(x0 - i, x1 + i + 1):
@@ -72,14 +72,14 @@ def glow(px, x0, y0, x1, y1, rings):
 
 
 def frame(px, x0, y0, x1, y1):
-    """Dis kontur + 1 px kabartmali cerceve + ekran konturu (toplam 3 px); ekran alanini dondurur."""
+    """Outer outline + 1 px embossed frame + screen outline (3 px in total); returns the screen area."""
     rect(px, x0, y0, x1, y1, K)
     rect(px, x0 + 1, y0 + 1, x1 - 1, y1 - 1, F)
-    rect(px, x0 + 1, y0 + 1, x1 - 2, y0 + 1, H)      # ust isik
-    rect(px, x0 + 1, y0 + 1, x0 + 1, y1 - 2, H)      # sol isik
-    rect(px, x0 + 1, y1 - 1, x1 - 1, y1 - 1, D)      # alt golge
-    rect(px, x1 - 1, y0 + 1, x1 - 1, y1 - 1, D)      # sag golge
-    rect(px, x0 + 2, y0 + 2, x1 - 2, y1 - 2, K)      # ekran konturu
+    rect(px, x0 + 1, y0 + 1, x1 - 2, y0 + 1, H)      # top highlight
+    rect(px, x0 + 1, y0 + 1, x0 + 1, y1 - 2, H)      # left highlight
+    rect(px, x0 + 1, y1 - 1, x1 - 1, y1 - 1, D)      # bottom shadow
+    rect(px, x1 - 1, y0 + 1, x1 - 1, y1 - 1, D)      # right shadow
+    rect(px, x0 + 2, y0 + 2, x1 - 2, y1 - 2, K)      # screen outline
     for (x, y) in ((x0, y0), (x1, y0), (x0, y1), (x1, y1)):
         put(px, x, y, (0, 0, 0, 0))
     return x0 + 3, y0 + 3, x1 - 3, y1 - 3
@@ -95,7 +95,7 @@ def stand(px, x0, y1, x1):
 
 
 def play(px, cx, cy, size, color, outline, aspect=0.58):
-    """Saga bakan ucgen; kontur dolgunun her yone 1 px genisletilmisi."""
+    """Right-pointing triangle; the outline is the fill grown by 1 px in every direction."""
     pts = []
     for col in range(size + 1):
         h = round(size * aspect * (size - col) / size)
@@ -110,7 +110,7 @@ def play(px, cx, cy, size, color, outline, aspect=0.58):
 
 
 def vgradient(px, x0, y0, x1, y1):
-    """Dikey renk bantlari; bant sinirlarinda dama seyreltmesiyle gecis."""
+    """Vertical color bands; the transition at band boundaries uses checkerboard thinning."""
     rows = y1 - y0 + 1
     for y in range(y0, y1 + 1):
         pos = (y - y0) / max(1, rows - 1) * (len(STOPS) - 1)
@@ -125,12 +125,12 @@ def vgradient(px, x0, y0, x1, y1):
 def draw():
     im = Image.new("RGBA", (N, N), (0, 0, 0, 0))
     px = im.load()
-    # govde 26x22, altinda 4 satir stand: toplam 26 satir, 32'lik tuvalde dikey ortada
+    # body 26x22 with a 4-row stand below it: 26 rows in total, vertically centered on the 32 px canvas
     X0, Y0, X1, Y1 = 3, 5, 28, 26
     glow(px, X0, Y0, X1, Y1, [(120, False), (70, False), (36, True)])
-    sx0, sy0, sx1, sy1 = frame(px, X0, Y0, X1, Y1)        # ekran 20x16
-    vgradient(px, sx0, sy0, sx1, sy1 - 1)                 # 15 satir gradyan
-    rect(px, sx0, sy1, sx1, sy1, B)                       # tek satir alt bant
+    sx0, sy0, sx1, sy1 = frame(px, X0, Y0, X1, Y1)        # screen 20x16
+    vgradient(px, sx0, sy0, sx1, sy1 - 1)                 # 15 rows of gradient
+    rect(px, sx0, sy1, sx1, sy1, B)                       # single-row bottom band
     rect(px, sx1 - 2, sy1, sx1 - 1, sy1, LED)
     play(px, (sx0 + sx1) // 2 + 1, (sy0 + sy1 - 1) // 2, 7, W, K, aspect=0.6)
     stand(px, X0, Y1, X1)
@@ -141,4 +141,4 @@ if __name__ == "__main__":
     big = draw().resize((N * SCALE, N * SCALE), Image.NEAREST)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     big.save(OUT)
-    print("yazildi", os.path.normpath(OUT), big.size)
+    print("wrote", os.path.normpath(OUT), big.size)

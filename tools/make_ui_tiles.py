@@ -1,7 +1,7 @@
-"""Ana sayfa arka plan dokulari: 16x16 piksel karolar, base64 olarak home/tiles.css'e yazilir.
+"""Home page background textures: 16x16 pixel tiles, written into home/tiles.css as base64.
 
-Neden dosya degil de CSS: sayfa doomscroll:// semasindan tek parca HTML olarak servis ediliyor,
-yani yanindaki dosyalari isteyemiyor. Karolar data URI olarak gomulu geliyor.
+Why CSS rather than files: the page is served from the doomscroll:// scheme as a single HTML document,
+so it cannot request files next to it. The tiles come embedded as data URIs.
 """
 import base64
 import io
@@ -15,7 +15,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
 
 
 def tile(size, base, spots, seed):
-    """Duz zemin + rastgele ama sabit (seed'li) koyu/acik pikseller: vanilla doku hissi."""
+    """Flat base + random but fixed (seeded) dark/light pixels: a vanilla texture feel."""
     rnd = random.Random(seed)
     im = Image.new("RGBA", (size, size), base)
     px = im.load()
@@ -31,28 +31,28 @@ def data_uri(im):
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
-# Tablet duvar kagidi: gece mavisi tas, hafif benekli
+# Tablet wallpaper: midnight-blue stone, lightly speckled
 wall = tile(16, (22, 24, 33, 255), [
     ((27, 30, 41, 255), 46),
     ((17, 19, 27, 255), 34),
     ((31, 35, 48, 255), 12),
 ], seed=7)
 
-# Ekran (TV) menusu: daha koyu, notr gri-siyah
+# Screen (TV) menu: darker, neutral gray-black
 screen = tile(16, (17, 17, 21, 255), [
     ((22, 22, 27, 255), 40),
     ((13, 13, 17, 255), 30),
     ((26, 26, 32, 255), 10),
 ], seed=13)
 
-# Panel yuzeyi: koyu tas, cok hafif doku
+# Panel surface: dark stone, very faint texture
 panel = tile(16, (43, 43, 51, 255), [
     ((47, 47, 56, 255), 28),
     ((38, 38, 46, 255), 22),
 ], seed=21)
 
 CSS = "\n".join([
-    "/* Uretilen dosya: tools/make_ui_tiles.py — elle duzenleme. */",
+    "/* Generated file: tools/make_ui_tiles.py — do not edit by hand. */",
     ":root{",
     "  --tile-wall:url(%s);" % data_uri(wall),
     "  --tile-screen:url(%s);" % data_uri(screen),
@@ -63,4 +63,4 @@ CSS = "\n".join([
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     f.write(CSS + "\n")
-print("yazildi", os.path.relpath(OUT), os.path.getsize(OUT), "bayt")
+print("wrote", os.path.relpath(OUT), os.path.getsize(OUT), "bytes")

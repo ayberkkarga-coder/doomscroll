@@ -18,11 +18,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Adres -> okunabilir baslik. Video sitelerinde oEmbed (YouTube, TikTok, Vimeo, Dailymotion) arka planda sorulur;
- * gelene kadar ve diger sitelerde site adi + yol gosterilir. Sira listesi ve gecmis icin.
+ * URL -> readable title. On video sites oEmbed (YouTube, TikTok, Vimeo, Dailymotion) is queried in the background;
+ * until it answers, and on other sites, site name + path is shown. Used by the queue list and the history.
  */
 public final class PageTitles {
-	/** Adres -> baslik. En fazla bu kadar; en eskisi dusulur. */
+	/** URL -> title. At most this many; the oldest is evicted. */
 	private static final int MAX_CACHE = 500;
 	private static final Map<String, String> CACHE = java.util.Collections.synchronizedMap(
 			new java.util.LinkedHashMap<>(64, 0.75f, true) {
@@ -42,7 +42,7 @@ public final class PageTitles {
 
 	private PageTitles() {}
 
-	/** Bilinen baslik; yoksa arka planda sorgular ve kisa ad dondurur. Her cagri ucuz (ana is parcaciginda). */
+	/** The known title; otherwise queries in the background and returns the short name. Every call is cheap (main thread). */
 	public static String get(String url) {
 		if (url == null || url.isEmpty()) return "";
 		String t = CACHE.get(url);
@@ -60,7 +60,7 @@ public final class PageTitles {
 		return fallback(url);
 	}
 
-	/** Bilinen bir basligi (sayfa raporundan) kaydeder; oEmbed sorgusuna gerek kalmaz. */
+	/** Stores a title that is already known (from the page report); no oEmbed query is needed then. */
 	public static void remember(String url, String title) {
 		if (url == null || url.isEmpty() || title == null || title.isBlank()) return;
 		CACHE.put(url, title.trim());
@@ -91,7 +91,7 @@ public final class PageTitles {
 		}
 	}
 
-	/** Site adi + yolun okunabilir kismi ("YouTube · watch?v=abc", "tiktok.com · @kanal/video/123"). */
+	/** Site name + the readable part of the path ("YouTube · watch?v=abc", "tiktok.com · @channel/video/123"). */
 	static String fallback(String url) {
 		String site = RemoteScreen.siteName(url);
 		try {

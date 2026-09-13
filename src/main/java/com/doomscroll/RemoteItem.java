@@ -16,10 +16,10 @@ import net.minecraft.world.level.Level;
 import java.util.function.Consumer;
 
 /**
- * Kumanda.
- * - Ekrana sag tik: kumanda o ekrana baglanir (REMOTE_TARGET bileseni, sunucu tarafinda).
- * - Havaya sag tik: yonetim paneli (client). Bagli ekran varsa onu yonetir.
- * - Egilerek (shift) sag tik: baglantiyi keser.
+ * Remote control.
+ * - Right-click a screen: the remote binds to that screen (REMOTE_TARGET component, server side).
+ * - Right-click into the air: the management panel (client). If a screen is bound, it manages that one.
+ * - Sneak (shift) + right-click: unbinds.
  */
 public class RemoteItem extends Item {
 	public RemoteItem(Properties properties) {
@@ -31,7 +31,7 @@ public class RemoteItem extends Item {
 		Level level = ctx.getLevel();
 		BlockPos pos = ctx.getClickedPos();
 		if (!(level.getBlockEntity(pos) instanceof ScreenBlockEntity be)) {
-			return InteractionResult.PASS; // ekran degil: normal davranis (use -> panel)
+			return InteractionResult.PASS; // not a screen: normal behavior (use -> panel)
 		}
 		if (!level.isClientSide()) {
 			BlockPos anchor = be.getAnchor();

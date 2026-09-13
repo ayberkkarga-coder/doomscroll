@@ -9,7 +9,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.UUID;
 
-/** Sunucu -> yakindaki istemciler: bir oyuncunun ekrandaki imleci (panel orani 0..1; u/v < 0 = kayboldu). */
+/** Server -> nearby clients: a player's pointer on the screen (panel fraction 0..1; u/v < 0 = gone). */
 public record ScreenPointerBroadcast(BlockPos pos, UUID player, String name, float u, float v) implements CustomPacketPayload {
 	public static final Type<ScreenPointerBroadcast> TYPE = new Type<>(Doomscroll.id("screen_pointer_bc"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, ScreenPointerBroadcast> CODEC = StreamCodec.composite(

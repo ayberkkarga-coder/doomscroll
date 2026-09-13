@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.UUID;
 
-/** Sunucu -> istemci: su oyuncunun tableti su adreste, dik/yatay, cihaz sesi kac (0 = kimse duymaz). */
+/** Server -> client: this player's tablet is at this URL, portrait/landscape, at this device volume (0 = nobody hears it). */
 public record TabletStateBroadcast(UUID player, String url, boolean portrait, float volume) implements CustomPacketPayload {
 	public static final Type<TabletStateBroadcast> TYPE = new Type<>(Doomscroll.id("tablet_state_broadcast"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, TabletStateBroadcast> CODEC = StreamCodec.composite(

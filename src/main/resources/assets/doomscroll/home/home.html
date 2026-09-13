@@ -7,17 +7,17 @@
 <style>
 /*__KIT__*/
 :root{--safe:34px}
-/* Sayfanin kendisi kaysin: kit.css'teki html,body{height:100%} govdeyi sabit yukseklikte bir
-   kaydirma kutusuna cevirip tekerlegi ise yaramaz hale getiriyordu (kok ogede kaydirilacak sey yok). */
+/* Let the page itself scroll: html,body{height:100%} from kit.css turned the body into a fixed-height
+   scroll box and made the mouse wheel useless (nothing to scroll on the root element). */
 html,body{height:auto;min-height:100%}
 body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 
-/* zemin: piksel karo + duz koyulastirma */
+/* background: pixel tile + flat darkening */
 .atmo{position:fixed;inset:0;z-index:-2;background:var(--tile-screen) repeat;background-size:64px 64px}
 .atmo:after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.30)}
 .grain{display:none}
 
-/* ust serit */
+/* top bar */
 .top{display:flex;align-items:center;gap:20px;padding:18px var(--safe) 10px}
 .brand{font-size:30px;display:flex;align-items:baseline;gap:14px;white-space:nowrap;
   text-shadow:2px 2px 0 var(--sh)}
@@ -34,7 +34,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 .clock{margin-left:auto;font-size:34px;white-space:nowrap;text-shadow:2px 2px 0 var(--sh)}
 .clock span{font-size:15px;color:var(--faint);margin-right:14px;vertical-align:middle;letter-spacing:1px;text-transform:uppercase}
 
-/* hero: buyuk kabartma panel */
+/* hero: large embossed panel */
 .hero{display:block;position:relative;margin:6px var(--safe) 22px;min-height:236px;overflow:hidden;text-decoration:none;color:var(--ink);
   background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
   box-shadow:inset 2px 2px 0 var(--hi),inset -2px -2px 0 var(--lo)}
@@ -55,7 +55,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 .cta:before{content:"";width:14px;height:14px;flex:none;background:currentColor;
   -webkit-mask:var(--ic-play) center/contain no-repeat;mask:var(--ic-play) center/contain no-repeat}
 
-/* raylar */
+/* rails */
 .row{padding:0 var(--safe) 22px}
 .row h2{font-size:16px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);font-weight:400;
   margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;text-shadow:2px 2px 0 var(--sh)}
@@ -63,7 +63,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 .rail{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding-bottom:6px}
 .rail.fit{flex-wrap:wrap}
 
-/* uygulama karosu */
+/* app tile */
 .tile{flex:none;width:196px;height:112px;position:relative;overflow:hidden;color:#fff;text-decoration:none;
   display:flex;flex-direction:column;justify-content:flex-end;padding:12px 14px;font-size:19px;cursor:pointer;
   border:2px solid #000;box-shadow:inset 2px 2px 0 rgba(255,255,255,.26),inset -2px -2px 0 rgba(0,0,0,.45);
@@ -79,12 +79,12 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 .tile:hover .x{opacity:1}
 .tile .x:hover{background:#e0564c}
 
-/* kanal ekle karosu */
+/* add-channel tile */
 .tile.add{background:none;border:2px dashed #4b4b59;box-shadow:none;color:var(--dim);
   align-items:center;justify-content:center;flex-direction:row;gap:10px;font-size:18px}
 .tile.add:hover{border-color:#7b7b8d;color:var(--ink);filter:none}
 
-/* sira kartlari */
+/* queue cards */
 .card{flex:none;width:230px;position:relative;cursor:pointer;color:var(--ink);text-decoration:none;
   background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
   box-shadow:inset 2px 2px 0 var(--hi),inset -2px -2px 0 var(--lo);padding:4px}
@@ -102,7 +102,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
   display:flex;justify-content:space-between;align-items:center;gap:8px}
 .card .h>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .by{padding:0 7px 8px;font-size:13px;color:#5a5f73;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* oy rozeti: basilabilir kare */
+/* vote badge: clickable square */
 .card .v{flex:none;min-width:26px;text-align:center;padding:2px 6px;font-size:15px;color:var(--ink);letter-spacing:0;
   text-transform:none;cursor:pointer;background:var(--btn);border:2px solid #000;
   box-shadow:inset 2px 2px 0 var(--btn-hi),inset -2px -2px 0 var(--lo);text-shadow:2px 2px 0 var(--sh)}
@@ -116,7 +116,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 .card:hover .x{opacity:1}
 .empty{color:var(--faint);font-size:17px;padding:10px 2px;text-shadow:2px 2px 0 var(--sh)}
 
-/* yardim kartlari */
+/* help cards */
 .row.help .rail{gap:10px}
 .tip{flex:none;width:250px;padding:11px 13px;
   background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
@@ -125,7 +125,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
 .tip span{display:block;font-size:15px;color:var(--dim);line-height:1.35;text-shadow:2px 2px 0 var(--sh)}
 .foot{padding:8px var(--safe) 30px;color:#4e5265;font-size:14px;letter-spacing:2px;text-transform:uppercase}
 
-/* kanal ekle kutusu */
+/* add-channel dialog */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.66);display:none;align-items:center;justify-content:center;z-index:9}
 .ov.on{display:flex}
 .dlg{width:min(460px,90%);padding:20px 22px;
@@ -227,11 +227,11 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
     return a;
   }
 
-  // Uygulamalar
+  // Apps
   var apps = document.getElementById('apps');
   APPS.forEach(function (a) { appUrls[norm(a.u)] = true; apps.appendChild(tile(a.n, a.u, a.c, G[a.g], a.s)); });
 
-  // Kanallar (+ Ekle sonda, ✕ ile kaldir)
+  // Channels (+ Add at the end, remove with ✕)
   var chRail = document.getElementById('channels');
   var addTile = el('a', 'tile add');
   addTile.href = '#';
@@ -257,7 +257,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
   }
   updateCounts();
 
-  // Sira kartlari
+  // Queue cards
   var q = D.queue || [];
   var qRail = document.getElementById('queue');
   document.getElementById('qCount').innerHTML = q.length ? '<b>' + q.length + '{{js:home.doomscroll.videos}}</b>' : '';
@@ -297,7 +297,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
     qRail.appendChild(c);
   });
 
-  // Hero: sirada video varsa onu one cikar, yoksa Shorts'a davet
+  // Hero: if there is a video in the queue, feature it; otherwise an invitation to Shorts
   var hero = document.getElementById('hero');
   if (q.length) {
     var first = q[0];
@@ -318,7 +318,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
     hero.href = 'https://www.youtube.com/shorts';
   }
 
-  // Ekle kutusu
+  // Add dialog
   var ov = document.getElementById('ov');
   function openAdd() { ov.classList.add('on'); document.getElementById('an').value = ''; document.getElementById('au').value = ''; setTimeout(function () { document.getElementById('an').focus(); }, 30); }
   function closeAdd() { ov.classList.remove('on'); }
@@ -336,7 +336,7 @@ body{background:#0d0e13;overflow-x:hidden;position:relative;font-size:18px}
     closeAdd();
   };
 
-  // Arama: adres degilse Google
+  // Search: Google if it isn't an address
   document.getElementById('search').onsubmit = function (ev) {
     ev.preventDefault();
     var s = document.getElementById('q').value.trim();

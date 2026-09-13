@@ -13,9 +13,9 @@ import net.minecraft.util.FormattedCharSequence;
 import java.util.List;
 
 /**
- * Yakindaki ekranin altyazisini oyunun HUD'unda (envanter cubugunun ustunde) gosterir; ekrana bakmasan da
- * okunur. Metin sayfadan gelir (YouTube altyazi kutusu, HTML5 metin parcalari, oynaticinin altyazi katmani),
- * her oyuncu kendi tarayicisindan okur.
+ * Shows the nearby screen's subtitles on the game HUD (above the hotbar), so they stay readable even when you
+ * are not looking at the screen. The text comes from the page (YouTube caption box, HTML5 text tracks, the
+ * player's subtitle layer); every player reads it from their own browser.
  */
 public final class SubtitleHud implements HudElement {
 	private static final int MAX_LINES = 3;

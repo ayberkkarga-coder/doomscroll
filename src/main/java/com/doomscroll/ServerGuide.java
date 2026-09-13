@@ -6,11 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * config/doomscroll-server.txt: ayar dosyasinin yanina konan aciklama metni.
+ * config/doomscroll-server.txt: the explanatory text placed next to the settings file.
  *
- * <p>JSON'a yorum yazilamadigi icin yonetici ham dosyayi acinca yalnizca anahtar adlarini goruyor.
- * Bu dosya her acilista yeniden yazilir, yani mod guncellendiginde aciklamalar da guncel kalir.
- * Icerik iki dilde; sunucu tarafinda dil dosyasi yuklu olmadigi icin metin burada duruyor.
+ * <p>Since JSON cannot carry comments, an admin opening the raw file sees only the key names.
+ * This file is rewritten on every start, so the explanations stay current when the mod is updated.
+ * The content is bilingual; the text lives here because no language file is loaded on the server side.
  */
 final class ServerGuide {
 	private ServerGuide() {}
@@ -21,7 +21,7 @@ final class ServerGuide {
 			Files.createDirectories(configDir);
 			Files.writeString(file, TEXT, StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			Doomscroll.LOGGER.warn("doomscroll-server.txt yazilamadi: {}", e.toString());
+			Doomscroll.LOGGER.warn("doomscroll-server.txt could not be written: {}", e.toString());
 		}
 	}
 

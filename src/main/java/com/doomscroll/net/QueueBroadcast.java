@@ -9,12 +9,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import java.util.List;
 
 /**
- * Sunucu -> istemci: bir ekranin siradaki videolari, oynatma sirasiyla.
- * {@code mine} alicilarina gore degistigi icin paket her oyuncu icin ayri kurulur.
+ * Server -> client: a screen's queued videos, in playback order.
+ * Since {@code mine} depends on the recipient, the packet is built separately for each player.
  */
 public record QueueBroadcast(BlockPos pos, List<Row> rows) implements CustomPacketPayload {
 
-	/** Tek satir: adres, baslik, ekleyen, oy sayisi, ben oy verdim mi. */
+	/** One row: URL, title, who added it, vote count, whether I voted. */
 	public record Row(String url, String title, String by, int votes, boolean mine) {
 		public static final StreamCodec<io.netty.buffer.ByteBuf, Row> CODEC = StreamCodec.composite(
 				ByteBufCodecs.stringUtf8(2048), Row::url,

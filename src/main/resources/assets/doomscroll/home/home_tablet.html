@@ -10,22 +10,22 @@
 html,body{overflow:hidden}
 body{display:flex;flex-direction:column;position:relative;background:#101219;font-size:17px}
 
-/* duvar: piksel karo + duz koyulastirma (degrade yok) */
+/* wall: pixel tile + flat darkening (no gradient) */
 .wall{position:fixed;inset:0;z-index:-2;background:var(--tile-wall) repeat;background-size:64px 64px}
 .wall:after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.28)}
 .grain{display:none}
 
-/* durum cubugu */
+/* status bar */
 .status{display:flex;justify-content:space-between;align-items:center;padding:9px 16px 4px;height:34px;font-size:18px;flex:none}
 .status .date{color:var(--dim);margin-left:10px}
 .status .right{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:15px}
 .status svg{display:none}
-/* piksel pil */
+/* pixel battery */
 .bat{display:inline-block;width:22px;height:11px;border:2px solid var(--dim);position:relative}
 .bat:before{content:"";position:absolute;inset:2px;right:6px;background:var(--dim)}
 .bat:after{content:"";position:absolute;left:100%;top:3px;width:2px;height:5px;background:var(--dim)}
 
-/* arama: icine basik alan */
+/* search: inset field */
 .spot{display:flex;align-items:center;gap:9px;width:min(600px,74%);margin:6px auto 12px;padding:8px 12px;flex:none;
   background:var(--field);border:2px solid #000;
   box-shadow:inset 2px 2px 0 #000,inset -2px -2px 0 #3a3a46,0 0 0 2px var(--edge)}
@@ -35,12 +35,12 @@ body{display:flex;flex-direction:column;position:relative;background:#101219;fon
 .spot input{flex:1;font-size:18px}
 .spot:focus-within{box-shadow:inset 2px 2px 0 #000,inset -2px -2px 0 #3a3a46,0 0 0 2px #b9bccb}
 
-/* izgara */
+/* grid */
 .pages{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 18px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--cell),1fr));grid-auto-rows:var(--row);
   gap:12px 8px;justify-items:center;align-content:start}
 
-/* uygulama */
+/* app */
 .app{display:flex;flex-direction:column;align-items:center;gap:8px;width:var(--cell);text-decoration:none;
   color:var(--ink);position:relative;cursor:pointer}
 .icon{width:var(--icon);height:var(--icon);display:flex;align-items:center;justify-content:center;position:relative;
@@ -52,7 +52,7 @@ body{display:flex;flex-direction:column;position:relative;background:#101219;fon
 .icon>*{position:relative;z-index:1}
 .label{font-size:16px;max-width:var(--cell);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 
-/* kaldir: kucuk kirmizi kare, piksel carpi */
+/* remove: small red square, pixel cross */
 .rm{position:absolute;left:calc(50% - var(--icon)/2 - 7px);top:-6px;width:18px;height:18px;display:none;z-index:2;
   background:var(--red);border:2px solid #000;
   box-shadow:inset 1px 1px 0 rgba(255,255,255,.3),inset -1px -1px 0 rgba(0,0,0,.45);
@@ -62,7 +62,7 @@ body{display:flex;flex-direction:column;position:relative;background:#101219;fon
 .app:hover .rm{display:block}
 .rm:hover{background:#e0564c}
 
-/* widget: kabartma panel */
+/* widget: embossed panel */
 .widget{grid-column:span 2;grid-row:span 2;width:100%;height:100%;padding:11px 13px;display:flex;flex-direction:column;
   overflow:hidden;justify-self:stretch;
   background:var(--tile-panel) repeat;background-size:64px 64px;border:2px solid #000;
@@ -79,19 +79,19 @@ body{display:flex;flex-direction:column;position:relative;background:#101219;fon
 .wrow .h{font-size:14px;color:var(--faint);max-width:42%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .widget .empty{font-size:15px;color:var(--faint);padding:7px 4px}
 
-/* saat widget'i */
+/* clock widget */
 .clockw{justify-content:space-between}
 .clockw .big{font-size:58px;line-height:.9;letter-spacing:1px}
 .clockw .day{font-size:17px;color:var(--dim);margin-top:5px}
 .clockw .foot{font-size:13px;color:var(--faint)}
 
-/* yardim widget'i: alti ipucu iki satira sigmiyor, uc satir yuksekliginde */
+/* help widget: six tips don't fit in two rows, so it is three rows tall */
 .widget.help{grid-row:span 3}
-/* yardim satirlari */
+/* help rows */
 .hrow{display:flex;flex-direction:column;gap:0;padding:2px 5px}
 .hrow b{font-weight:400;font-size:14px;line-height:1.15;color:var(--ink);text-shadow:2px 2px 0 var(--sh)}
 .hrow span{font-size:13px;line-height:1.2;color:var(--faint);text-shadow:2px 2px 0 var(--sh)}
-/* alt */
+/* bottom */
 .dots{display:flex;justify-content:center;gap:6px;padding:7px 0 6px;flex:none}
 .dots span{width:6px;height:6px;background:var(--faint)}
 .dots span.on{background:var(--ink)}
@@ -102,7 +102,7 @@ body{display:flex;flex-direction:column;position:relative;background:#101219;fon
 .dock .icon{width:46px;height:46px}
 .dock .label{display:none}
 
-/* ekle kutusu */
+/* add dialog */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;z-index:9}
 .ov.on{display:flex}
 .card{width:min(430px,90%);padding:18px 20px;
@@ -206,7 +206,7 @@ body.portrait .clockw .big{font-size:44px}
 
   var grid = document.getElementById('grid');
 
-  // Saat widget'i
+  // Clock widget
   var cw = el('div', 'widget clockw');
   cw.appendChild(el('div', 'foot', '{{js:home.doomscroll.tablet_foot}}'));
   var mid = el('div');
@@ -216,7 +216,7 @@ body.portrait .clockw .big{font-size:44px}
   cw.appendChild(el('div', 'foot', '{{js:home.doomscroll.tablet_rotate}}'));
   grid.appendChild(stagger(cw));
 
-  // Gecmis widget'i
+  // History widget
   var wd = el('div', 'widget');
   var h3 = el('h3', null, '{{js:home.doomscroll.history}}');
   var clear = el('span', null, '{{js:home.doomscroll.clear}}');
@@ -239,7 +239,7 @@ body.portrait .clockw .big{font-size:44px}
   wd.appendChild(rows);
   grid.appendChild(stagger(wd));
 
-  // Yardim widget'i: temel hareketler (en cok takilinan yer burasi)
+  // Help widget: basic controls (this is where people get stuck the most)
   var hw = el('div', 'widget help');
   hw.appendChild(el('h3', null, '{{js:home.doomscroll.help_title}}'));
   var hrows = el('div', 'rows');
@@ -262,7 +262,7 @@ body.portrait .clockw .big{font-size:44px}
     if (!dup) grid.appendChild(stagger(webClip(b)));
   });
 
-  // + Ekle
+  // + Add
   var addBtn = el('a', 'app');
   addBtn.href = '#';
   var addIc = el('div', 'icon');

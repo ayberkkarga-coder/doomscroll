@@ -13,8 +13,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.valueproviders.ConstantFloat;
 
 /**
- * Tarayici sesinin dunyadaki kaynagi. Ekran: konumsal (anchor merkezi, mesafeyle azalir);
- * tablet: dinleyiciye gore (relative), her yerde ayni.
+ * The in-world source of a browser's sound. Screen: positional (anchor centre, attenuates with distance);
+ * tablet: relative to the listener, the same everywhere.
  */
 public final class BrowserSoundInstance extends AbstractTickableSoundInstance {
 	@Nullable
@@ -22,7 +22,7 @@ public final class BrowserSoundInstance extends AbstractTickableSoundInstance {
 	private final Supplier<Float> volumeSupplier;
 	private final Supplier<Boolean> alive;
 	@Nullable
-	private final Identifier customSound; // uzak tablet: sounds/remote/<uuid>.ogg
+	private final Identifier customSound; // remote tablet: sounds/remote/<uuid>.ogg
 
 	public BrowserSoundInstance(SoundEvent event, @Nullable Supplier<Vec3> position,
 								Supplier<Float> volumeSupplier, Supplier<Boolean> alive) {
@@ -31,7 +31,7 @@ public final class BrowserSoundInstance extends AbstractTickableSoundInstance {
 
 	public BrowserSoundInstance(SoundEvent event, @Nullable Supplier<Vec3> position,
 								Supplier<Float> volumeSupplier, Supplier<Boolean> alive, @Nullable Identifier customSound) {
-		// BLOCKS: Sound Physics, RECORDS (muzik kutusu) kategorisini varsayilan olarak degerlendirmiyor
+		// BLOCKS: Sound Physics does not process the RECORDS (jukebox) category by default
 		super(event, SoundSource.BLOCKS, SoundInstance.createUnseededRandom());
 		this.position = position;
 		this.volumeSupplier = volumeSupplier;
@@ -75,7 +75,7 @@ public final class BrowserSoundInstance extends AbstractTickableSoundInstance {
 		}
 	}
 
-	/** Uzak tabletler icin ses dosyasi yolu oyuncuya ozel: SoundBufferLibraryMixin bu yoldan dogru tarayiciyi bulur. */
+	/** For remote tablets the sound file path is per player: SoundBufferLibraryMixin finds the right browser from this path. */
 	@Override
 	public Sound getSound() {
 		if (customSound != null) {

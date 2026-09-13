@@ -16,36 +16,36 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Ekran blogu verisi. Cok-bloklu panelin yalnizca anchor'u anlamlidir (adres, guc, sahip, kontrol).
- * Kontrol (controller) diske yazilmaz; sunucu her acilista sifirdan verir.
+ * Screen block data. In a multi-block panel only the anchor is meaningful (URL, power, owner, control).
+ * Control (controller) is not written to disk; the server hands it out from scratch on every start.
  */
 public class ScreenBlockEntity extends BlockEntity {
-	// Coklu blok yerlesimi: anchor = dikdortgenin ana blogu (kendisi olabilir)
+	// Multi-block layout: anchor = the rectangle's main block (may be this block itself)
 	private BlockPos anchor;
 	private int width = 1;
 	private int height = 1;
 	private boolean on = true;
-	/** Ekranda acik adres (senkron). */
+	/** URL open on the screen (synced). */
 	private String url = "";
-	// Sahip: blogu koyan oyuncu (kapatma/kilit yetkisi)
+	// Owner: the player who placed the block (power-off/lock authority)
 	@Nullable
 	private UUID owner;
 	private String ownerName = "";
-	// Kontrol: ekrani suren oyuncu; adres ve oynatma konumu onun tarayicisindan yayilir
+	// Control: the player driving the screen; the URL and playback position are propagated from their browser
 	@Nullable
 	private UUID controller;
 	private String controllerName = "";
-	/** Kilit: yalnizca sahibi (ve yoneticiler) kontrol edebilir. */
+	/** Lock: only the owner (and admins) can take control. */
 	private boolean locked = false;
-	/** Ekranin ortak sesi (0..1): odadaki herkes bu seviyeden duyar; dinleyenin kendi kaydiricisi ustune biner. */
+	/** The screen's shared volume (0..1): everyone in the room hears it at this level; the listener's own slider is applied on top. */
 	private float volume = 1.0f;
-	/** Yayinci: goruntusu herkese aktarilan oyuncu (oturumluk, diske yazilmaz). */
+	/** Broadcaster: the player whose view is streamed to everyone (session-only, not written to disk). */
 	@Nullable
 	private UUID broadcaster;
 	private String broadcasterName = "";
-	/** Redstone: panelin herhangi bir bloguna gelen sinyalin yukselen kenari ekrani acar/kapatir. */
+	/** Redstone: the rising edge of a signal arriving at any block of the panel toggles the screen on/off. */
 	private boolean redstone = false;
-	/** Son bilinen sinyal durumu (yukselen kenar tespiti). */
+	/** Last known signal state (rising-edge detection). */
 	private boolean powered = false;
 
 	public ScreenBlockEntity(BlockPos pos, BlockState state) {
@@ -57,20 +57,20 @@ public class ScreenBlockEntity extends BlockEntity {
 	public UUID getOwner() { return owner; }
 	public String getOwnerName() { return ownerName; }
 
-	/** Sahipsiz ekranda herkes sahip sayilir. */
+	/** On an unowned screen everyone counts as the owner. */
 	public boolean isOwner(UUID uuid) {
 		return owner == null || owner.equals(uuid);
 	}
 
-	/** Yalnizca gercekten bu oyuncuya ait mi (sahipsiz ekran kimseye sayilmaz). */
+	/** Whether it really belongs to this player (an unowned screen counts for nobody). */
 	public boolean isOwnedBy(UUID uuid) {
 		return owner != null && owner.equals(uuid);
 	}
 
 	/**
-	 * Paneller birlesip anchor degistiginde eski anchor'un durumunu yeni anchor'a tasir.
-	 * Bunu yapmazsak yanina tek blok koyan biri adresi, kilidi ve sahibi sifirlar.
-	 * Kontrolcu ve yayinci oturumluk oldugu icin tasinmaz.
+	 * When panels merge and the anchor changes, carries the old anchor's state over to the new anchor.
+	 * Without this, someone placing a single block next to it would reset the URL, the lock and the owner.
+	 * The controller and the broadcaster are session-only, so they are not carried over.
 	 */
 	public void adoptPanelState(ScreenBlockEntity from) {
 		if (from == this) {
@@ -87,7 +87,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		sync();
 	}
 
-	/** Sunucu: sahibi ayarla ve istemcilere yolla. */
+	/** Server: set the owner and send to clients. */
 	public void setOwner(UUID uuid, String name) {
 		this.owner = uuid;
 		this.ownerName = name == null ? "" : name;
@@ -108,7 +108,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		return uuid != null && uuid.equals(broadcaster);
 	}
 
-	/** Sunucu: yayinciyi ayarla/temizle, istemcilere yolla. */
+	/** Server: set/clear the broadcaster, send to clients. */
 	public void setBroadcaster(@Nullable UUID uuid, @Nullable String name) {
 		boolean changed = (uuid == null) != (broadcaster == null) || (uuid != null && !uuid.equals(broadcaster));
 		broadcaster = uuid;
@@ -119,7 +119,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	}
 	public boolean isPowered() { return powered; }
 
-	/** Sunucu: redstone kontrolunu ac/kapat, istemcilere yolla. */
+	/** Server: enable/disable redstone control, send to clients. */
 	public void setRedstone(boolean redstone) {
 		if (this.redstone != redstone) {
 			this.redstone = redstone;
@@ -127,7 +127,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		}
 	}
 
-	/** Sunucu: sinyal durumunu kaydet (yalnizca diske; istemciyi ilgilendirmez). */
+	/** Server: store the signal state (disk only; of no concern to the client). */
 	public void setPowered(boolean powered) {
 		if (this.powered != powered) {
 			this.powered = powered;
@@ -139,12 +139,12 @@ public class ScreenBlockEntity extends BlockEntity {
 		return controller != null && controller.equals(uuid);
 	}
 
-	/** Kilitliyse yalnizca sahibi; degilse herkes. (Yonetici istisnasi sunucu tarafinda.) */
+	/** Only the owner when locked; otherwise everyone. (The admin exception lives on the server side.) */
 	public boolean canControl(UUID uuid) {
 		return !locked || isOwner(uuid);
 	}
 
-	/** Sunucu: kontrolu ver/al ve istemcilere yolla. */
+	/** Server: give/take control and send to clients. */
 	public void setController(@Nullable UUID uuid, @Nullable String name) {
 		String n = uuid == null || name == null ? "" : name;
 		if (Objects.equals(uuid, controller) && n.equals(controllerName)) {
@@ -157,14 +157,14 @@ public class ScreenBlockEntity extends BlockEntity {
 
 	public float getVolume() { return volume; }
 
-	/** Dil dosyasi anahtari (sunucu metni degil: alan istemci kendi diliyle cozer). */
+	/** Language-file key (not server text: the receiving client resolves it in its own language). */
 	public static String volumeKey(float v) {
 		return v <= 0.01f ? "gui.doomscroll.volume.off"
 				: v <= 0.4f ? "gui.doomscroll.volume.low"
 				: v <= 0.75f ? "gui.doomscroll.volume.mid" : "gui.doomscroll.volume.full";
 	}
 
-	/** Sunucu: ekranin ortak sesini ayarla ve istemcilere yolla. */
+	/** Server: set the screen's shared volume and send to clients. */
 	public void setVolume(float v) {
 		float n = Math.max(0f, Math.min(1f, v));
 		if (n != volume) {
@@ -173,7 +173,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		}
 	}
 
-	/** Sunucu: kilidi ayarla ve istemcilere yolla. */
+	/** Server: set the lock and send to clients. */
 	public void setLocked(boolean locked) {
 		if (this.locked != locked) {
 			this.locked = locked;
@@ -194,7 +194,7 @@ public class ScreenBlockEntity extends BlockEntity {
 	public boolean isOn() { return on; }
 	public String getUrl() { return url; }
 
-	/** Sunucu: adresi degistir ve istemcilere yolla. */
+	/** Server: change the URL and send to clients. */
 	public void setUrl(String url) {
 		String u = url == null ? "" : url;
 		if (!this.url.equals(u)) {
@@ -203,7 +203,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		}
 	}
 
-	/** Sunucu: yerlesimi gunceller ve istemcilere yollar. */
+	/** Server: updates the layout and sends it to clients. */
 	public void setLayout(BlockPos anchor, int width, int height) {
 		boolean changed = !anchor.equals(this.anchor) || width != this.width || height != this.height;
 		this.anchor = anchor.immutable();
@@ -214,7 +214,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		}
 	}
 
-	/** Sunucu: ac/kapat, istemcilere yolla; panelin tum bloklarinin isigini (LIT) esle. */
+	/** Server: turn on/off, send to clients; sync the light (LIT) of every block in the panel. */
 	public void setOn(boolean on) {
 		if (this.on != on) {
 			this.on = on;
@@ -227,7 +227,7 @@ public class ScreenBlockEntity extends BlockEntity {
 
 	private boolean litChecked = false;
 
-	/** Sunucu tick'i: yuklenince bir kez blok isigini (LIT) guc durumuna esitler (eski dunyalar icin). */
+	/** Server tick: once after loading, matches the block light (LIT) to the power state (for old worlds). */
 	public void serverTick() {
 		if (litChecked || level == null) {
 			return;
@@ -266,7 +266,7 @@ public class ScreenBlockEntity extends BlockEntity {
 		output.putFloat("volume", volume);
 		output.putBoolean("redstone", redstone);
 		output.putBoolean("powered", powered);
-		// controller bilerek yazilmiyor: oturumluk bilgi (getUpdateTag ile yalnizca istemcilere gider)
+		// controller is deliberately not written: session-only data (goes to clients only, via getUpdateTag)
 	}
 
 	@Override
@@ -306,15 +306,15 @@ public class ScreenBlockEntity extends BlockEntity {
 		}
 	}
 
-	/** Sunucuda yuklu ekran bloklari: acil kapatma ve sayi siniri bunlar uzerinden calisir. */
+	/** Screen blocks loaded on the server: the emergency shutdown and the count limit work off these. */
 	private static final java.util.Set<ScreenBlockEntity> SERVER_LIVE = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
 	/**
-	 * Yuklu (chunk'i acik) sunucu ekranlarinin kopyasi.
-	 * Kaldirilmis ya da dunyasi gitmis girdiler burada ayiklanir: chunk bosaltmasi
-	 * setRemoved cagirir ama tek oyunculuda dunya kapanisinda birkac girdi kalabiliyor.
+	 * A copy of the loaded (chunk open) server screens.
+	 * Removed entries and entries whose level is gone are weeded out here: chunk unloading
+	 * calls setRemoved, but in single-player a few entries can linger when the world closes.
 	 */
-	/** Sunucu kapanirken: bir sonraki dunyaya eski girdiler sizmasin. */
+	/** On server shutdown: don't let stale entries leak into the next world. */
 	public static void clearServerLive() {
 		SERVER_LIVE.clear();
 	}

@@ -16,14 +16,14 @@ import java.util.Locale;
 import java.util.function.BooleanSupplier;
 
 /**
- * Gelistirici duman testi (-Ddoomscroll.selftest=true ile). Dunyaya girince oyuncunun yanina 3x2 panel kurar,
- * YouTube acar ve ozellikleri sirayla sinar: sayfa raporu, baslik, ekran isigi, sira,
- * video bitince siradaki, sunucu adres engeli, redstone. Sonucu loga yazar ve oyunu kapatir.
+ * Developer smoke test (with -Ddoomscroll.selftest=true). On joining a world it builds a 3x2 panel next to the player,
+ * opens YouTube and exercises the features in turn: page report, title, screen glow, queue,
+ * next in queue when the video ends, server URL block, redstone. Writes the result to the log and quits the game.
  */
 public final class SelfTest {
 	private static final Logger LOGGER = LoggerFactory.getLogger("doomscroll-selftest");
 	private static final String URL_SB = "https://www.youtube.com/watch?v=e-ORhEE9VVg"; // selfpromo 235-261 + outro 260-272
-	private static final String URL_SHORT = "https://www.youtube.com/watch?v=jNQXAC9IVRw"; // 19 sn
+	private static final String URL_SHORT = "https://www.youtube.com/watch?v=jNQXAC9IVRw"; // 19 s
 	private static final String URL_NEXT = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
 
 	private record Step(String name, int timeoutTicks, BooleanSupplier done) {}
@@ -45,7 +45,7 @@ public final class SelfTest {
 	}
 
 	public static void register() {
-		LOGGER.info("[selftest] etkin: dunyaya girince baslayacak");
+		LOGGER.info("[selftest] enabled: will start on world join");
 		ClientPlayConnectionEvents.JOIN.register((h, s, c) -> {
 			joined = true;
 			tick = 0;
@@ -56,10 +56,10 @@ public final class SelfTest {
 			if (!joined || stopped || mc.player == null || mc.level == null) return;
 			tick++;
 			if (tick == 80) {
-				LOGGER.info("[selftest] basliyor");
+				LOGGER.info("[selftest] starting");
 				stage = 0;
 				stageStart = tick;
-				LOGGER.info("[selftest] adim 1/{}: {}", STEPS.size(), STEPS.get(0).name());
+				LOGGER.info("[selftest] step 1/{}: {}", STEPS.size(), STEPS.get(0).name());
 			}
 			if (stage < 0 || stage >= STEPS.size()) return;
 			Step st = STEPS.get(stage);
@@ -67,8 +67,8 @@ public final class SelfTest {
 			try {
 				ok = st.done().getAsBoolean();
 			} catch (Throwable t) {
-				LOGGER.error("[selftest] adim hata verdi: {}", st.name(), t);
-				fail(st.name() + " (istisna: " + t + ")");
+				LOGGER.error("[selftest] step threw: {}", st.name(), t);
+				fail(st.name() + " (exception: " + t + ")");
 				advance();
 				return;
 			}
@@ -76,7 +76,7 @@ public final class SelfTest {
 				pass(st.name());
 				advance();
 			} else if (tick - stageStart > st.timeoutTicks()) {
-				fail(st.name() + " (zaman asimi)");
+				fail(st.name() + " (timeout)");
 				advance();
 			}
 		});
@@ -86,7 +86,7 @@ public final class SelfTest {
 		stage++;
 		stageStart = tick;
 		if (stage < STEPS.size()) {
-			LOGGER.info("[selftest] adim {}/{}: {}", stage + 1, STEPS.size(), STEPS.get(stage).name());
+			LOGGER.info("[selftest] step {}/{}: {}", stage + 1, STEPS.size(), STEPS.get(stage).name());
 		} else {
 			finish();
 		}
@@ -104,9 +104,9 @@ public final class SelfTest {
 
 	private static void finish() {
 		long fails = RESULTS.stream().filter(r -> r.startsWith("FAIL")).count();
-		LOGGER.info("[selftest] ---- SONUC: {} adim, {} basarisiz ----", RESULTS.size(), fails);
+		LOGGER.info("[selftest] ---- RESULT: {} steps, {} failed ----", RESULTS.size(), fails);
 		for (String r : RESULTS) LOGGER.info("[selftest]   {}", r);
-		LOGGER.info("[selftest] TAMAM");
+		LOGGER.info("[selftest] DONE");
 		stopped = true;
 		Minecraft mc = Minecraft.getInstance();
 		mc.execute(() -> {
@@ -117,13 +117,13 @@ public final class SelfTest {
 			}
 			mc.stop();
 		});
-		// CEF kapanisi bazen takiliyor: dunya kaydedildikten sonra sureci kesin bitir
+		// CEF shutdown sometimes hangs: terminate the process for good once the world has been saved
 		Thread killer = new Thread(() -> {
 			try {
 				Thread.sleep(8000);
 			} catch (InterruptedException ignored) {
 			}
-			LOGGER.info("[selftest] surec sonlandiriliyor");
+			LOGGER.info("[selftest] terminating the process");
 			Runtime.getRuntime().halt(0);
 		}, "doomscroll-selftest-halt");
 		killer.setDaemon(true);
@@ -174,8 +174,8 @@ public final class SelfTest {
 		RESULTS.clear();
 		once = new boolean[32];
 		anchor = null;
-		// 1) sahne: yaratici mod, alan temizle, zemin, 3x2 panel (batiya bakar), oyuncu panele baksin
-		STEPS.add(new Step("sahne kuruldu", 100, () -> {
+		// 1) scene: creative mode, clear the area, floor, 3x2 panel (facing west), make the player look at the panel
+		STEPS.add(new Step("scene built", 100, () -> {
 			Minecraft mc = Minecraft.getInstance();
 			if (firstTime(0)) {
 				px = (int) Math.floor(mc.player.getX());
@@ -194,8 +194,8 @@ public final class SelfTest {
 			}
 			return tick - stageStart > 40;
 		}));
-		// 2) panel 3x2 olarak birlesti mi (anchor bul)
-		STEPS.add(new Step("panel 3x2 birlesti", 200, () -> {
+		// 2) did the panel merge as 3x2 (find the anchor)
+		STEPS.add(new Step("panel merged as 3x2", 200, () -> {
 			Minecraft mc = Minecraft.getInstance();
 			for (int y = py; y <= py + 1; y++) {
 				for (int z = pz - 1; z <= pz + 1; z++) {
@@ -208,32 +208,32 @@ public final class SelfTest {
 			}
 			return false;
 		}));
-		// 3) tarayici acildi (renderer ekrani cizince)
-		STEPS.add(new Step("tarayici acildi", 1200, () -> {
+		// 3) browser opened (once the renderer draws the screen)
+		STEPS.add(new Step("browser opened", 1200, () -> {
 			ScreenBrowsers.Screen s = screen();
 			return s != null && s.browser != null;
 		}));
-		// 4) YouTube sayfasi acildi, rapor geliyor, baslik var
-		STEPS.add(new Step("YouTube acildi + rapor + baslik", 1200, () -> {
+		// 4) YouTube page opened, reports arriving, title present
+		STEPS.add(new Step("YouTube opened + report + title", 1200, () -> {
 			if (firstTime(1)) {
 				ScreenBrowsers.requestNavigate(anchor, URL_SB);
 				return false;
 			}
 			ScreenBrowsers.Screen s = screen();
 			if (s != null && playing("e-ORhEE9VVg") && !s.localTitle.isEmpty()) {
-				LOGGER.info("[selftest] baslik='{}' sure={}", s.localTitle, s.localDuration);
+				LOGGER.info("[selftest] title='{}' duration={}", s.localTitle, s.localDuration);
 				return true;
 			}
 			return false;
 		}));
-		// 7) ekran isigi yamalari
-		STEPS.add(new Step("ekran isigi yamalari > 0", 200, () -> {
+		// 7) screen glow patches
+		STEPS.add(new Step("screen glow patches > 0", 200, () -> {
 			String info = ScreenGlow.info(anchor);
-			if (firstTime(3)) LOGGER.info("[selftest] isik: {}", info);
+			if (firstTime(3)) LOGGER.info("[selftest] glow: {}", info);
 			return ScreenGlow.patchCount(anchor) > 0;
 		}));
-		// 8) sira: ekle + atla -> kisa video acilir
-		STEPS.add(new Step("sira: atla ile gecis", 600, () -> {
+		// 8) queue: add + skip -> the short video opens
+		STEPS.add(new Step("queue: switch via skip", 600, () -> {
 			if (firstTime(4)) {
 				ScreenQueue.add(anchor, URL_SHORT);
 				ScreenQueue.add(anchor, URL_NEXT);
@@ -242,13 +242,13 @@ public final class SelfTest {
 			}
 			return playing("jNQXAC9IVRw");
 		}));
-		// 9) kisa video bitince siradaki otomatik acilir
-		STEPS.add(new Step("video bitince siradaki", 1400, () -> {
+		// 9) when the short video ends the next in queue opens automatically
+		STEPS.add(new Step("next in queue when video ends", 1400, () -> {
 			if (tick - stageStart == 60) js("if(window.__dsSetPaused)window.__dsSetPaused(false);");
 			return playing("aqz-KE-bpKQ");
 		}));
-		// 10) sunucu adres engeli: example.org engelli, ekran adresi degismemeli
-		STEPS.add(new Step("sunucu adres engeli", 160, () -> {
+		// 10) server URL block: example.org is blocked, the screen URL must not change
+		STEPS.add(new Step("server URL block", 160, () -> {
 			if (firstTime(5)) {
 				ScreenBrowsers.requestNavigate(anchor, "https://example.org/");
 				return false;
@@ -258,22 +258,22 @@ public final class SelfTest {
 				return tick - stageStart > 100 && b != null && sc != null
 						&& !b.getUrl().contains("example.org") && !sc.localUrl.contains("example.org");
 		}));
-		// 10b) yayin: baslat -> yakalama + parcalar; test modunda sunucu parcalari geri yansitir, tabletteki alici oynatir
-		STEPS.add(new Step("yayin basladi ve parca gonderiyor", 800, () -> {
+		// 10b) broadcast: start -> capture + chunks; in test mode the server echoes the chunks back and the viewer on the tablet plays them
+		STEPS.add(new Step("broadcast started and sending chunks", 800, () -> {
 			if (firstTime(12)) {
 				Broadcast.testTabletViewer = true;
 				Broadcast.requestStart(anchor);
 				return false;
 			}
 			ScreenBrowsers.Screen s = screen();
-			if ((tick - stageStart) % 100 == 0 && s != null) LOGGER.info("[selftest] yayin: host={} active={} chunks={}", Broadcast.isHost(s), s.hostActive, Broadcast.hostChunks());
+			if ((tick - stageStart) % 100 == 0 && s != null) LOGGER.info("[selftest] broadcast: host={} active={} chunks={}", Broadcast.isHost(s), s.hostActive, Broadcast.hostChunks());
 			return s != null && Broadcast.isHost(s) && s.hostActive && Broadcast.hostChunks() >= 4;
 		}));
-		STEPS.add(new Step("yayin alicisi (tablet) oynatiyor", 800, () -> {
-			if ((tick - stageStart) % 100 == 0) LOGGER.info("[selftest] alici: alinan parca={} tablet t={}", Broadcast.viewerChunks(), Browsers.tabletTime());
+		STEPS.add(new Step("broadcast viewer (tablet) playing", 800, () -> {
+			if ((tick - stageStart) % 100 == 0) LOGGER.info("[selftest] viewer: chunks received={} tablet t={}", Broadcast.viewerChunks(), Browsers.tabletTime());
 			return Broadcast.viewerChunks() >= 4 && Browsers.tabletTime() > 1.5;
 		}));
-		STEPS.add(new Step("yayin durdu", 200, () -> {
+		STEPS.add(new Step("broadcast stopped", 200, () -> {
 			if (firstTime(13)) {
 				Broadcast.requestStop(anchor);
 				return false;
@@ -282,8 +282,8 @@ public final class SelfTest {
 			ScreenBrowsers.Screen s = screen();
 			return b != null && b.getBroadcaster() == null && s != null && !s.hostActive;
 		}));
-		// 11) redstone: ayari ac, sinyal ver -> kapanir, kes+ver -> acilir
-		STEPS.add(new Step("redstone ayari acildi", 200, () -> {
+		// 11) redstone: enable the setting, apply a signal -> turns off, cut + apply -> turns on
+		STEPS.add(new Step("redstone setting enabled", 200, () -> {
 			if (firstTime(6)) {
 				ScreenBrowsers.sendControl(anchor, ScreenControlPayload.TOGGLE_REDSTONE);
 				return false;
@@ -291,7 +291,7 @@ public final class SelfTest {
 			ScreenBlockEntity b = be();
 			return b != null && b.isRedstone();
 		}));
-		STEPS.add(new Step("redstone sinyali ekrani kapatti", 200, () -> {
+		STEPS.add(new Step("redstone signal turned the screen off", 200, () -> {
 			if (firstTime(7)) {
 				cmd(String.format(Locale.ROOT, "setblock %d %d %d minecraft:redstone_block", px + 5, py, pz));
 				return false;
@@ -299,7 +299,7 @@ public final class SelfTest {
 			ScreenBlockEntity b = be();
 			return b != null && !b.isOn();
 		}));
-		STEPS.add(new Step("ikinci sinyal ekrani acti", 300, () -> {
+		STEPS.add(new Step("second signal turned the screen on", 300, () -> {
 			if (firstTime(8)) {
 				cmd(String.format(Locale.ROOT, "setblock %d %d %d minecraft:air", px + 5, py, pz));
 				return false;
@@ -310,8 +310,8 @@ public final class SelfTest {
 			ScreenBlockEntity b = be();
 			return tick - stageStart > 40 && b != null && b.isOn();
 		}));
-		// 11b) yer ekrani: 2x2 blok (facing=up, top=north) tek panel olur; sonra kaldirilir
-		STEPS.add(new Step("yer ekrani 2x2 birlesti", 200, () -> {
+		// 11b) floor screen: 2x2 blocks (facing=up, top=north) become a single panel; removed afterwards
+		STEPS.add(new Step("floor screen merged as 2x2", 200, () -> {
 			Minecraft mc = Minecraft.getInstance();
 			if (firstTime(15)) {
 				for (int dx = 0; dx <= 1; dx++) {
@@ -328,7 +328,7 @@ public final class SelfTest {
 					if (mc.level.getBlockEntity(new net.minecraft.core.BlockPos(px + 1 + dx, py, pz + 2 + dz)) instanceof ScreenBlockEntity b
 							&& b.isAnchor() && b.getWidth() == 2 && b.getHeight() == 2) {
 						ok = true;
-						LOGGER.info("[selftest] yer ekrani anchor {} {}x{}", b.getBlockPos().toShortString(), b.getWidth(), b.getHeight());
+						LOGGER.info("[selftest] floor screen anchor {} {}x{}", b.getBlockPos().toShortString(), b.getWidth(), b.getHeight());
 					}
 				}
 			}
@@ -337,8 +337,8 @@ public final class SelfTest {
 			}
 			return ok;
 		}));
-		// 11c) kumanda ekrani: acilir, 3 sekme, 1 sn sonra kapanir (istisna yok)
-		STEPS.add(new Step("kumanda ekrani acildi ve kapandi", 200, () -> {
+		// 11c) remote screen: opens, 3 tabs, closes after 1 s (no exception)
+		STEPS.add(new Step("remote screen opened and closed", 200, () -> {
 			Minecraft mc = Minecraft.getInstance();
 			if (firstTime(14)) {
 				mc.gui.setScreen(new RemoteScreen());
@@ -347,30 +347,30 @@ public final class SelfTest {
 			if (tick - stageStart == 20) {
 				if (!(mc.gui.screen() instanceof RemoteScreen)) return false;
 				RemoteScreen r = (RemoteScreen) mc.gui.screen();
-				LOGGER.info("[selftest] kumanda widget sayisi: {}", r.children().size());
+				LOGGER.info("[selftest] remote widget count: {}", r.children().size());
 			}
 			if (tick - stageStart == 40) {
 				mc.gui.setScreen(null);
 			}
 			return tick - stageStart > 45 && mc.gui.screen() == null;
 		}));
-		// 12) yonetici komutu: /doomscroll engelle -> sunucu ayarina yazilir (tek oyunculuda ayni JVM)
-		STEPS.add(new Step("yonetici komutu engelle", 200, () -> {
+		// 12) admin command: /doomscroll engelle -> written to the server config (same JVM in singleplayer)
+		STEPS.add(new Step("admin command engelle", 200, () -> {
 			if (firstTime(10)) {
 				cmd("doomscroll engelle example.net");
 				return false;
 			}
 			return com.doomscroll.ServerConfig.get().blockedDomains.contains("example.net");
 		}));
-		STEPS.add(new Step("yonetici komutu engelkaldir", 200, () -> {
+		STEPS.add(new Step("admin command engelkaldir", 200, () -> {
 			if (firstTime(11)) {
 				cmd("doomscroll engelkaldir example.net");
 				return false;
 			}
 			return !com.doomscroll.ServerConfig.get().blockedDomains.contains("example.net");
 		}));
-		// 13) isaretci: dogrudan gonder, sunucu (test modunda) geri yansitsin
-		STEPS.add(new Step("isaretci sunucudan dondu", 100, () -> {
+		// 13) pointer: send directly, the server (in test mode) should echo it back
+		STEPS.add(new Step("pointer echoed back from the server", 100, () -> {
 			if (firstTime(9)) {
 				Pointers.sendTest(anchor);
 				return false;

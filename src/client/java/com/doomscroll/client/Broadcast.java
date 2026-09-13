@@ -21,19 +21,19 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Yayin modu: bir oyuncu (yayinci) ekranindaki videoyu ve sesi digerlerine aynen aktarir; herkes ayni goruntuyu gorur
- * (film sitesi gibi kisiye gore degisen sayfalarda tek kisinin tiklamasi yeter).
+ * Broadcast mode: one player (the host) relays the video and audio on their screen to the others as-is; everyone sees
+ * the same picture (on pages that differ per person, like a movie site, one person's click is enough).
  *
- * Yayinci: sayfadaki video bir canvas'a cizilir (kucultulmus), canvas + videonun ses izi MediaRecorder ile WebM
- * (VP8 + Opus) olarak 500 ms'lik parcalara kodlanir, parcalar console kanaliyla (__DSB__) Java'ya gelir, 30 KB'lik
- * dilimler halinde sunucuya gider; sunucu abonelere dagitir. Izleyici: ekran tarayicisi kucuk bir alici sayfasi
- * acar (MediaSource, sequence modu), parcalar JS ile eklenir, canli uca yakin oynatilir (~1-2 sn gecikme).
- * Yeni izleyici gelince sunucu yayinciya "yeniden baslat" der: yeni baslangic parcasi + anahtar kare uretilir.
+ * Host: the page's video is drawn onto a canvas (downscaled), the canvas + the video's audio track are encoded by
+ * MediaRecorder as WebM (VP8 + Opus) in 500 ms chunks, the chunks reach Java over the console channel (__DSB__) and go
+ * to the server in 30 KB pieces; the server distributes them to subscribers. Viewer: the screen browser opens a small
+ * receiver page (MediaSource, sequence mode), chunks are appended via JS and played close to the live edge (~1-2 s latency).
+ * When a new viewer arrives the server tells the host to "restart": a fresh init chunk + key frame is produced.
  */
 public final class Broadcast {
 	private static final Logger LOGGER = LoggerFactory.getLogger("doomscroll-yayin");
 
-	/** Dilimleri birlestirme (izleyici): ekran -> devam eden parca. */
+	/** Piece reassembly (viewer): screen -> chunk in progress. */
 	private static final class Assembler {
 		int seq = -1;
 		byte[][] parts;
@@ -42,33 +42,33 @@ public final class Broadcast {
 	}
 
 	private static final Map<BlockPos, Assembler> ASM = new HashMap<>();
-	/** Alici sayfa hazir olana kadar bekleyen parcalar (hedef -> [init, veri]). */
+	/** Chunks waiting until the receiver page is ready (target -> [init, data]). */
 	private static final Map<Object, java.util.ArrayDeque<Object[]>> PENDING = new HashMap<>();
 	private static boolean tabletReady = false;
 	private static final Object TABLET_KEY = "tablet";
 	private static int hostChunks = 0;
 	private static int viewerChunks = 0;
-	/** Duman testi: sunucunun yansittigi kendi parcalarimizi tabletteki alici sayfaya bas. */
+	/** Smoke test: push our own chunks, as reflected back by the server, into the receiver page on the tablet. */
 	static boolean testTabletViewer = false;
 	private static boolean testTabletLoaded = false;
 	private static long testTabletCreatedMs = 0L;
 
 	private Broadcast() {}
 
-	/** Baglanti yokken (cikis sirasinda) paket gondermeye calisma: istisna tarayici kapanisini yarida birakirdi. */
+	/** Do not try to send packets without a connection (during shutdown): the exception used to cut the browser close short. */
 	private static void send(net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
 		try {
 			if (Minecraft.getInstance().getConnection() != null && ClientPlayNetworking.canSend(payload.type())) {
 				ClientPlayNetworking.send(payload);
 			}
 		} catch (Exception e) {
-			LOGGER.debug("paket gonderilemedi: {}", e.toString());
+			LOGGER.debug("could not send packet: {}", e.toString());
 		}
 	}
 
-	// ---------- komutlar ----------
+	// ---------- commands ----------
 
-	/** On ayar: dusuk (640x360, 20 fps, 700 kbps) / normal (960x540, 24, 1200) / yuksek (1280x720, 30, 2500). */
+	/** Preset: low (640x360, 20 fps, 700 kbps) / normal (960x540, 24, 1200) / high (1280x720, 30, 2500). */
 	public static boolean applyPreset(String name) {
 		DoomscrollConfig c = DoomscrollConfig.get();
 		switch (name == null ? "" : name.toLowerCase(Locale.ROOT)) {
@@ -78,7 +78,7 @@ public final class Broadcast {
 			default -> { return false; }
 		}
 		DoomscrollConfig.save();
-		// yayin suruyorsa yeni ayarla yeniden baslat
+		// if a broadcast is running, restart it with the new settings
 		for (ScreenBrowsers.Screen s : ScreenBrowsers.liveScreens()) {
 			if (s.hostActive && s.browser != null) {
 				Browsers.jsAllFrames(s.browser, captureJs());
@@ -121,9 +121,9 @@ public final class Broadcast {
 		return viewerChunks;
 	}
 
-	// ---------- tick (ScreenBrowsers, 10 tick'te bir) ----------
+	// ---------- tick (ScreenBrowsers, every 10 ticks) ----------
 
-	/** Bir parcanin en fazla dilim sayisi; dizi boyutu asla dogrudan paketten alinmaz. */
+	/** Maximum number of pieces per chunk; the array size is never taken straight from the packet. */
 	private static final int MAX_PIECES = 512;
 
 	public static void tick(ScreenBrowsers.Screen s) {
@@ -145,7 +145,7 @@ public final class Broadcast {
 		}
 	}
 
-	// ---------- yayinci ----------
+	// ---------- host ----------
 
 	private static String captureJs() {
 		DoomscrollConfig c = DoomscrollConfig.get();
@@ -171,7 +171,7 @@ public final class Broadcast {
 		if (s.hostActive && s.localUrl.equals(s.bcUrl)) {
 			return;
 		}
-		// video hazir mi (raporcu son 3 sn icinde sure bildirdi)
+		// is the video ready (the reporter reported a duration within the last 3 s)
 		if (s.localDuration <= 0 && !(s.localTime > 0)) {
 			return;
 		}
@@ -183,10 +183,10 @@ public final class Broadcast {
 		Browsers.jsAllFrames(s.browser, captureJs());
 		s.hostActive = true;
 		s.bcUrl = s.localUrl;
-		LOGGER.info("[yayin] {} yakalama baslatildi ({})", s.pos.toShortString(), s.localUrl);
+		LOGGER.info("[broadcast] {} capture started ({})", s.pos.toShortString(), s.localUrl);
 	}
 
-	/** Ekran kapandi: kodlayici bos yere calismasin (ekran kapaliyken tick() buraya ugramiyordu). */
+	/** Screen turned off: the encoder should not keep running for nothing (tick() did not reach here while the screen was off). */
 	public static void onScreenOff(ScreenBrowsers.Screen s) {
 		if (s.hostActive) {
 			stopCapture(s);
@@ -200,10 +200,10 @@ public final class Broadcast {
 		}
 		s.hostActive = false;
 		s.bcUrl = "";
-		LOGGER.info("[yayin] {} yakalama durduruldu", s.pos.toShortString());
+		LOGGER.info("[broadcast] {} capture stopped", s.pos.toShortString());
 	}
 
-	/** Sayfa: "__DSB__seq:init:base64" (console kanali). Dilimle ve sunucuya gonder. */
+	/** From the page: "__DSB__seq:init:base64" (console channel). Split into pieces and send to the server. */
 	private static void onHostChunk(ScreenBrowsers.Screen s, String msg) {
 		if (!s.hostActive) return;
 		int a = msg.indexOf(':');
@@ -234,10 +234,10 @@ public final class Broadcast {
 		hostChunks++;
 	}
 
-	/** Sayfa raporu: {"bc":"started"|"unsupported"} */
+	/** Page report: {"bc":"started"|"unsupported"} */
 	public static void onHostMessage(ScreenBrowsers.Screen s, String what) {
 		if ("unsupported".equals(what)) {
-			LOGGER.warn("[yayin] tarayici MediaRecorder desteklemiyor");
+			LOGGER.warn("[broadcast] browser does not support MediaRecorder");
 			notice(Lang.tr("message.doomscroll.broadcast.start_failed"));
 		}
 	}
@@ -250,9 +250,9 @@ public final class Broadcast {
 		}
 	}
 
-	// ---------- izleyici ----------
+	// ---------- viewer ----------
 
-	/** Alici sayfasi artik ayri bir dosya (home/receiver.html) ve ortak cizim dilini kullaniyor. */
+	/** The receiver page is now a separate file (home/receiver.html) and uses the shared visual language. */
 	static String receiverUrl() {
 		return HomePages.receiverUrl();
 	}
@@ -269,18 +269,18 @@ public final class Broadcast {
 		notice(Lang.tr("message.doomscroll.broadcast.viewing", s.broadcasterName.isEmpty()
 				? Lang.tr("gui.doomscroll.broadcast.label")
 				: Lang.tr("gui.doomscroll.broadcast.host_of", s.broadcasterName)));
-		LOGGER.info("[yayin] {} izleyici moduna gecti", s.pos.toShortString());
+		LOGGER.info("[broadcast] {} entered viewer mode", s.pos.toShortString());
 	}
 
 	private static void leaveViewer(ScreenBrowsers.Screen s) {
 		s.viewerMode = false;
 		ASM.remove(s.pos);
 		send(new BroadcastControlPayload(s.pos, BroadcastControlPayload.UNSUBSCRIBE));
-		ScreenBrowsers.forceResync(s.pos); // sunucudaki adrese geri don
-		LOGGER.info("[yayin] {} izleyici modundan cikti", s.pos.toShortString());
+		ScreenBrowsers.forceResync(s.pos); // go back to the address held by the server
+		LOGGER.info("[broadcast] {} left viewer mode", s.pos.toShortString());
 	}
 
-	/** Tarayici kapanirken (menzil disi vb.). */
+	/** While the browser is closing (out of range etc.). */
 	static void onBrowserClosed(ScreenBrowsers.Screen s) {
 		if (s.viewerMode) {
 			s.viewerMode = false;
@@ -299,7 +299,7 @@ public final class Broadcast {
 			target = s.browser;
 		} else if (testTabletViewer && isHost(s)) {
 			target = Browsers.getOrCreateTablet();
-			// tarayici yeni olusturulduysa loadURL yutulabilir: 1.5 sn bekleyip alici sayfayi yukle
+			// if the browser was just created, loadURL may get swallowed: wait 1.5 s, then load the receiver page
 			if (target != null && !testTabletLoaded) {
 				if (testTabletCreatedMs == 0L) {
 					testTabletCreatedMs = System.currentTimeMillis();
@@ -307,14 +307,14 @@ public final class Broadcast {
 					testTabletLoaded = true;
 					tabletReady = false;
 					target.getCefBrowser().loadURL(receiverUrl());
-					LOGGER.info("[yayin] test: tablet alici sayfasi yukleniyor");
+					LOGGER.info("[broadcast] test: loading the tablet receiver page");
 				}
 			}
 		}
 		if (target == null) return;
 		Assembler as = ASM.computeIfAbsent(b.pos().immutable(), k -> new Assembler());
 		if (b.pieces() < 1 || b.pieces() > MAX_PIECES) {
-			return; // bozuk ya da kotu niyetli paket: dizi boyutu paketten gelmez
+			return; // corrupt or malicious packet: the array size does not come from the packet
 		}
 		if (b.piece() == 0 || as.seq != b.seq()) {
 			as.seq = b.seq();
@@ -361,17 +361,17 @@ public final class Broadcast {
 		}
 	}
 
-	/** Alici sayfa (ekran) MediaSource'u acti: bekleyen parcalari bas. */
+	/** The receiver page (screen) opened its MediaSource: push the pending chunks. */
 	public static void onViewerReady(ScreenBrowsers.Screen s) {
 		s.viewerReady = true;
-		LOGGER.info("[yayin] alici hazir ({}), bekleyen parca: {}", s.pos.toShortString(), PENDING.containsKey(s.pos.immutable()) ? PENDING.get(s.pos.immutable()).size() : 0);
+		LOGGER.info("[broadcast] receiver ready ({}), pending chunks: {}", s.pos.toShortString(), PENDING.containsKey(s.pos.immutable()) ? PENDING.get(s.pos.immutable()).size() : 0);
 		if (s.browser != null) flush(s.pos.immutable(), s.browser);
 	}
 
-	/** Alici sayfa (tablet, test) hazir: bekleyenleri bas ve yayinciya yeniden baslat de (yeni init + anahtar kare). */
+	/** The receiver page (tablet, test) is ready: push the pending chunks and tell the host to restart (new init + key frame). */
 	public static void onTabletReady() {
 		tabletReady = true;
-		LOGGER.info("[yayin] alici (tablet) hazir, bekleyen parca: {}", PENDING.containsKey(TABLET_KEY) ? PENDING.get(TABLET_KEY).size() : 0);
+		LOGGER.info("[broadcast] receiver (tablet) ready, pending chunks: {}", PENDING.containsKey(TABLET_KEY) ? PENDING.get(TABLET_KEY).size() : 0);
 		CefBrowserView t = Browsers.getOrCreateTablet();
 		if (t != null) flush(TABLET_KEY, t);
 		if (testTabletViewer) {
@@ -393,7 +393,7 @@ public final class Broadcast {
 		testTabletCreatedMs = 0L;
 	}
 
-	/** Kumanda/komut icin durum etiketi. */
+	/** Status label for the remote / command. */
 	public static String label(@Nullable ScreenBrowsers.Screen s) {
 		if (s == null || s.broadcaster == null) return Lang.tr("gui.doomscroll.broadcast.off");
 		return isHost(s) ? Lang.tr("gui.doomscroll.you") : (s.broadcasterName.isEmpty() ? Lang.tr("gui.doomscroll.broadcast.on") : s.broadcasterName);

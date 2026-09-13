@@ -16,8 +16,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Diger oyuncularin tabletleri. Sunucudan gelen (adres, dik/yatay) durumu saklanir; tablet gorus alaninda
- * cizildikce o adres icin ayri bir tarayici acilir, sesi oyuncunun konumundan gelir. Bir sure cizilmeyince kapanir.
+ * Other players' tablets. The state received from the server (URL, portrait/landscape) is stored; while the tablet is drawn
+ * in view a separate browser is opened for that URL, and its audio comes from the player's position. It closes after not being drawn for a while.
  */
 public final class RemoteTablets {
 	private static final long CLOSE_AFTER_NANOS = 10_000_000_000L;
@@ -25,14 +25,14 @@ public final class RemoteTablets {
 	private static final class Remote {
 		String url = "";
 		boolean portrait = false;
-		float volume = 1f; // sahibinin cihaz sesi (0 = kimse duymaz)
+		float volume = 1f; // the owner's device volume (0 = nobody hears it)
 		@Nullable CefBrowserView browser;
 		@Nullable CefTexture texture;
 		@Nullable Identifier textureId;
 		@Nullable BrowserSoundInstance sound;
 		long lastRenderNanos = 0L;
 		String loadedUrl = "";
-		// sahibinin bildirdigi konum (senkron)
+		// position reported by the owner (sync)
 		double remoteTime = -1;
 		double remoteDuration = 0;
 		boolean remotePaused = true;
@@ -40,13 +40,13 @@ public final class RemoteTablets {
 	}
 
 	private static final Map<UUID, Remote> REMOTES = new java.util.concurrent.ConcurrentHashMap<>();
-	/** Debug: gercek oyuncusu olmayan sahte tabletler (zirh askisi testi). */
+	/** Debug: fake tablets without a real player (armor stand test). */
 	public static final java.util.Set<UUID> DEBUG_FAKE = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	public static final UUID FAKE_UUID = Doomscroll.DEBUG_FAKE_OWNER;
 
 	private RemoteTablets() {}
 
-	/** Sunucudan gelen durum. */
+	/** State received from the server. */
 	public static void applyState(UUID player, String url, boolean portrait, float volume) {
 		Remote r = REMOTES.computeIfAbsent(player, k -> new Remote());
 		r.url = safeUrl(url);
@@ -62,9 +62,9 @@ public final class RemoteTablets {
 	}
 
 	/**
-	 * Baskasinin tabletinde acilmasina izin verilen adres. Sunucudan gelen dizgi dogrudan
-	 * tarayiciya verilemez: sema kontrolu yoksa file:// ile yerel dosya, sunucu kurallari
-	 * atlanirsa engelli alan adi ya da yerel ag adresi acilabilir.
+	 * URL allowed to open on someone else's tablet. The string from the server cannot be handed
+	 * to the browser directly: without a scheme check a local file could open via file://, and if the server
+	 * rules were bypassed a blocked domain or a local network address could open.
 	 */
 	private static String safeUrl(@Nullable String url) {
 		if (url == null || url.isEmpty()) {
@@ -85,8 +85,8 @@ public final class RemoteTablets {
 	}
 
 	/**
-	 * Renderer: bu oyuncunun tabletinin dokusu. Tarayici yoksa acar (Chromium hazir degilse null).
-	 * Cagrildikca "goruluyor" sayilir.
+	 * Renderer: this player's tablet texture. Opens the browser if there is none (null if Chromium is not ready).
+	 * Each call counts as "being seen".
 	 */
 	@Nullable
 	public static Identifier textureFor(UUID player) {
@@ -103,19 +103,19 @@ public final class RemoteTablets {
 			try {
 				r.browser = init.getFuture().join().createBrowser(r.url, false);
 				r.browser.resize(r.portrait ? 720 : 1280, r.portrait ? 1280 : 644);
-				r.browser.setFrameRate(20); // elde kucuk gorunur; tam hiz gereksiz
+				r.browser.setFrameRate(20); // it looks small in hand; full speed is unnecessary
 				r.loadedUrl = r.url;
 				final Remote ref = r;
 				r.texture = new CefTexture(() -> ref.browser);
 				r.textureId = Doomscroll.id("remote_tablet/" + player.toString().replace("-", ""));
 				Minecraft.getInstance().getTextureManager().register(r.textureId, r.texture);
-				// Baskasinin tabletinde ses sadece arka planda/kisik olsun diye ust ust binmesin: sayfa sesi acik, seviye MC'de
+				// Audio on someone else's tablet should only be background/quiet and must not stack up: page audio unmuted, the level is handled in MC
 				r.browser.getCefBrowser().executeJavaScript(
 						"setInterval(function(){document.querySelectorAll('video,audio').forEach(function(m){m.muted=false;m.volume=1;});},2000);",
 						r.url, 0);
-				Doomscroll.LOGGER.info("uzak tablet tarayicisi acildi: {} -> {}", player, r.url);
+				Doomscroll.LOGGER.info("remote tablet browser opened: {} -> {}", player, r.url);
 			} catch (Exception e) {
-				Doomscroll.LOGGER.error("uzak tablet tarayicisi acilamadi", e);
+				Doomscroll.LOGGER.error("remote tablet browser could not be opened", e);
 				closeBrowser(r, Minecraft.getInstance().getSoundManager());
 				return null;
 			}
@@ -133,7 +133,7 @@ public final class RemoteTablets {
 		return r == null ? null : r.browser;
 	}
 
-	/** Sahibinin tabletindeki video konumu; izleyen istemci buna hizalanir. */
+	/** Video position on the owner's tablet; the viewing client aligns to it. */
 	public static void applyTime(UUID player, float time, float duration, boolean paused) {
 		Remote r = REMOTES.computeIfAbsent(player, k -> new Remote());
 		r.remoteTime = time;
@@ -143,8 +143,8 @@ public final class RemoteTablets {
 	}
 
 	/**
-	 * Sahibinin bulundugu ana hizala. Sayfa bizde ayri acildigi icin konumu bilmiyoruz; karari sayfaya
-	 * birakiriz: video 2.5 sn'den fazla sapmissa oraya atlar, duraklatma durumunu da esler.
+	 * Align to the moment the owner is at. Since the page is opened separately on our side we do not know the position; the decision
+	 * is left to the page: if the video has drifted by more than 2.5 s it jumps there, and it matches the paused state too.
 	 */
 	private static void maybeSync(Remote r) {
 		if (r.browser == null || !DoomscrollConfig.get().syncPlayback) {
@@ -155,7 +155,7 @@ public final class RemoteTablets {
 			return;
 		}
 		if (r.remoteDuration < 30.0 || r.remoteTime < 0) {
-			return; // kisa/loop videolarda hizalama yok (Shorts, Reels)
+			return; // no alignment for short/looping videos (Shorts, Reels)
 		}
 		double target = r.remotePaused ? r.remoteTime : r.remoteTime + (now - r.remoteStampMs) / 1000.0;
 		String js = "(function(){var v=document.querySelector('video');if(!v)return;"
@@ -171,7 +171,7 @@ public final class RemoteTablets {
 
 	private static int syncTick = 0;
 
-	/** Her tick: gorulmeyen tabletleri kapat, sesleri yonet, konumu hizala. */
+	/** Every tick: close tablets that are no longer seen, manage the sounds, align the position. */
 	public static void tick(Minecraft mc) {
 		syncTick++;
 		long now = System.nanoTime();
@@ -192,8 +192,8 @@ public final class RemoteTablets {
 				it.remove();
 				continue;
 			}
-			// Baskasinin tableti: kendi ses ayari (kumanda -> Ayarlar). Kapaliysa ses kanali hic acilmaz.
-			// Duyulan seviye: sahibinin cihaz sesi x senin "baskalarinin tableti" carpanin
+			// Someone else's tablet: its own volume setting (remote -> Settings). If off, the sound channel is never opened.
+			// Heard level: the owner's device volume x your "others' tablet" multiplier
 			float level = r.volume * Browsers.getRemoteTabletVolume();
 			boolean wantsSound = p != null && r.browser.hasAudioStream() && level > 0.01f;
 			if (wantsSound) {
@@ -211,7 +211,7 @@ public final class RemoteTablets {
 				r.sound = null;
 			}
 
-			// Konum senkronu: 2 sn'de bir sahibinin anina hizala
+			// Position sync: align to the owner's moment every 2 s
 			if (syncTick % 40 == 0) {
 				maybeSync(r);
 			}
@@ -242,7 +242,7 @@ public final class RemoteTablets {
 		r.loadedUrl = "";
 	}
 
-	/** Uzak tablet ses akisi: SoundBufferLibraryMixin buradan bulur. */
+	/** Remote tablet audio stream: SoundBufferLibraryMixin looks it up here. */
 	@Nullable
 	public static CefBrowserView browserForSoundPath(Identifier id) {
 		String path = id.getPath(); // sounds/remote/<uuid-hex>.ogg
@@ -268,7 +268,7 @@ public final class RemoteTablets {
 		REMOTES.clear();
 	}
 
-	/** Baskasinin tabletine bakarken ses konumu vb. icin yardimci. */
+	/** Helper for the audio position etc. while looking at someone else's tablet. */
 	@Nullable
 	public static Vec3 positionOf(Minecraft mc, UUID id) {
 		Player p = mc.level == null ? null : mc.level.getPlayerByUUID(id);

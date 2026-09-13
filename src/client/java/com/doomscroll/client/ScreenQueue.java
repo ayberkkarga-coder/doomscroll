@@ -11,18 +11,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Paylasilan video sirasinin istemcideki kopyasi.
+ * Client-side copy of the shared video queue.
  *
- * <p>Sira artik sunucuda duruyor: herkes ekleyebilir, herkes ayni listeyi gorur ve siradaki
- * video <b>en cok oyu alan</b> olur. Buradaki her sey ya sunucudan gelen son listeyi okur
- * ya da sunucuya bir istek yollar; karar hep sunucunun.
+ * <p>The queue now lives on the server: anyone can add to it, everyone sees the same list, and the next
+ * video is <b>the one with the most votes</b>. Everything here either reads the latest list received from
+ * the server or sends the server a request; the server always decides.
  */
 public final class ScreenQueue {
 	private static final Map<BlockPos, List<QueueBroadcast.Row>> MIRROR = new ConcurrentHashMap<>();
 
 	private ScreenQueue() {}
 
-	// ---------- sunucudan gelen ----------
+	// ---------- from the server ----------
 
 	public static void apply(QueueBroadcast msg) {
 		if (msg.rows().isEmpty()) {
@@ -32,14 +32,14 @@ public final class ScreenQueue {
 		}
 	}
 
-	/** Dunyadan cikinca. */
+	/** On leaving the world. */
 	public static void clearAll() {
 		MIRROR.clear();
 	}
 
-	// ---------- okuma ----------
+	// ---------- reading ----------
 
-	/** Sira, oynatma sirasiyla (en cok oy alan basta). */
+	/** The queue in playback order (most-voted first). */
 	public static List<QueueBroadcast.Row> list(@Nullable BlockPos anchor) {
 		if (anchor == null) {
 			return List.of();
@@ -52,13 +52,13 @@ public final class ScreenQueue {
 		return list(anchor).size();
 	}
 
-	/** 1 tabanli sira numarasindaki adres; yoksa bos. */
+	/** Address at the 1-based queue position; empty if there is none. */
 	public static String urlAt(@Nullable BlockPos anchor, int index1) {
 		List<QueueBroadcast.Row> q = list(anchor);
 		return index1 >= 1 && index1 <= q.size() ? q.get(index1 - 1).url() : "";
 	}
 
-	/** Gosterilecek ad: sunucudaki baslik, yoksa bizim bildigimiz, o da yoksa alan adi. */
+	/** Display name: the title from the server, otherwise the one we know locally, failing that the domain name. */
 	public static String label(QueueBroadcast.Row row) {
 		if (!row.title().isEmpty()) {
 			return row.title();
@@ -67,7 +67,7 @@ public final class ScreenQueue {
 		return local.isEmpty() ? RemoteScreen.siteName(row.url()) : local;
 	}
 
-	// ---------- sunucuya istek ----------
+	// ---------- requests to the server ----------
 
 	private static void send(@Nullable BlockPos anchor, int action, String url, String title) {
 		if (anchor == null) {
@@ -76,7 +76,7 @@ public final class ScreenQueue {
 		ClientPlayNetworking.send(new QueueActionPayload(anchor.immutable(), action, url, title));
 	}
 
-	/** Adresi siraya ekler (ayni adres zaten varsa ona oy verir). Gecersiz adreste false. */
+	/** Adds the address to the queue (if the same address is already queued, votes for it instead). False for an invalid address. */
 	public static boolean add(@Nullable BlockPos anchor, String input) {
 		if (anchor == null) {
 			return false;
@@ -90,33 +90,33 @@ public final class ScreenQueue {
 		return true;
 	}
 
-	/** Oyu ac/kapat. */
+	/** Toggle the vote. */
 	public static void vote(@Nullable BlockPos anchor, String url) {
 		send(anchor, QueueActionPayload.VOTE, url, "");
 	}
 
-	/** Siradan cikar (ekleyen ya da ekran sahibi). */
+	/** Remove from the queue (whoever added it, or the screen owner). */
 	public static void remove(@Nullable BlockPos anchor, String url) {
 		send(anchor, QueueActionPayload.REMOVE, url, "");
 	}
 
-	/** Sirayi bosalt (ekran sahibi ya da yonetici). */
+	/** Clear the queue (screen owner or an admin). */
 	public static void clear(@Nullable BlockPos anchor) {
 		send(anchor, QueueActionPayload.CLEAR, "", "");
 	}
 
-	/** En cok oy alani hemen ac. */
+	/** Open the most-voted one right away. */
 	public static void next(@Nullable BlockPos anchor) {
 		send(anchor, QueueActionPayload.NEXT, "", "");
 	}
 
-	/** Belirli bir videoyu hemen ac. */
+	/** Open a specific video right away. */
 	public static void playNow(@Nullable BlockPos anchor, String url) {
 		send(anchor, QueueActionPayload.PLAY, url, "");
 	}
 
-	/** Guncel listeyi iste (kumanda acilinca, ana sayfa yuklenince). */
-	/** Son tazeleme istegi (arayuz her yeniden kuruldugunda cagriliyor; sunucuyu doldurmasin). */
+	/** Request the current list (when the remote opens, when the home page loads). */
+	/** Time of the last refresh request (it is called every time the UI is rebuilt; must not flood the server). */
 	private static long lastRefreshMs;
 
 	public static void refresh(@Nullable BlockPos anchor) {
@@ -128,11 +128,11 @@ public final class ScreenQueue {
 		send(anchor, QueueActionPayload.REFRESH, "", "");
 	}
 
-	// ---------- otomatik gecis ----------
+	// ---------- auto-advance ----------
 
 	/**
-	 * Sayfa: video bitti. Ekrani suren istemci sunucudan siradakini ister; hangisinin
-	 * acilacagina oylar karar verir, herkes ayni adrese gecer.
+	 * Page: the video ended. The client driving the screen asks the server for the next one; the votes
+	 * decide which one opens, and everyone switches to the same address.
 	 */
 	public static void onEnded(ScreenBrowsers.Screen s) {
 		if (!s.drives() || size(s.pos) == 0) {

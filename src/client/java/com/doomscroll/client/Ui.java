@@ -11,8 +11,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /**
- * Kumanda ve tabletin ortak cizim dili: koyu govde, 1 px kontur, ust/sol isik + alt/sag golge (vanilla tus
- * kabartmasi), kirpik koseler ve 9x9 piksel simgeler (assets/doomscroll/textures/gui/sprites/icon/*).
+ * Shared drawing language of the remote and the tablet: dark body, 1 px outline, top/left highlight + bottom/right shadow (vanilla button
+ * emboss), clipped corners and 9x9 pixel icons (assets/doomscroll/textures/gui/sprites/icon/*).
  */
 final class Ui {
 	private Ui() {
@@ -63,7 +63,7 @@ final class Ui {
 		return Doomscroll.id("icon/" + name);
 	}
 
-	/** Tus: etiket ve/veya simge (ikisi de dinamik olabilir), renk, eylem; "on" true ise yesil (acik) cizilir. */
+	/** Button: label and/or icon (both may be dynamic), color, action; drawn green (on) when "on" is true. */
 	record Btn(int x, int y, int w, int h, Supplier<String> label, @Nullable Supplier<Identifier> icon,
 			   int color, int hover, Runnable action, BooleanSupplier on) {
 		boolean contains(double mx, double my) {
@@ -86,7 +86,7 @@ final class Ui {
 		return mix(c, 0xFF000000, t);
 	}
 
-	/** Kontur: koseleri 1 px kirpik dikdortgen. */
+	/** Outline: rectangle with 1 px clipped corners. */
 	static void outline(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
 		g.fill(x + 1, y, x + w - 1, y + 1, color);
 		g.fill(x + 1, y + h - 1, x + w - 1, y + h, color);
@@ -94,7 +94,7 @@ final class Ui {
 		g.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
 	}
 
-	/** Kabartma panel: kontur + govde + ust/sol isik, alt/sag golge (disari cikik his). */
+	/** Embossed panel: outline + body + top/left highlight, bottom/right shadow (raised feel). */
 	static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h, int face, int hi, int lo) {
 		outline(g, x, y, w, h, OUTLINE);
 		g.fill(x + 1, y + 1, x + w - 1, y + h - 1, face);
@@ -104,7 +104,7 @@ final class Ui {
 		g.fill(x + w - 2, y + 1, x + w - 1, y + h - 1, lo);
 	}
 
-	/** Cukur alan (ekran, kaydirici yatagi): kontur + govde + ust/sol golge, alt/sag hafif isik. */
+	/** Sunken area (display, slider track): outline + body + top/left shadow, faint bottom/right highlight. */
 	static void inset(GuiGraphicsExtractor g, int x, int y, int w, int h, int face) {
 		outline(g, x, y, w, h, OUTLINE);
 		g.fill(x + 1, y + 1, x + w - 1, y + h - 1, face);
@@ -120,12 +120,12 @@ final class Ui {
 		g.blitSprite(RenderPipelines.GUI_TEXTURED, icon, x, y, ICON, ICON, color);
 	}
 
-	/** Tusu ciz: kabartma govde (uzerine gelince acik kontur), ortalanmis simge + etiket. */
+	/** Draw the button: embossed body (light outline on hover), centered icon + label. */
 	static void button(GuiGraphicsExtractor g, Font font, Btn b, boolean hovered, int textColor) {
 		button(g, font, b, hovered, textColor, false);
 	}
 
-	/** leftAlign: liste satirlari icin simge + etiket soldan baslar. */
+	/** leftAlign: for list rows the icon + label start from the left. */
 	static void button(GuiGraphicsExtractor g, Font font, Btn b, boolean hovered, int textColor, boolean leftAlign) {
 		boolean on = b.on().getAsBoolean();
 		int face = on ? (hovered ? BTN_ON_HOVER : BTN_ON) : (hovered ? b.hover() : b.color());

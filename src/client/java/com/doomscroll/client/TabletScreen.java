@@ -18,21 +18,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Elde tablet: cerceveli tarayici. Ekran blogundan bagimsiz kendi tarayicisi var;
- * kapatinca sayfa kalir, sadece ses durur. ESC kapatir. Arac cubugu {@link Ui} diliyle (kumandayla ayni);
- * yildiz = yer imi, menu = yer imleri + gecmis paneli (tarayicinin ustune acilir).
+ * Handheld tablet: a framed browser. It has its own browser, independent of the screen block;
+ * closing it keeps the page, only the audio stops. ESC closes it. The toolbar uses the {@link Ui} language (same as the remote);
+ * star = bookmark, menu = bookmarks + history panel (opens on top of the browser).
  */
 public class TabletScreen extends Screen {
 	private long lastWheelKeyNanos = 0L;
 	private static final int BEZEL = 9;
-	/** Arac cubugu: genis cercevede tek satir; darlastikca tuslar alt satirlara gecer. */
+	/** Toolbar: a single row in a wide frame; as it gets narrower the buttons wrap onto extra rows. */
 	private static final int BAR = 24;
 	private static final int BAR_ROW = 20;
 	private static final int NARROW = 640;
-	/** Adres satirinin istedigi en dar genislik: cerceve bundan dar olmaz. */
+	/** Narrowest width the address row needs: the frame never gets narrower than this. */
 	private static final int BAR_MIN_W = 137;
 	private int barH = BAR;
-	/** Arac cubugunun genisligi ve sol kenari; dik tablette tarayicidan genis olabilir. */
+	/** Toolbar width and left edge; on a portrait tablet it can be wider than the browser. */
 	private int bw, bxStart;
 
 	private static final int C_SHELL = 0xFF1D1D22;
@@ -44,13 +44,13 @@ public class TabletScreen extends Screen {
 
 	private EditBox urlBox;
 	private final List<Ui.Btn> bar = new ArrayList<>();
-	/** Basisi tarayiciya iletilen fare tuslari: yalnizca bunlarin birakilmasi iletilir (tableti acan sag tikin birakilmasi sayfaya gitmesin). */
+	/** Mouse buttons whose press was forwarded to the browser: only their release is forwarded (so the release of the right click that opened the tablet does not reach the page). */
 	private final java.util.Set<Integer> heldInView = new java.util.HashSet<>();
-	// Cerceve ve tarayici alani (GUI koordinatlari)
+	// Frame and browser area (GUI coordinates)
 	private int fx, fy, fw, fh;
 	private int vx, vy, vw, vh;
 
-	// Yer imleri + gecmis paneli
+	// Bookmarks + history panel
 	private record Label(int x, int y, String text) {}
 	private record MenuRow(int kind, @Nullable TabletBookmarks.Entry e) {}
 	private static final int ROW_BOOKMARK_HEADER = 0, ROW_BOOKMARK = 1, ROW_HISTORY_HEADER = 2, ROW_HISTORY = 3, ROW_HINT_BOOKMARK = 4, ROW_HINT_HISTORY = 5;
@@ -60,7 +60,7 @@ public class TabletScreen extends Screen {
 	private final List<Label> menuLabels = new ArrayList<>();
 	private int mx, my, mw, mh;
 
-	// Ses balonu: arac cubugundaki hoparlor tusunun altinda acilir; tabletin kendi ses seviyesi
+	// Volume popup: opens below the speaker button in the toolbar; the tablet's own volume level
 	private boolean volOpen = false;
 	private boolean volDrag = false;
 	private int volX, volY, volW, volH;
@@ -100,7 +100,7 @@ public class TabletScreen extends Screen {
 		Browsers.setTabletVolume(Math.round(Math.max(0f, Math.min(1f, v)) * 20f) / 20f);
 	}
 
-	/** Hoparlor tusu: ses balonunu ac/kapat (yer imleri paneliyle ayni anda acik kalmaz). */
+	/** Speaker button: toggle the volume popup (it never stays open at the same time as the bookmarks panel). */
 	private void toggleVolume() {
 		volOpen = !volOpen;
 		if (volOpen) {
@@ -115,8 +115,8 @@ public class TabletScreen extends Screen {
 	@Override
 	protected void init() {
 		bar.clear();
-		// Tablet: ekranin %92 yuksekligi, tarayici oraninda (bar + bezel dahil).
-		// Cubuk yuksekligi genisligi, genislik de satir sayisini etkiledigi icin birkac tur donulur.
+		// Tablet: 92% of the screen height, at the browser's aspect ratio (bar + bezel included).
+		// The bar height affects the width and the width affects the row count, so we iterate a few rounds.
 		int maxH = (int) (height * 0.92);
 		int maxW = (int) (width * 0.92);
 		int rows = 1;
@@ -136,7 +136,7 @@ public class TabletScreen extends Screen {
 		int barRight = bxStart + bw;
 		int y = fy + BEZEL + 4;
 
-		// Simge tuslari sirayla yerlesir; sigmayan alt satira gecer.
+		// Icon buttons are placed in order; whatever does not fit wraps to the next row.
 		int[] cur = {bxStart, y};
 		java.util.function.IntUnaryOperator place = w -> {
 			if (cur[0] > bxStart && cur[0] + w > barRight) {
@@ -155,18 +155,18 @@ public class TabletScreen extends Screen {
 		bar.add(btn(place.applyAsInt(homeW), cur[1], homeW, wide ? Lang.tr("gui.doomscroll.remote.home") : "", Ui.ICON_HOME, Ui.BTN, Ui.BTN_HOVER, () -> Browsers.tabletNavigate(Browsers.TABLET_HOME_URL)));
 		int cinW = wide ? 54 : small;
 		bar.add(btn(place.applyAsInt(cinW), cur[1], cinW, wide ? Lang.tr("gui.doomscroll.remote.cinema") : "", Ui.ICON_CINEMA, Ui.BTN, Ui.BTN_HOVER, Browsers::toggleTabletCinema));
-		// Yer imi (yildiz) + menu (yer imleri / gecmis)
+		// Bookmark (star) + menu (bookmarks / history)
 		int starX = place.applyAsInt(small);
 		bar.add(new Ui.Btn(starX, cur[1], small, 16, () -> "", () -> TabletBookmarks.isBookmarked(Browsers.tabletUrl()) ? Ui.ICON_STAR_FILLED : Ui.ICON_STAR,
 				Ui.BTN, Ui.BTN_HOVER, this::toggleBookmark, () -> TabletBookmarks.isBookmarked(Browsers.tabletUrl())));
 		int menuX = place.applyAsInt(small);
 		bar.add(new Ui.Btn(menuX, cur[1], small, 16, () -> "", () -> Ui.ICON_MENU, Ui.BTN, Ui.BTN_HOVER, this::toggleMenu, () -> menuOpen));
-		// Ses: tabletin kendi seviyesi (kumandadaki ekran sesinden ayri)
+		// Volume: the tablet's own level (separate from the screen volume on the remote)
 		int speakerX = place.applyAsInt(small);
 		bar.add(new Ui.Btn(speakerX, cur[1], small, 16, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
 				Ui.BTN, Ui.BTN_HOVER, this::toggleVolume, () -> volOpen || Browsers.isTabletMuted()));
 
-		// Adres satiri: genis cubukta ayni satirin sagi, darda kendi satiri
+		// Address row: the right side of the same row in a wide bar, its own row in a narrow one
 		int urlY;
 		int urlX;
 		if (wide) {
@@ -184,7 +184,7 @@ public class TabletScreen extends Screen {
 		int goX = barRight - qW - gap - castW - gap - 3 - goW;
 		bar.add(btn(goX, urlY, goW, "", Ui.ICON_GO, Ui.BLUE, Ui.BLUE_HOVER, this::go));
 
-		// Adres kutusu asla GO tusunun altina girmesin (girdiginde tiklar GO'ya gidiyordu)
+		// The address box must never slip under the GO button (when it did, clicks went to GO)
 		int urlW = goX - gap - urlX;
 		if (urlW >= 24) {
 			urlBox = new EditBox(font, urlX, urlY, urlW, 16, Component.literal("url"));
@@ -196,11 +196,11 @@ public class TabletScreen extends Screen {
 			urlBox = null;
 		}
 
-		// Ses balonu: hoparlor tusunun altinda, cerceve icinde kalir
+		// Volume popup: below the speaker button, stays inside the frame
 		volW = Math.min(176, bw);
 		volH = 44;
 		volX = Math.max(bxStart, Math.min(speakerX - 6, bxStart + bw - volW));
-		volY = fy + BEZEL + barH + 6; // butun cubugun altinda: adres satirini ortmesin
+		volY = fy + BEZEL + barH + 6; // below the whole bar: it must not cover the address row
 		vsx = volX + 34;
 		vsw = Math.max(40, volW - 76);
 		vsy = volY + 12;
@@ -208,7 +208,7 @@ public class TabletScreen extends Screen {
 		volMute = new Ui.Btn(volX + 8, volY + 8, 20, 14, () -> "", () -> Browsers.isTabletMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
 				Ui.BTN, Ui.BTN_HOVER, Browsers::toggleTabletMute, Browsers::isTabletMuted);
 
-		// Menu paneli: tarayicinin sol ustunde
+		// Menu panel: top-left of the browser
 		mx = vx + 4;
 		my = vy + 4;
 		mw = Math.min(300, vw - 8);
@@ -223,7 +223,7 @@ public class TabletScreen extends Screen {
 		}
 	}
 
-	/** Cerceve ve tarayici alani: mevcut barH ile hesaplar. */
+	/** Frame and browser area: computed with the current barH. */
 	private void layoutFrame(int maxH, int maxW) {
 		int innerMax = Math.max(40, maxW - 2 * BEZEL);
 		vh = Math.max(20, maxH - 2 * BEZEL - barH);
@@ -232,8 +232,8 @@ public class TabletScreen extends Screen {
 			vw = innerMax;
 			vh = vw * Browsers.tabletHeight() / Browsers.tabletWidth();
 		}
-		// Cerceve, arac cubugunun en dar halinden dar olamaz; dik tablette tarayici
-		// cercevenin icinde ortalanir (yoksa tuslar tabletin disina tasiyordu).
+		// The frame cannot be narrower than the toolbar at its narrowest; on a portrait tablet the browser
+		// is centered inside the frame (otherwise the buttons spilled outside the tablet).
 		bw = Math.min(innerMax, Math.max(vw, BAR_MIN_W));
 		fw = bw + 2 * BEZEL;
 		fh = vh + 2 * BEZEL + barH;
@@ -244,16 +244,16 @@ public class TabletScreen extends Screen {
 		vy = fy + BEZEL + barH;
 	}
 
-	/** Verilen cubuk genisliginde kac satir gerekir (genis cubukta hepsi tek satira sigar). */
+	/** How many rows are needed at the given bar width (in a wide bar everything fits on one row). */
 	private static int barRows(int barW) {
 		if (barW >= NARROW) {
 			return 1;
 		}
-		int cap = Math.max(1, (barW + 3) / 23); // 20 piksel tus + 3 piksel bosluk
-		return (8 + cap - 1) / cap + 1;         // sekiz simge tusu + adres satiri
+		int cap = Math.max(1, (barW + 3) / 23); // 20-pixel button + 3-pixel gap
+		return (8 + cap - 1) / cap + 1;         // eight icon buttons + address row
 	}
 
-	// ---------- yer imleri / gecmis ----------
+	// ---------- bookmarks / history ----------
 
 	private void toggleBookmark() {
 		String u = Browsers.tabletUrl();
@@ -298,7 +298,7 @@ public class TabletScreen extends Screen {
 		}
 	}
 
-	/** Paneli yeniden kurar: yer imleri (yildizli satirlar, sil), gecmis (saatli satirlar, yildizla). */
+	/** Rebuilds the panel: bookmarks (starred rows, delete), history (clock rows, star). */
 	private void buildMenu() {
 		menu.clear();
 		menuLabels.clear();
@@ -313,9 +313,9 @@ public class TabletScreen extends Screen {
 		if (hist.isEmpty()) rows.add(new MenuRow(ROW_HINT_HISTORY, null));
 
 		int rowH = 16;
-		// Alt satirin kaydirma ipucuyla ust uste binmemesi icin 12 piksel ayrilir.
+		// 12 pixels are reserved so the bottom row does not overlap the scroll hint.
 		int visible = Math.max(1, (mh - 20) / rowH);
-		// Panel genisligine sigan karakter sayisi (yaklasik 6 piksel/karakter)
+		// Number of characters that fit the panel width (roughly 6 pixels/character)
 		final int chars = Math.max(8, (mw - 34) / 6);
 		int maxScroll = Math.max(0, rows.size() - visible);
 		menuScroll = Math.max(0, Math.min(menuScroll, maxScroll));
@@ -365,9 +365,9 @@ public class TabletScreen extends Screen {
 		}
 	}
 
-	// ---------- ekrana yolla / siraya ----------
+	// ---------- send to screen / to queue ----------
 
-	/** Tabletteki sayfayi baktigin / en yakin ekranin sirasina ekle. */
+	/** Add the page on the tablet to the queue of the screen you are looking at / the nearest one. */
 	private void queueToScreen() {
 		String u = Browsers.tabletUrl();
 		if (u.isEmpty() || u.startsWith("about:")) {
@@ -386,7 +386,7 @@ public class TabletScreen extends Screen {
 		}
 	}
 
-	/** Tabletteki sayfayi baktigin ya da en yakin ekrana yolla (herkes gorur). */
+	/** Send the page on the tablet to the screen you are looking at or the nearest one (everyone sees it). */
 	private void castToScreen() {
 		String u = Browsers.tabletUrl();
 		if (u.isEmpty() || u.startsWith("about:")) {
@@ -423,7 +423,7 @@ public class TabletScreen extends Screen {
 	@Override
 	public void tick() {
 		super.tick();
-		// Tablet acikken ana tarayici canli kalsin (ekran blogu yoksa idle-kapanmasin)
+		// Keep the main browser alive while the tablet is open (so it does not idle-close when there is no screen block)
 		Browsers.keepAlive();
 		if (urlBox != null && !urlBox.isFocused()) {
 			String cur = Browsers.tabletUrl();
@@ -444,14 +444,14 @@ public class TabletScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
 		g.fill(0, 0, width, height, 0x88000000);
-		// Kasa: kabartmali koyu govde
+		// Casing: embossed dark body
 		Ui.panel(g, fx - 2, fy - 2, fw + 4, fh + 4, C_SHELL, C_SHELL_HI, C_SHELL_LO);
-		// Arac cubugu zemini
+		// Toolbar background
 		g.fill(bxStart, fy + BEZEL, bxStart + bw, fy + BEZEL + barH, C_BAR);
 		g.fill(bxStart, fy + BEZEL + barH - 1, bxStart + bw, fy + BEZEL + barH, C_SHELL_LO);
-		// Cam (cukur)
+		// Glass (recessed)
 		Ui.inset(g, vx - 1, vy - 1, vw + 2, vh + 2, C_GLASS);
-		// Kamera noktasi + ana tus (susleme)
+		// Camera dot + home button (decoration)
 		g.fill(fx + fw / 2 - 1, fy + 3, fx + fw / 2 + 1, fy + 5, 0xFF0B0B0E);
 		g.fill(fx + fw / 2 - 1, fy + 3, fx + fw / 2, fy + 4, 0xFF3A4A6A);
 		g.fill(fx + fw / 2 - 9, fy + fh - 7, fx + fw / 2 + 9, fy + fh - 4, 0xFF0B0B0E);
@@ -464,7 +464,7 @@ public class TabletScreen extends Screen {
 							+ (init.getPercentage() >= 0 ? Lang.tr("gui.doomscroll.percent", (int) init.getPercentage()) : ""),
 					vx + vw / 2, vy + vh / 2, 0xFFFFFFFF);
 		} else if (b.getTextureView() != null) {
-			// Dogrudan tarayici dokusu blit'i (paylasimli tarayici artik icerik ciziyor)
+			// Direct blit of the browser texture (the shared browser now draws content)
 			g.blit(b.getTextureView(), Browsers.sampler(), vx, vy, vx + vw, vy + vh, 0f, 1f, 0f, 1f); // (x0,y0,x1,y1, u0,u1,v0,v1)
 		}
 		for (Ui.Btn bt : bar) {
@@ -523,7 +523,7 @@ public class TabletScreen extends Screen {
 					}
 					return true;
 				}
-				volOpen = false; // disari tik: balonu kapat, tik sayfaya gitmesin
+				volOpen = false; // click outside: close the popup, do not let the click reach the page
 				return true;
 			}
 			if (menuOpen) {
@@ -534,9 +534,9 @@ public class TabletScreen extends Screen {
 							return true;
 						}
 					}
-					return true; // panelin bos yeri: tarayiciya gitmesin
+					return true; // empty part of the panel: must not reach the browser
 				}
-				closeMenu(); // disari tik: paneli kapat, tik sayfaya gitmesin
+				closeMenu(); // click outside: close the panel, do not let the click reach the page
 				return true;
 			}
 		} else if ((menuOpen && inMenu(event.x(), event.y())) || inVolume(event.x(), event.y())) {
@@ -563,8 +563,8 @@ public class TabletScreen extends Screen {
 			return true;
 		}
 		if (!heldInView.remove(event.button())) {
-			// Basisi tarayiciya gitmemis bir birakma: ornegin tableti acan sag tik (Chromium sag tik menusunu
-			// birakmada acar) ya da arac cubugunda baslayan tik. Sayfaya iletilmez.
+			// A release whose press never went to the browser: e.g. the right click that opened the tablet (Chromium opens
+			// the context menu on release) or a click that started on the toolbar. Not forwarded to the page.
 			return super.mouseReleased(event);
 		}
 		CefBrowserView b = Browsers.getTabletIfPresent();

@@ -3,9 +3,9 @@ package com.doomscroll.client;
 import net.minecraft.network.chat.Component;
 
 /**
- * Dil dosyasi kisayolu. GUI cizimi (GuiGraphicsExtractor.text/centeredText) duz String istedigi icin
- * cevrilmis metni cozup dondurur. Sunucudan oyuncuya giden mesajlarda bunu KULLANMA: orada
- * Component.translatable gonder, alan istemci kendi diliyle cozsun.
+ * Language-file shortcut. GUI drawing (GuiGraphicsExtractor.text/centeredText) wants a plain String, so this
+ * resolves the translated text and returns it. Do NOT use it for messages going from the server to a player:
+ * send Component.translatable there and let the receiving client resolve it in its own language.
  */
 public final class Lang {
 	private Lang() {}
@@ -14,7 +14,7 @@ public final class Lang {
 		return Component.translatable(key, args).getString();
 	}
 
-	/** AÇIK / KAPALI (buyuk harf, kumanda ve tablet arayuzu icin). */
+	/** ON / OFF (upper case, for the remote and the tablet UI). */
 	public static String onOff(boolean on) {
 		return tr(on ? "gui.doomscroll.on" : "gui.doomscroll.off");
 	}

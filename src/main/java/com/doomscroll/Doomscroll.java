@@ -53,9 +53,9 @@ import java.util.function.Consumer;
 public class Doomscroll implements ModInitializer {
 	public static final String MOD_ID = "doomscroll";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	/** Oyuncu basina son adres degisikligi (bekleme suresi icin). */
+	/** Last address change per player (for the cooldown). */
 	private static final Map<UUID, Long> URL_COOLDOWN = new ConcurrentHashMap<>();
-	/** Oyuncu basina son rapor. */
+	/** Last report per player. */
 	private static final Map<UUID, Long> REPORT_COOLDOWN = new ConcurrentHashMap<>();
 
 	public static ScreenBlock SCREEN_BLOCK;
@@ -65,40 +65,40 @@ public class Doomscroll implements ModInitializer {
 	public static SoundEvent TABLET_SOUND;
 	public static TabletItem TABLET_ITEM;
 	public static BlockEntityType<ScreenBlockEntity> SCREEN_BE_TYPE;
-	/** Tabletin su an kimin elinde oldugu (sunucu her tick gunceller; baskasinin tabletini cizerken kullanilir). */
+	/** Who is holding the tablet right now (the server updates it every tick; used when rendering someone else's tablet). */
 	public static DataComponentType<UUID> TABLET_OWNER;
-	/** Kumandanin bagli oldugu ekran (anchor). Ekrana sag tik ile ayarlanir. */
+	/** The screen (anchor) the remote is bound to. Set by right-clicking a screen. */
 	public static DataComponentType<BlockPos> REMOTE_TARGET;
-	/** Test: bu sahip UUID'si sunucu tarafinda ezilmez (zirh askisi ile tek kisilik senkron testi). */
+	/** Test: this owner UUID is never overwritten server-side (one-person sync test with an armor stand). */
 	public static final UUID DEBUG_FAKE_OWNER = UUID.fromString("00000000-0000-4000-8000-00000000dead");
-	/** Sunucu: oyuncu -> tablet durumu. */
+	/** Server: player -> tablet state. */
 	public static final Map<UUID, TabletStateBroadcast> TABLET_STATES = new ConcurrentHashMap<>();
 
-	/** Acik ekranin isik seviyesi (0-15). */
+	/** Light level of a screen that is on (0-15). */
 	public static final int LIGHT_LEVEL = 12;
-	/** Kontrolcu bu sureden uzun sessiz kalirsa (sinyal yok) kontrol dusar. */
+	/** If the controller stays silent (no signal) longer than this, control is dropped. */
 	public static long CONTROL_TIMEOUT_MS = 45_000L;
-	/** Kontrolcu ekrandan bu kadar uzaklasinca kontrol dusar. */
+	/** Control is dropped once the controller moves this far away from the screen. */
 	public static final double CONTROL_RANGE = 64.0;
-	/** Istemcilerin ekranla konusabildigi en uzak mesafe. */
+	/** Farthest distance from which clients may talk to a screen. */
 	private static final double REACH = 96.0;
 
-	/** Sunucu: hangi ekranin kontrolcusu en son ne zaman sinyal verdi (boyut + anchor). */
+	/** Server: when each screen's controller last sent a signal (dimension + anchor). */
 	public record ScreenKey(ResourceKey<Level> dim, BlockPos pos) {}
 	public static final Map<ScreenKey, Long> CONTROL_ACTIVITY = new ConcurrentHashMap<>();
-	/** Sunucu: yayin aboneleri (ekran -> izleyiciler) ve ekran -> yayinci. */
+	/** Server: broadcast subscribers (screen -> viewers) and screen -> broadcaster. */
 	public static final Map<ScreenKey, java.util.Set<UUID>> BROADCAST_SUBS = new ConcurrentHashMap<>();
 	public static final Map<ScreenKey, UUID> BROADCASTERS = new ConcurrentHashMap<>();
-	/** Sunucu: yayinci basina parca sayaci (saniye penceresi, kotuye kullanim siniri). */
+	/** Server: per-broadcaster chunk counter (one-second window, abuse limit). */
 	private static final Map<UUID, long[]> CHUNK_RATE = new ConcurrentHashMap<>();
-	/** Sunucu: isaretci yayin hiz siniri (oyuncu -> son yayin ms). */
+	/** Server: pointer broadcast rate limit (player -> last broadcast ms). */
 	public static final Map<UUID, Long> POINTER_LAST = new ConcurrentHashMap<>();
-	/** Sunucu: tablet paketleri icin hiz siniri (oyuncu -> {son durum ms, son konum ms}). */
+	/** Server: rate limit for tablet packets (player -> {last state ms, last position ms}). */
 	private static final Map<UUID, long[]> TABLET_RATE = new ConcurrentHashMap<>();
-	/** Sunucu: kontrolcunun pasif adres degisiklikleri icin hiz siniri (ekran -> son ms). */
+	/** Server: rate limit for the controller's passive address changes (screen -> last ms). */
 	private static final Map<ScreenKey, Long> PASSIVE_URL = new ConcurrentHashMap<>();
 
-	// Client tarafinin doldurdugu kancalar
+	// Hooks filled in by the client side
 	public static Consumer<BlockPos> screenOpener = pos -> {};
 	public static Runnable playbackToggler = () -> {};
 	public static Runnable remoteOpener = () -> {};
@@ -109,13 +109,13 @@ public class Doomscroll implements ModInitializer {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
 
-	// ---------- yardimcilar (sunucu) ----------
+	// ---------- helpers (server) ----------
 
 	static boolean isAdmin(ServerPlayer p) {
 		return p.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
 	}
 
-	/** Kilitli ekrani sahibi ve yoneticiler; digerlerini herkes kontrol edebilir. */
+	/** A locked screen may be controlled by its owner and admins; any other screen by everyone. */
 	static boolean canControl(ScreenBlockEntity a, ServerPlayer p) {
 		return !a.isLocked() || a.isOwner(p.getUUID()) || isAdmin(p);
 	}
@@ -145,7 +145,7 @@ public class Doomscroll implements ModInitializer {
 		ServerPlayNetworking.send(p, new ScreenNoticePayload(a.getBlockPos(), ScreenNoticePayload.INFO, text));
 	}
 
-	/** Adresin okunabilir kisa hali (alan adi). */
+	/** Short readable form of the address (the domain). */
 	static String siteOf(String url) {
 		try {
 			String h = java.net.URI.create(url).getHost();
@@ -157,7 +157,7 @@ public class Doomscroll implements ModInitializer {
 		return url.length() > 30 ? url.substring(0, 30) + "..." : url;
 	}
 
-	/** Ekrana bilerek yeni sayfa acildi: yakindaki digerlerine kisa bildirim (izleme partisi hissi). */
+	/** A new page was deliberately opened on the screen: brief notice to the others nearby (watch-party feel). */
 	static void announce(ServerPlayer from, ScreenBlockEntity a, String url) {
 		ServerConfig sc = ServerConfig.get();
 		if (!sc.announce || sc.announceRange <= 0) {
@@ -171,7 +171,7 @@ public class Doomscroll implements ModInitializer {
 		}
 	}
 
-	/** Siradan bir video ekrana acilir: kontrol acani gecer, herkes ayni adrese doner. */
+	/** Opens a video from the queue on the screen: control passes to the opener, everyone switches to the same address. */
 	private static void openFromQueue(ServerPlayer player, ScreenBlockEntity a, ServerQueue.Entry e) {
 		giveControl(player, a);
 		if (!e.url.equals(a.getUrl())) {
@@ -181,7 +181,7 @@ public class Doomscroll implements ModInitializer {
 		a.setUrl(e.url);
 	}
 
-	/** Ekranin sirasini yakindaki herkese yolla; "ben oy verdim mi" alicisina gore degisir. */
+	/** Sends the screen's queue to everyone nearby; the "did I vote" flag depends on the recipient. */
 	static void sendQueue(ScreenBlockEntity a, ScreenKey key, net.minecraft.world.level.Level level) {
 		java.util.List<ServerQueue.Entry> entries = ServerQueue.list(key);
 		if (!(level instanceof ServerLevel sl)) {
@@ -197,12 +197,12 @@ public class Doomscroll implements ModInitializer {
 		}
 	}
 
-	/** Politikayi istemciye yolla (girise ve ayar degisikligine). */
+	/** Sends the policy to a client (on join and on a settings change). */
 	static void sendPolicy(ServerPlayer p) {
 		ServerPlayNetworking.send(p, policy());
 	}
 
-	/** Politikayi butun oyunculara yolla. */
+	/** Sends the policy to all players. */
 	public static void broadcastPolicy(@Nullable MinecraftServer server) {
 		if (server == null) {
 			return;
@@ -226,7 +226,7 @@ public class Doomscroll implements ModInitializer {
 				List.copyOf(c.blockedDomains), List.copyOf(c.allowedDomains), flags, c.urlCooldownMs);
 	}
 
-	/** Acil kapatma: yuklu butun ekranlari karart. Karartilan ekran sayisini dondurur. */
+	/** Emergency shutdown: darkens every loaded screen. Returns the number of screens darkened. */
 	public static int blackout() {
 		int n = 0;
 		for (ScreenBlockEntity s : ScreenBlockEntity.liveOnServer()) {
@@ -238,8 +238,8 @@ public class Doomscroll implements ModInitializer {
 		return n;
 	}
 
-	/** Adres degisikligi bekleme suresi (spam ve lag makinesi icin). */
-	/** Tablet paketleri icin oyuncu basina en az {@code gapMs} aralik. */
+	/** Address-change cooldown (against spam and lag machines). */
+	/** At least {@code gapMs} between tablet packets, per player. */
 	private static boolean tabletFlood(ServerPlayer p, int slot, long gapMs) {
 		long[] r = TABLET_RATE.computeIfAbsent(p.getUUID(), k -> new long[2]);
 		long now = System.currentTimeMillis();
@@ -250,7 +250,7 @@ public class Doomscroll implements ModInitializer {
 		return false;
 	}
 
-	/** Sayfanin kendi yonlendirmeleri: ekran basina saniyede en fazla iki degisiklik kayda gecer. */
+	/** The page's own redirects: at most two changes per second per screen get recorded. */
 	private static boolean passiveFlood(ServerPlayer p, ScreenBlockEntity a) {
 		ScreenKey k = keyOf(p.level(), a);
 		long now = System.currentTimeMillis();
@@ -276,7 +276,7 @@ public class Doomscroll implements ModInitializer {
 		return false;
 	}
 
-	/** Rapor spam'ini engelle: oyuncu basina 10 saniyede bir. */
+	/** Prevents report spam: once per 10 seconds per player. */
 	private static boolean onReportCooldown(ServerPlayer p) {
 		long now = System.currentTimeMillis();
 		Long last = REPORT_COOLDOWN.get(p.getUUID());
@@ -287,7 +287,7 @@ public class Doomscroll implements ModInitializer {
 		return false;
 	}
 
-	/** Reddetme sebebine gore mesaj. Adres hicbir zaman bicim dizesi olarak kullanilmaz. */
+	/** Message according to the denial reason. The address is never used as a format string. */
 	static Component denyMessage(int deny, String url) {
 		String site = siteOf(url);
 		return switch (deny) {
@@ -302,7 +302,7 @@ public class Doomscroll implements ModInitializer {
 		return url != null && url.length() <= 2048 && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("doomscroll://"));
 	}
 
-	/** Oyuncunun erisebildigi (yuklu, menzilde) ekranin anchor BE'si; yoksa null. */
+	/** Anchor BE of a screen the player can reach (loaded, within range); null otherwise. */
 	@Nullable
 	static ScreenBlockEntity anchorNear(ServerPlayer player, BlockPos pos, double range) {
 		if (player.position().distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > range * range) {
@@ -320,8 +320,8 @@ public class Doomscroll implements ModInitializer {
 		return null;
 	}
 
-	/** Kontrolu dusmus/uzaklasmis/cikmis kontrolculeri temizler (saniyede bir). */
-	/** Yayinci cevrimdisi, baska boyutta ya da menzil disindaysa yayini bitir (izleyiciler sitenin adresine doner). */
+	/** Clears controllers that timed out / moved away / left (once a second). */
+	/** Ends the broadcast if the broadcaster is offline, in another dimension or out of range (viewers fall back to the site's address). */
 	private static void expireBroadcasts(MinecraftServer server) {
 		if (BROADCASTERS.isEmpty()) {
 			return;
@@ -350,7 +350,7 @@ public class Doomscroll implements ModInitializer {
 					|| h.position().distanceToSqr(Vec3.atCenterOf(pos)) > REACH * REACH
 					|| !a.isOn();
 			if (gone) {
-				LOGGER.info("[yayin] {} ekranindaki yayin bitti ({})", pos.toShortString(), a.getBroadcasterName());
+				LOGGER.info("[broadcast] broadcast on screen {} ended ({})", pos.toShortString(), a.getBroadcasterName());
 				a.setBroadcaster(null, "");
 				BROADCASTERS.remove(e.getKey());
 				BROADCAST_SUBS.remove(e.getKey());
@@ -373,7 +373,7 @@ public class Doomscroll implements ModInitializer {
 				continue;
 			}
 			if (!level.isLoaded(pos)) {
-				continue; // yuklenince bakilir
+				continue; // checked once it loads
 			}
 			if (!(level.getBlockEntity(pos) instanceof ScreenBlockEntity a) || !a.isAnchor() || a.getController() == null) {
 				it.remove();
@@ -385,14 +385,14 @@ public class Doomscroll implements ModInitializer {
 					|| c.position().distanceToSqr(Vec3.atCenterOf(pos)) > CONTROL_RANGE * CONTROL_RANGE
 					|| now - e.getValue() > CONTROL_TIMEOUT_MS;
 			if (gone) {
-				LOGGER.info("[kontrol] {} ekranindaki kontrol dustu ({})", pos.toShortString(), a.getControllerName());
+				LOGGER.info("[control] control of screen {} dropped ({})", pos.toShortString(), a.getControllerName());
 				a.setController(null, "");
 				it.remove();
 			}
 		}
 	}
 
-	/** Oyuncu ciktiginda tuttugu tum kontrolleri birakir. */
+	/** Releases every control the player holds when they leave. */
 	private static void dropControlsOf(MinecraftServer server, UUID player) {
 		Iterator<Map.Entry<ScreenKey, Long>> it = CONTROL_ACTIVITY.entrySet().iterator();
 		while (it.hasNext()) {
@@ -435,7 +435,7 @@ public class Doomscroll implements ModInitializer {
 						.useBlockDescriptionPrefix())
 		);
 
-		// Tarayici sesleri: sounds.json stream girdileri; gercek veri SoundBufferLibraryMixin ile canli PCM
+		// Browser sounds: stream entries in sounds.json; the real data is live PCM via SoundBufferLibraryMixin
 		SCREEN_SOUND = Registry.register(BuiltInRegistries.SOUND_EVENT, id("screen"),
 				SoundEvent.createFixedRangeEvent(id("screen"), 48.0f));
 		TABLET_SOUND = Registry.register(BuiltInRegistries.SOUND_EVENT, id("tablet"),
@@ -463,7 +463,7 @@ public class Doomscroll implements ModInitializer {
 				new BlockEntityType<>(ScreenBlockEntity::new, Set.of(SCREEN_BLOCK))
 		);
 
-		// Yaratici envanter: Islevsel Bloklar sekmesi
+		// Creative inventory: Functional Blocks tab
 		ResourceKey<CreativeModeTab> functional = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("functional_blocks"));
 		CreativeModeTabEvents.modifyOutputEvent(functional).register(out -> {
 			out.accept(new ItemStack(SCREEN_ITEM), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
@@ -477,7 +477,7 @@ public class Doomscroll implements ModInitializer {
 		REMOTE_TARGET = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("remote_target"),
 				DataComponentType.<BlockPos>builder().persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC).build());
 
-		// ---------- ag tipleri ----------
+		// ---------- network types ----------
 		PayloadTypeRegistry.serverboundPlay().register(SetScreenUrlPayload.TYPE, SetScreenUrlPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(SetScreenPowerPayload.TYPE, SetScreenPowerPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(ScreenControlPayload.TYPE, ScreenControlPayload.CODEC);
@@ -499,9 +499,9 @@ public class Doomscroll implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(com.doomscroll.net.BroadcastControlBroadcast.TYPE, com.doomscroll.net.BroadcastControlBroadcast.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(com.doomscroll.net.ScreenPointerBroadcast.TYPE, com.doomscroll.net.ScreenPointerBroadcast.CODEC);
 
-		// ---------- ekran adresi (kontrol modeli) ----------
-		// explicit: oyuncu bilerek yonlendirdi -> kontrolu alir (kilit izin veriyorsa), adres herkese gider.
-		// pasif: tarayicisi kendiliginden degisti -> yalnizca kontrolcu (ya da kontrol bostaysa ilk gelen) yayar.
+		// ---------- screen address (control model) ----------
+		// explicit: the player navigated deliberately -> takes control (if the lock allows), the address goes to everyone.
+		// passive: their browser changed on its own -> only the controller (or, if control is free, the first to arrive) propagates it.
 		ServerPlayNetworking.registerGlobalReceiver(SetScreenUrlPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			String url = payload.url();
@@ -527,7 +527,7 @@ public class Doomscroll implements ModInitializer {
 			}
 			if (payload.explicit()) {
 				if (!canControl(a, player)) {
-					deny(player, a); // once yetki: reddedilen deneme beklemeyi yakmasin
+					deny(player, a); // permission first: a refused attempt must not consume the cooldown
 					return;
 				}
 				if (onCooldown(player)) {
@@ -545,7 +545,7 @@ public class Doomscroll implements ModInitializer {
 			UUID c = a.getController();
 			if (c == null) {
 				if (!canControl(a, player)) {
-					return; // kilitli ekranda izleyici sessizce izler
+					return; // on a locked screen a viewer just watches silently
 				}
 				giveControl(player, a);
 				if (!url.equals(a.getUrl())) {
@@ -556,16 +556,16 @@ public class Doomscroll implements ModInitializer {
 				touch(player, a);
 				if (!url.equals(a.getUrl())) {
 					if (passiveFlood(player, a)) {
-						return; // sayfanin kendi yonlendirmeleri sunucuyu doldurmasin
+						return; // the page's own redirects must not flood the server
 					}
 					AuditLog.record(player, a, AuditLog.OPEN, url);
 				}
 				a.setUrl(url);
 			}
-			// baskasinin surdugu ekrandaki pasif degisiklik yayilmaz
+			// a passive change on a screen driven by someone else is not propagated
 		}));
 
-		// ---------- kontrol al / birak / kilit ----------
+		// ---------- take / release control, lock ----------
 		ServerPlayNetworking.registerGlobalReceiver(ScreenControlPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenBlockEntity a = anchorNear(player, payload.pos(), REACH);
@@ -635,7 +635,7 @@ public class Doomscroll implements ModInitializer {
 			}
 		}));
 
-		// ---------- paylasimli isaretci (bakan oyuncunun imleci, yakindakilere) ----------
+		// ---------- shared pointer (the looking player's cursor, sent to those nearby) ----------
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenPointerPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			if (!ServerConfig.get().pointer) {
 				return;
@@ -653,11 +653,11 @@ public class Doomscroll implements ModInitializer {
 			long now = System.currentTimeMillis();
 			Long last = POINTER_LAST.get(player.getUUID());
 			if (last != null && now - last < 60L) {
-				return; // sn'de en fazla ~16 (ayrilma bildirimi de dahil)
+				return; // at most ~16 per second (the leave notice included)
 			}
 			POINTER_LAST.put(player.getUUID(), now);
 			var b = new com.doomscroll.net.ScreenPointerBroadcast(a.getBlockPos(), player.getUUID(), player.getName().getString(), pu, pv);
-			boolean echo = Boolean.getBoolean("doomscroll.selftest"); // duman testi: gonderene de yansit
+			boolean echo = Boolean.getBoolean("doomscroll.selftest"); // smoke test: echo it back to the sender too
 			for (ServerPlayer p : PlayerLookup.around(player.level(), Vec3.atCenterOf(a.getBlockPos()), 48.0)) {
 				if (p != player || echo) {
 					ServerPlayNetworking.send(p, b);
@@ -665,7 +665,7 @@ public class Doomscroll implements ModInitializer {
 			}
 		}));
 
-		// ---------- yayin: baslat / durdur / abone ----------
+		// ---------- broadcast: start / stop / subscribe ----------
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.BroadcastControlPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenBlockEntity a = anchorNear(player, payload.pos(), REACH);
@@ -721,7 +721,7 @@ public class Doomscroll implements ModInitializer {
 						return;
 					}
 					if (!BROADCAST_SUBS.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(player.getUUID())) {
-						return; // zaten aboneydi: yayinciyi yeniden baslatma
+						return; // was already subscribed: do not restart the broadcaster
 					}
 					ServerPlayer hp = ctx.server().getPlayerList().getPlayer(host);
 					if (hp != null) {
@@ -738,7 +738,7 @@ public class Doomscroll implements ModInitializer {
 			}
 		}));
 
-		// ---------- yayin parcalari (yayinci -> aboneler) ----------
+		// ---------- broadcast chunks (broadcaster -> subscribers) ----------
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.BroadcastChunkPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenKey key = new ScreenKey(player.level().dimension(), payload.pos().immutable());
@@ -746,7 +746,7 @@ public class Doomscroll implements ModInitializer {
 			if (host == null || !host.equals(player.getUUID())) {
 				return;
 			}
-			// hiz siniri: saniyede en fazla 40 dilim (~1.2 MB/s), fazlasi atilir
+			// rate limit: at most 40 chunks per second (~1.2 MB/s), anything more is dropped
 			long[] rate = CHUNK_RATE.computeIfAbsent(player.getUUID(), k -> new long[2]);
 			long sec = System.currentTimeMillis() / 1000L;
 			if (rate[0] != sec) {
@@ -775,7 +775,7 @@ public class Doomscroll implements ModInitializer {
 			}
 		}));
 
-		// ---------- video konumu (kontrolcu -> izleyiciler) ----------
+		// ---------- video position (controller -> viewers) ----------
 		ServerPlayNetworking.registerGlobalReceiver(ScreenTimePayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenBlockEntity a = anchorNear(player, payload.pos(), REACH);
@@ -784,7 +784,7 @@ public class Doomscroll implements ModInitializer {
 			}
 			touch(player, a);
 			if (!(payload.time() >= 0f) || !(payload.duration() > 0f)) {
-				return; // yalnizca "buradayim" sinyali
+				return; // just an "I am here" signal
 			}
 			ScreenTimeBroadcast b = new ScreenTimeBroadcast(a.getBlockPos(), payload.time(), payload.duration(), payload.paused());
 			for (ServerPlayer p : PlayerLookup.around(player.level(), Vec3.atCenterOf(a.getBlockPos()), REACH)) {
@@ -794,11 +794,11 @@ public class Doomscroll implements ModInitializer {
 			}
 		}));
 
-		// ---------- kisisel tablet durumu (herkes baskasinin tabletinde onun izledigini gorsun) ----------
+		// ---------- personal tablet state (so everyone sees what a player is watching on their tablet) ----------
 		ServerPlayNetworking.registerGlobalReceiver(TabletStatePayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			if (player.hasDisconnected()) {
-				return; // baglanti koptuktan sonra gelen paket kalici hayalet birakmasin
+				return; // a packet arriving after the disconnect must not leave a permanent ghost
 			}
 			String url = payload.url();
 			if (!url.isEmpty() && !validUrl(url)) {
@@ -807,7 +807,7 @@ public class Doomscroll implements ModInitializer {
 			if (tabletFlood(player, 0, 250L)) {
 				return;
 			}
-			// Ekranla ayni kurallar: engelli/izinli alan adi, yerel ag, acil kapatma, izin dugumu.
+			// Same rules as the screen: blocked/allowed domain, local network, emergency shutdown, permission node.
 			if (!url.isEmpty()) {
 				boolean bypass = Perms.has(player, Perms.BYPASS, Perms.GAMEMASTER);
 				if (!bypass && !Perms.has(player, Perms.URL, Perms.EVERYONE)) {
@@ -818,7 +818,7 @@ public class Doomscroll implements ModInitializer {
 					AuditLog.record(player, null, AuditLog.BLOCKED, "tablet " + url);
 					ServerPlayNetworking.send(player, new ScreenNoticePayload(player.blockPosition(),
 							ScreenNoticePayload.BLOCKED, denyMessage(deny, url)));
-					url = ""; // baskalarinin tabletinde bos gorunsun; kendi sayfasi acik kalir
+					url = ""; // shows as empty on other players' tablets; their own page stays open
 				}
 			}
 			float vol = payload.volume();
@@ -829,10 +829,10 @@ public class Doomscroll implements ModInitializer {
 				ServerPlayNetworking.send(p, b);
 			}
 		}));
-		// tablet konumu: izleyenler ayni ana hizalansin (anlik, saklanmaz)
+		// tablet position: viewers align to the same moment (transient, not stored)
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.TabletTimePayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			if (!(payload.time() >= 0f) || !(payload.duration() >= 0f)) {
-				return; // NaN de buraya dusuyor
+				return; // NaN lands here too
 			}
 			if (tabletFlood(ctx.player(), 1, 200L)) {
 				return;
@@ -852,7 +852,7 @@ public class Doomscroll implements ModInitializer {
 			}
 		});
 
-		// ---------- paylasilan sira (oylamali) ----------
+		// ---------- shared queue (with voting) ----------
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.QueueActionPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenBlockEntity a = anchorNear(player, payload.pos(), CONTROL_RANGE);
@@ -920,13 +920,13 @@ public class Doomscroll implements ModInitializer {
 					openFromQueue(player, a, e);
 				}
 				default -> {
-					// REFRESH: asagidaki yayin zaten guncel listeyi yolluyor
+					// REFRESH: the broadcast below already sends the current list
 				}
 			}
 			sendQueue(a, key, player.level());
 		}));
 
-		// ---------- rapor et ----------
+		// ---------- report ----------
 		ServerPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenReportPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenBlockEntity a = anchorNear(player, payload.pos(), 64);
@@ -938,7 +938,7 @@ public class Doomscroll implements ModInitializer {
 				return;
 			}
 			String owner = a.getOwnerName().isEmpty() ? "-" : a.getOwnerName();
-			// Istemcinin yolladigi nota guvenme: adres ve sahip sunucudan okunur.
+			// Do not trust the note sent by the client: the address and the owner are read from the server.
 			AuditLog.record(player, a, AuditLog.REPORT, "owner=" + owner + " url=" + a.getUrl() + " note=" + payload.note());
 			notice(player, a, Component.translatable("message.doomscroll.report.sent"));
 			BlockPos bp = a.getBlockPos();
@@ -965,7 +965,7 @@ public class Doomscroll implements ModInitializer {
 			TABLET_RATE.remove(id);
 			URL_COOLDOWN.remove(id);
 			REPORT_COOLDOWN.remove(id);
-			// yayinci ciktiysa yayin biter; abonelikleri sil
+			// if the broadcaster left, the broadcast ends; drop the subscriptions
 			for (var e : BROADCASTERS.entrySet()) {
 				if (id.equals(e.getValue())) {
 					ServerLevel lvl = server.getLevel(e.getKey().dim());
@@ -981,14 +981,14 @@ public class Doomscroll implements ModInitializer {
 			}
 		});
 
-		// ---------- kumandadan ac/kapat ----------
+		// ---------- power on/off from the remote ----------
 		ServerPlayNetworking.registerGlobalReceiver(SetScreenPowerPayload.TYPE, (payload, ctx) -> ctx.server().execute(() -> {
 			ServerPlayer player = ctx.player();
 			ScreenBlockEntity a = anchorNear(player, payload.pos(), CONTROL_RANGE);
 			if (a == null) {
 				return;
 			}
-			// Kapatmak sahibine (ve yoneticilere); acmak kilit yoksa herkese
+			// Turning off is for the owner (and admins); turning on is for everyone unless locked
 			if (!payload.on() && !a.isOwner(player.getUUID()) && !isAdmin(player)) {
 				player.sendOverlayMessage(a.getOwnerName().isEmpty()
 						? Component.translatable("message.doomscroll.power.owner_only")
@@ -1007,7 +1007,7 @@ public class Doomscroll implements ModInitializer {
 			AuditLog.record(player, a, AuditLog.POWER, payload.on() ? "on" : "off");
 		}));
 
-		// ---------- kontrol suresi ----------
+		// ---------- control timeout ----------
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			if (server.getTickCount() % 20 == 0) {
 				expireControllers(server);
@@ -1015,8 +1015,8 @@ public class Doomscroll implements ModInitializer {
 			}
 		});
 
-		// Dunya kapaninca sunucu tarafi tablolar sifirlanir; yoksa bir sonraki dunyada
-		// ayni koordinattaki ekran eski sirayi ve eski kontrolcuyu devralir.
+		// Server-side tables are reset when the world closes; otherwise, in the next world, the
+		// screen at the same coordinates would inherit the old queue and the old controller.
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			URL_COOLDOWN.clear();
 			REPORT_COOLDOWN.clear();
@@ -1033,6 +1033,6 @@ public class Doomscroll implements ModInitializer {
 			AuditLog.flush();
 		});
 
-		LOGGER.info("doomscroll yuklendi - kaydirmaya hazir");
+		LOGGER.info("doomscroll loaded - ready to scroll");
 	}
 }

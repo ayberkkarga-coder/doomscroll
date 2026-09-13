@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Istemci -> sunucu: su ekrani ac/kapat. */
+/** Client -> server: turn this screen on/off. */
 public record SetScreenPowerPayload(BlockPos pos, boolean on) implements CustomPacketPayload {
 	public static final Type<SetScreenPowerPayload> TYPE = new Type<>(Doomscroll.id("set_screen_power"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, SetScreenPowerPayload> CODEC = StreamCodec.composite(

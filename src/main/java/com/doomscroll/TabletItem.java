@@ -17,7 +17,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
 
-/** Tablet: sag tik ile elde tarayici acar (client tarafi). Ekran blogundan bagimsiz kendi tarayicisi vardir. */
+/** Tablet: right-click opens a handheld browser (client side). It has its own browser, independent of the screen block. */
 public class TabletItem extends Item {
 	public TabletItem(Properties properties) {
 		super(properties);
@@ -37,7 +37,7 @@ public class TabletItem extends Item {
 		out.accept(Component.translatable("item.doomscroll.tablet.tooltip.hint").withStyle(ChatFormatting.DARK_GRAY));
 	}
 
-	/** Sunucu: tablet kimin envanterindeyse sahibi o olsun (baskasinin tabletini cizerken ona bakilir). */
+	/** Server: whoever has the tablet in their inventory becomes its owner (consulted when rendering someone else's tablet). */
 	@Override
 	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, EquipmentSlot slot) {
 		if (entity instanceof Player p) {

@@ -23,22 +23,22 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /**
- * TV kumandasi. Yalnizca bagli oldugu ekrani yonetir (kumanda eldeyken ekrana sag tik = bagla).
- * Uc sekme: KUMANDA (ses, kaynaklar, kanal, gezinme, adres, yansit), AYARLAR (oynatma/tarayici), DIGER (ekran/isik/yayin/sira).
- * Cizim dili {@link Ui}: kabartmali koyu govde, yesil durum ekrani, piksel simgeli tuslar.
+ * TV remote. Controls only the screen it is bound to (right-click a screen while holding the remote = bind).
+ * Three tabs: REMOTE (volume, sources, channel, navigation, address, cast), SETTINGS (playback/browser), MORE (screen/glow/broadcast/queue).
+ * Drawing language {@link Ui}: embossed dark body, green status display, pixel-icon buttons.
  */
 public class RemoteScreen extends Screen {
 	private static final int BODY_W = 170;
 	/**
-	 * En uzun sekmenin yuksekligi; ust kenar buna gore sabitlenir, govde sekme icerigi kadar uzar.
-	 * Cerceveyle birlikte 238 piksel: Minecraft'in garanti ettigi en kucuk arayuz yuksekligi 240,
-	 * bundan buyuk olursa 1280x720 + olcek 3'te panelin ustu ve alti ekran disinda kaliyor.
+	 * Height of the tallest tab; the top edge is fixed by it, the body grows to the tab's content.
+	 * 238 pixels including the frame: the smallest GUI height Minecraft guarantees is 240;
+	 * any larger and at 1280x720 + GUI scale 3 the top and bottom of the panel end up off screen.
 	 */
 	private static final int BODY_H_MAX = 234;
 	private static final int BODY_H_REMOTE = 214;
 	private static final int PAD = 10;
 	private static final int ROW = 16;
-	/** Ayar satiri araligi: on satir sigsin diye tuslardan bir tik dar. */
+	/** Setting row pitch: a notch tighter than the buttons so that ten rows fit. */
 	private static final int SROW = 14;
 
 	private static final int C_DISPLAY = 0xFF0A0E11;
@@ -60,11 +60,11 @@ public class RemoteScreen extends Screen {
 	private static final int PAGE_REMOTE = 0;
 	private static final int PAGE_SETTINGS = 1;
 	private static final int PAGE_OTHER = 2;
-	/** Sira listesi: sekme degil, DIGER -> Sira ile acilan alt sayfa. */
+	/** Queue list: not a tab, a sub-page opened via MORE -> Queue. */
 	private static final int PAGE_QUEUE = 3;
 	private static final int QUEUE_VISIBLE = 7;
 	private static int queueScroll = 0;
-	/** Son acik sekme (kumanda kapatilip acilinca hatirlanir). */
+	/** Last open tab (remembered when the remote is closed and reopened). */
 	private static int page = PAGE_REMOTE;
 
 	private static String tabName(int i) {
@@ -72,7 +72,7 @@ public class RemoteScreen extends Screen {
 				: i == 1 ? "gui.doomscroll.remote.tab.settings" : "gui.doomscroll.remote.tab.other");
 	}
 
-	/** Ayar satiri etiketi. */
+	/** Setting row label. */
 	private record Label(int x, int y, String text) {}
 
 	private final List<Ui.Btn> buttons = new ArrayList<>();
@@ -94,9 +94,9 @@ public class RemoteScreen extends Screen {
 		super(Component.translatable("gui.doomscroll.remote.title"));
 	}
 
-	// ---------- yardimcilar ----------
+	// ---------- helpers ----------
 
-	/** Eldeki kumandanin bagli oldugu ekran (yoksa null). */
+	/** The screen the held remote is bound to (null if none). */
 	@Nullable
 	private BlockPos boundTarget() {
 		if (minecraft == null || minecraft.player == null) {
@@ -120,12 +120,12 @@ public class RemoteScreen extends Screen {
 		return be instanceof ScreenBlockEntity s ? s : null;
 	}
 
-	/** Ekran gerektiren tus: bagli ekran yoksa uyarir. */
+	/** Button that requires a screen: warns when no screen is bound. */
 	private void add(int x, int y, int w, int h, String label, @Nullable Identifier icon, int color, int hover, Runnable action) {
 		buttons.add(new Ui.Btn(x, y, w, h, () -> label, icon == null ? null : () -> icon, color, hover, guarded(action), () -> false));
 	}
 
-	/** Genel ayar: ekrana bagli olmayi gerektirmez. */
+	/** General setting: does not require being bound to a screen. */
 	private void addFree(int x, int y, int w, int h, Supplier<String> label, Runnable action, BooleanSupplier on) {
 		buttons.add(new Ui.Btn(x, y, w, h, label, null, Ui.BTN, Ui.BTN_HOVER, action, on));
 	}
@@ -140,7 +140,7 @@ public class RemoteScreen extends Screen {
 		};
 	}
 
-	/** Kisa bildirim: hem panel ekraninda hem eylem cubugunda. */
+	/** Short notice: both on the panel display and in the action bar. */
 	private void hint(String text) {
 		hintText = text;
 		hintUntilMs = System.currentTimeMillis() + 3000L;
@@ -159,7 +159,7 @@ public class RemoteScreen extends Screen {
 		super.removed();
 	}
 
-	// ---------- duzen ----------
+	// ---------- layout ----------
 
 	@Override
 	protected void init() {
@@ -179,19 +179,19 @@ public class RemoteScreen extends Screen {
 				target = bound;
 				paired = true;
 			}
-			// Bagli degilse hicbir ekrani yonetmez (bakilan/en yakin ekrana dusmez)
+			// If not bound it controls no screen at all (no fallback to the looked-at/nearest screen)
 			ScreenBrowsers.setActive(target);
-			ScreenBrowsers.setRemoteLock(true); // panel acikken yalnizca bagli ekran
+			ScreenBrowsers.setRemoteLock(true); // only the bound screen while the panel is open
 		}
 
 		int left = bx + PAD;
 		int inner = BODY_W - 2 * PAD; // 150
 
-		// Guc (sag ust)
+		// Power (top right)
 		powerBtn = new Ui.Btn(bx + BODY_W - PAD - 26, by + 6, 26, 18, () -> "", () -> Ui.ICON_POWER, Ui.RED, Ui.RED_HOVER, guarded(this::togglePower), () -> false);
 		buttons.add(powerBtn);
 
-		// Sekmeler (durum ekraninin altinda)
+		// Tabs (below the status display)
 		tabY = by + 69;
 		int tw = (inner - 8) / 3;
 		for (int i = 0; i < 3; i++) {
@@ -226,7 +226,7 @@ public class RemoteScreen extends Screen {
 	}
 
 	private void initRemote(int left, int inner, int top) {
-		// Ses: sessiz + kaydirici
+		// Volume: mute + slider
 		int volY = top;
 		buttons.add(new Ui.Btn(left, volY, 24, 14, () -> "", () -> Browsers.isMuted() ? Ui.ICON_SPEAKER_OFF : Ui.ICON_SPEAKER,
 				Ui.BTN, Ui.BTN_HOVER, Browsers::toggleMute, Browsers::isMuted));
@@ -235,21 +235,21 @@ public class RemoteScreen extends Screen {
 		sw = inner - 30;
 		sh = 6;
 
-		// Kaynaklar
+		// Sources
 		int third = (inner - 8) / 3;
 		int srcY = volY + 20;
 		add(left, srcY, third, ROW, "Shorts", null, C_YT, C_YT_HOVER, () -> Browsers.navigate(Browsers.URL_SHORTS));
 		add(left + third + 4, srcY, third, ROW, "Reels", null, C_IG, C_IG_HOVER, () -> Browsers.navigate(Browsers.URL_REELS));
 		add(left + 2 * (third + 4), srcY, inner - 2 * (third + 4), ROW, "TikTok", null, C_TT, C_TT_HOVER, () -> Browsers.navigate(Browsers.URL_TIKTOK));
 
-		// Kanal: < [kanal adi] > — ortadaki tus gecerli kanala gider
+		// Channel: < [channel name] > — the middle button goes to the current channel
 		int chY = srcY + ROW + 5;
 		add(left, chY, 20, ROW, "", Ui.ICON_BACK, Ui.BTN, Ui.BTN_HOVER, () -> tune(-1));
 		buttons.add(new Ui.Btn(left + 23, chY, inner - 46, ROW, this::channelLabel, null, C_DISPLAY, 0xFF14201A,
 				guarded(() -> Browsers.navigate(Channels.current().url())), () -> false));
 		add(left + inner - 20, chY, 20, ROW, "", Ui.ICON_FORWARD, Ui.BTN, Ui.BTN_HOVER, () -> tune(1));
 
-		// Gezinme + sinema
+		// Navigation + cinema
 		int navY = chY + ROW + 5;
 		int navW = 20;
 		add(left, navY, navW, ROW, "", Ui.ICON_BACK, Ui.BTN, Ui.BTN_HOVER, Browsers::goBack);
@@ -259,7 +259,7 @@ public class RemoteScreen extends Screen {
 		add(anaX, navY, navW, ROW, "", Ui.ICON_HOME, Ui.BTN, Ui.BTN_HOVER, () -> Browsers.navigate(HomePages.screenUrl(target)));
 		add(anaX + navW + 3, navY, inner - 4 * (navW + 3), ROW, Lang.tr("gui.doomscroll.remote.cinema"), Ui.ICON_CINEMA, Ui.BTN, Ui.BTN_HOVER, Browsers::toggleCinema);
 
-		// Adres
+		// Address
 		int urlY = navY + ROW + 5;
 		urlBox = new EditBox(font, left, urlY, inner - 52, ROW, Component.literal("url"));
 		urlBox.setMaxLength(2048);
@@ -268,7 +268,7 @@ public class RemoteScreen extends Screen {
 		add(left + inner - 49, urlY, 27, ROW, "", Ui.ICON_GO, Ui.BLUE, Ui.BLUE_HOVER, () -> go(urlBox.getValue()));
 		add(left + inner - 19, urlY, 19, ROW, "", Ui.ICON_PLUS, Ui.BTN, Ui.BTN_HOVER, () -> queueUrl(urlBox.getValue()));
 
-		// Ekrandaki sayfayi tablete al (tablet -> ekran yonu tabletin kendi "Yansit" tusunda)
+		// Take the page on the screen to the tablet (the tablet -> screen direction is on the tablet's own "Cast" button)
 		int castY = urlY + ROW + 5;
 		add(left, castY, inner, ROW, Lang.tr("gui.doomscroll.remote.cast_to_tablet"), Ui.ICON_TO_TABLET, Ui.BLUE, Ui.BLUE_HOVER, this::screenToTablet);
 	}
@@ -404,7 +404,7 @@ public class RemoteScreen extends Screen {
 		settingRow(left, inner, y, Lang.tr("gui.doomscroll.remote.setting.queue"), () -> Lang.tr("gui.doomscroll.remote.videos_value", ScreenQueue.size(target)), () -> switchPage(PAGE_QUEUE), () -> ScreenQueue.size(target) > 0, false);
 	}
 
-	/** Sira listesi: her satir [oynat] [baslik] [sil]; ustte geri/sayac/temizle; tekerlekle kayar. */
+	/** Queue list: each row [play] [title] [remove]; back/counter/clear at the top; scrolls with the wheel. */
 	private void initQueue(int left, int inner, int top) {
 		ScreenQueue.refresh(target);
 		List<com.doomscroll.net.QueueBroadcast.Row> q = ScreenQueue.list(target);
@@ -426,7 +426,7 @@ public class RemoteScreen extends Screen {
 		int maxScroll = Math.max(0, q.size() - QUEUE_VISIBLE);
 		queueScroll = Math.max(0, Math.min(queueScroll, maxScroll));
 		int end = Math.min(q.size(), queueScroll + QUEUE_VISIBLE);
-		// Satir: oynat | baslik | oy sayisi (basinca oy ver/geri al) | kaldir
+		// Row: play | title | vote count (press to vote/unvote) | remove
 		for (int i = queueScroll; i < end; i++) {
 			final int no = i + 1;
 			final com.doomscroll.net.QueueBroadcast.Row row = q.get(i);
@@ -464,7 +464,7 @@ public class RemoteScreen extends Screen {
 		};
 	}
 
-	/** Ayar satiri: solda etiket, sagda degeri gosteren tus (acik ise yesil). */
+	/** Setting row: label on the left, a button showing the value on the right (green when on). */
 	private void settingRow(int left, int inner, int y, String label, Supplier<String> value, Runnable action, BooleanSupplier on, boolean needsScreen) {
 		int bw = 52;
 		labels.add(new Label(left, y + 3, fit(label, inner - bw - 4)));
@@ -475,7 +475,7 @@ public class RemoteScreen extends Screen {
 		}
 	}
 
-	// ---------- eylemler ----------
+	// ---------- actions ----------
 
 	private String channelLabel() {
 		String url = Browsers.currentUrl();
@@ -486,7 +486,7 @@ public class RemoteScreen extends Screen {
 		return shortName(name, 16);
 	}
 
-	/** "+": adres kutusundaki sayfayi bagli ekranin sirasina ekle. */
+	/** "+": add the page in the address box to the bound screen's queue. */
 	private void queueUrl(String text) {
 		if (text == null || text.isBlank()) {
 			hint(Lang.tr("message.doomscroll.queue.type_first"));
@@ -523,7 +523,7 @@ public class RemoteScreen extends Screen {
 		hint(Lang.tr("message.doomscroll.channel", c.name()));
 	}
 
-	/** Bagli ekrandaki sayfayi tablete al (YouTube'da kaldigi saniyeden) ve tableti ac. */
+	/** Take the page on the bound screen to the tablet (from the second it is at on YouTube) and open the tablet. */
 	private void screenToTablet() {
 		String u = Browsers.currentUrl();
 		if (u == null || u.isEmpty() || u.startsWith("about:")) {
@@ -537,7 +537,7 @@ public class RemoteScreen extends Screen {
 		}
 	}
 
-	/** YouTube izleme adresine ekranin kaldigi saniyeyi ekler (Shorts/diger siteler oldugu gibi kalir). */
+	/** Appends the second the screen is at to a YouTube watch URL (Shorts/other sites are left as they are). */
 	static String withTime(String url, @Nullable ScreenBrowsers.Screen s) {
 		if (s == null) return url;
 		double t = s.localNow();
@@ -564,7 +564,7 @@ public class RemoteScreen extends Screen {
 		ScreenBrowsers.sendControl(be.getAnchor(), ScreenControlPayload.TOGGLE_LOCK);
 	}
 
-	/** Metni verilen genislige sigdirir; sigmazsa sonuna ".." koyar. */
+	/** Fits the text into the given width; if it does not fit, appends ".." to it. */
 	private String fit(String text, int maxW) {
 		if (font.width(text) <= maxW) {
 			return text;
@@ -593,7 +593,7 @@ public class RemoteScreen extends Screen {
 		Browsers.setUserVolume(Math.round(Math.max(0f, Math.min(1f, v)) * 20f) / 20f);
 	}
 
-	/** Adresten okunabilir kaynak adi. */
+	/** Readable source name from a URL. */
 	static String siteName(String url) {
 		if (url == null || url.isEmpty() || url.startsWith("about:")) {
 			return Lang.tr("gui.doomscroll.empty_page");
@@ -620,13 +620,13 @@ public class RemoteScreen extends Screen {
 		return s.length() > max ? s.substring(0, max - 1) + "…" : s;
 	}
 
-	// ---------- cizim ----------
+	// ---------- drawing ----------
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
 		g.fill(0, 0, width, height, 0x70000000);
 
-		// Govde: kabartmali koyu kumanda, ustte biraz daha acik baslik bandi
+		// Body: embossed dark remote, a slightly lighter title band at the top
 		Ui.panel(g, bx - 2, by - 2, BODY_W + 4, bodyH + 4, Ui.BODY, Ui.BODY_HI, Ui.BODY_LO);
 		g.fill(bx, by, bx + BODY_W, by + 30, 0xFF34343C);
 		g.fill(bx, by + 30, bx + BODY_W, by + 31, Ui.BODY_LO);
@@ -634,7 +634,7 @@ public class RemoteScreen extends Screen {
 		g.text(font, "doomscroll", bx + PAD + 13, by + 6, Ui.TXT_DIM, false);
 		g.text(font, Lang.tr("gui.doomscroll.remote.subtitle"), bx + PAD, by + 17, Ui.TXT, false);
 
-		// Durum ekrani (yesil LCD)
+		// Status display (green LCD)
 		ScreenBlockEntity be = targetBe();
 		int dTop = by + 34;
 		Ui.inset(g, bx + PAD - 2, dTop - 2, BODY_W - 2 * PAD + 4, 34, C_DISPLAY);
@@ -681,7 +681,7 @@ public class RemoteScreen extends Screen {
 		g.centeredText(font, l2, bx + BODY_W / 2, dTop + 12, C_DISPLAY_TXT);
 		g.centeredText(font, l3, bx + BODY_W / 2, dTop + 22, c3);
 
-		// Sekmeler: metin + aktif sekmenin altinda mavi cizgi
+		// Tabs: text + a blue line under the active tab
 		int inner = BODY_W - 2 * PAD;
 		int leftX = bx + PAD;
 		g.fill(leftX, tabY + 15, leftX + inner, tabY + 16, Ui.BODY_LO);
@@ -696,7 +696,7 @@ public class RemoteScreen extends Screen {
 			}
 		}
 
-		// Tuslar
+		// Buttons
 		for (Ui.Btn b : buttons) {
 			if (isTab(b)) continue;
 			boolean hover = b.contains(mouseX, mouseY);
@@ -710,12 +710,12 @@ public class RemoteScreen extends Screen {
 			Ui.button(g, font, b, hover, tc);
 		}
 
-		// Ayar etiketleri
+		// Setting labels
 		for (Label l : labels) {
 			g.text(font, l.text(), l.x(), l.y(), C_LABEL, false);
 		}
 
-		// Ses kaydiricisi (kumanda sekmesi)
+		// Volume slider (remote tab)
 		if (sw > 0) {
 			float vol = Browsers.getUserVolume();
 			int fillW = Math.round((sw - 2) * vol);
@@ -731,7 +731,7 @@ public class RemoteScreen extends Screen {
 		super.extractRenderState(g, mouseX, mouseY, partialTick);
 	}
 
-	// ---------- girdi ----------
+	// ---------- input ----------
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {

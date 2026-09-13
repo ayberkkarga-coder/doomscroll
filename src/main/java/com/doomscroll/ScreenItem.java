@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.Block;
 
 import java.util.function.Consumer;
 
-/** Ekran blogunun esyasi: yerlestirme ipuclari (birlesme, egilerek yer/tavan). */
+/** Item form of the screen block: placement hints (merging, sneak for floor/ceiling). */
 public class ScreenItem extends BlockItem {
 	public ScreenItem(Block block, Properties properties) {
 		super(block, properties);

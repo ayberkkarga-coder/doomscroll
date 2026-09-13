@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin(Channel.class)
 public interface ChannelAccessor {
-	/** OpenAL kaynak kimligi (Sound Physics API'sine verilir). */
+	/** OpenAL source id (handed to the Sound Physics API). */
 	@Accessor("source")
 	int doomscroll$source();
 }

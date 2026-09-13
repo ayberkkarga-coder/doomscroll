@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TV kanallari: kumandadaki "Kanal ◀ / ▶" listede gezer. Liste config/doomscroll.json icinde
- * (/ds kanal ekle|sil|liste ile de duzenlenir). Her oyuncunun kendi listesi vardir.
+ * TV channels: the "Channel ◀ / ▶" buttons on the remote walk this list. The list lives in config/doomscroll.json
+ * (it can also be edited with /ds kanal ekle|sil|liste). Every player has their own list.
  */
 public final class Channels {
 	public record Channel(String name, String url) {}
@@ -30,7 +30,7 @@ public final class Channels {
 	public static List<Channel> list() {
 		List<Channel> out = new ArrayList<>();
 		List<DoomscrollConfig.ChannelEntry> cfg = DoomscrollConfig.get().channels;
-		// Kopya uzerinde gez: bu metot ana sayfa uretilirken CEF'in IO is parcaciginda da cagriliyor.
+		// Iterate over a copy: this method is also called on CEF's IO thread while the home page is being generated.
 		cfg = cfg == null ? null : List.copyOf(cfg);
 		if (cfg != null) {
 			for (DoomscrollConfig.ChannelEntry e : cfg) {
@@ -67,13 +67,13 @@ public final class Channels {
 		return current();
 	}
 
-	/** Verilen adres bir kanala aitse o kanal (ve sayac oraya alinir); degilse null. */
+	/** The channel the given URL belongs to (and the index moves there); null if none. */
 	@Nullable
 	public static Channel match(@Nullable String url) {
 		if (url == null || url.isEmpty()) return null;
 		List<Channel> l = list();
 		String u = url.toLowerCase();
-		// once en uzun (en ozel) kanal adresi
+		// the longest (most specific) channel URL wins
 		Channel best = null;
 		int bestLen = -1;
 		for (int i = 0; i < l.size(); i++) {
@@ -87,7 +87,7 @@ public final class Channels {
 		return best;
 	}
 
-	/** Kanal adi ya da site adi. */
+	/** The channel name, or else the site name. */
 	public static String nameFor(@Nullable String url, String fallback) {
 		Channel c = match(url);
 		return c != null ? c.name() : fallback;

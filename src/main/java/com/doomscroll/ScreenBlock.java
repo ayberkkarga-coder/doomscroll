@@ -24,17 +24,17 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
- * Ekran blogu. Yonu iki parcadan olusur: {@link #FACING} on yuz (duvarda yatay, yerde UP, tavanda DOWN) ve
- * {@link #TOP} yer/tavan ekraninda resmin ust kenarinin yonu (duvarda ust hep yukari; TOP yok sayilir).
- * Panel geometrisi her yerde ayni iki vektorle kurulur: sag = ust x on, uzama (bakanin solu) = on x ust.
+ * Screen block. Its orientation has two parts: {@link #FACING}, the front face (horizontal on a wall, UP on the floor, DOWN on the ceiling), and
+ * {@link #TOP}, the direction of the image's top edge on a floor/ceiling screen (on a wall the top is always up; TOP is ignored).
+ * Panel geometry is built everywhere from the same two vectors: right = top x front, extend (the viewer's left) = front x top.
  */
 public class ScreenBlock extends BaseEntityBlock {
 	public static final MapCodec<ScreenBlock> CODEC = simpleCodec(ScreenBlock::new);
-	/** On yuzun baktigi yon. Eski dunyalarla uyumlu: ad ve yatay degerler ayni, up/down eklendi. */
+	/** Direction the front face looks toward. Compatible with old worlds: same name and horizontal values, up/down added. */
 	public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
-	/** Yer/tavan ekraninda resmin ust kenari (kuzey/guney/dogu/bati). Duvar ekraninda kullanilmaz. */
+	/** Top edge of the image on a floor/ceiling screen (north/south/east/west). Not used on a wall screen. */
 	public static final EnumProperty<Direction> TOP = EnumProperty.create("top", Direction.class, Direction.Plane.HORIZONTAL);
-	/** Acik ekran isik yayar (odayi TV gibi aydinlatir). Anchor'un guc durumuyla eslenir. */
+	/** A powered-on screen emits light (lights up the room like a TV). Matched to the anchor's power state. */
 	public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
 	public ScreenBlock(Properties properties) {
@@ -52,20 +52,20 @@ public class ScreenBlock extends BaseEntityBlock {
 		builder.add(FACING, TOP, LIT);
 	}
 
-	// ---------- yon yardimcilari (sunucu ve istemci ayni kurali kullanir) ----------
+	// ---------- direction helpers (server and client use the same rule) ----------
 
-	/** Resmin ust kenarinin yonu: duvarda yukari, yer/tavanda TOP. */
+	/** Direction of the image's top edge: up on a wall, TOP on the floor/ceiling. */
 	public static Direction top(BlockState st) {
 		Direction f = st.getValue(FACING);
 		return f.getAxis().isHorizontal() ? Direction.UP : st.getValue(TOP);
 	}
 
-	/** Panelin anchor'dan uzadigi yon (bakan kisinin solu) = on x ust. Duvarda facing.getClockWise() ile ayni. */
+	/** Direction the panel extends from the anchor (the viewer's left) = front x top. On a wall this is the same as facing.getClockWise(). */
 	public static Direction extend(BlockState st) {
 		return cross(st.getValue(FACING), top(st));
 	}
 
-	/** Bakan kisinin sagi = ust x on. Renderer / isin kesisimi / isik ayni cerceveyi kullanir. */
+	/** The viewer's right = top x front. Renderer / ray intersection / light all use the same frame. */
 	public static Direction right(Direction front, Direction top) {
 		return cross(top, front);
 	}
@@ -80,16 +80,16 @@ public class ScreenBlock extends BaseEntityBlock {
 				Direction.NORTH);
 	}
 
-	/** Ayni panelde birlesebilir mi: ayni blok, ayni on yuz, ayni ust kenar. */
+	/** Whether two blocks can merge into the same panel: same block, same front face, same top edge. */
 	public static boolean sameOrientation(BlockState a, BlockState b) {
 		return a.getBlock() == b.getBlock() && a.getBlock() == Doomscroll.SCREEN_BLOCK
 				&& a.getValue(FACING) == b.getValue(FACING) && top(a) == top(b);
 	}
 
 	/**
-	 * Yerlestirme: (1) egilerek bir blogun ust/alt yuzune koyunca yer/tavan ekrani — ust kenar yerde baktigin yon
-	 * (uzak kenar), tavanda tersi (kafani kaldirip bakinca gorusun ustu arkana duser); (2) bitisik bir ekranin
-	 * duzlemindeyse onun yonunu alir (panel uzatirken bakis yonu onemsiz); (3) yoksa duvar ekrani, oyuncuya bakar.
+	 * Placement: (1) sneaking while placing on a block's top/bottom face gives a floor/ceiling screen — the top edge is your look
+	 * direction on the floor (the far edge), the opposite on the ceiling (tilt your head up to look and the top of your view falls behind you);
+	 * (2) in the plane of an adjacent screen it takes that screen's orientation (look direction is irrelevant while extending a panel); (3) otherwise a wall screen facing the player.
 	 */
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
@@ -120,7 +120,7 @@ public class ScreenBlock extends BaseEntityBlock {
 		return new ScreenBlockEntity(pos, state);
 	}
 
-	/** Sunucu: BE tick'i (yalnizca yuklenince tek seferlik isik/guc esitlemesi yapar). */
+	/** Server: the BE ticker (only performs a one-time light/power sync after loading). */
 	@Nullable
 	@Override
 	public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
@@ -149,8 +149,8 @@ public class ScreenBlock extends BaseEntityBlock {
 	}
 
 	/**
-	 * Sunucu sinirlari: izin, panel buyuklugu, oyuncu basina ekran sayisi.
-	 * Sinir asilirsa blok geri alinir ve esya iade edilir (lag makinesi kurulmasin).
+	 * Server limits: permission, panel size, number of screens per player.
+	 * If a limit is exceeded the block is removed and the item refunded (so nobody builds a lag machine).
 	 */
 	private static boolean refuse(Level level, BlockPos pos, Player p, ScreenBlockEntity be) {
 		ServerConfig sc = ServerConfig.get();
@@ -175,7 +175,7 @@ public class ScreenBlock extends BaseEntityBlock {
 		return true;
 	}
 
-	/** Oyuncunun yuklu chunk'lardaki ekran blogu sayisi. */
+	/** Number of screen blocks the player owns in loaded chunks. */
 	private static int ownedBy(Player p) {
 		int n = 0;
 		for (ScreenBlockEntity s : ScreenBlockEntity.liveOnServer()) {
@@ -190,14 +190,14 @@ public class ScreenBlock extends BaseEntityBlock {
 	protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
 		super.onPlace(state, level, pos, oldState, movedByPiston);
 		if (oldState.is(this)) {
-			return; // yalnizca ozellik degisti (isik); yerlesim ayni
+			return; // only a property changed (light); the layout is unchanged
 		}
 		if (!level.isClientSide()) {
 			ScreenMultiblock.recompute(level, pos, state);
 		}
 	}
 
-	/** Redstone: panelin bir bloguna sinyal geldiginde (yukselen kenar) ekrani ac/kapat; ekran basina /ds redstone ile acilir. */
+	/** Redstone: when a signal reaches a block of the panel (rising edge), toggle the screen on/off; enabled per screen with /ds redstone. */
 	@Override
 	protected void neighborChanged(BlockState state, Level level, BlockPos pos, net.minecraft.world.level.block.Block neighborBlock, @Nullable net.minecraft.world.level.redstone.Orientation orientation, boolean movedByPiston) {
 		super.neighborChanged(state, level, pos, neighborBlock, orientation, movedByPiston);
@@ -212,7 +212,7 @@ public class ScreenBlock extends BaseEntityBlock {
 		if (a == null || !a.isRedstone()) {
 			return;
 		}
-		// Panelin herhangi bir bloguna gelen sinyal sayilir
+		// A signal arriving at any block of the panel counts
 		Direction extend = extend(state);
 		Direction up = top(state);
 		boolean any = false;
@@ -223,21 +223,21 @@ public class ScreenBlock extends BaseEntityBlock {
 				}
 			}
 		}
-		// Once sinyal durumunu yaz: setOn'un tetikledigi komsu guncellemeleri (panel bloklari birbirinin komsusu)
-		// yeniden buraya girer; guncel 'powered' degeri sayesinde ikinci kez toggle olmaz.
+		// Write the signal state first: the neighbor updates triggered by setOn (panel blocks are each other's neighbors)
+		// re-enter here; thanks to the up-to-date 'powered' value there is no second toggle.
 		boolean rising = any && !a.isPowered();
 		a.setPowered(any);
 		if (rising && !REDSTONE_BUSY.get()) {
 			REDSTONE_BUSY.set(true);
 			try {
-				a.setOn(!a.isOn()); // yukselen kenar: ac/kapat
+				a.setOn(!a.isOn()); // rising edge: toggle on/off
 			} finally {
 				REDSTONE_BUSY.set(false);
 			}
 		}
 	}
 
-	/** Redstone toggle sirasinda ic ice komsu guncellemelerini yoksay (ayni is parcacigi). */
+	/** Ignore nested neighbor updates during a redstone toggle (same thread). */
 	private static final ThreadLocal<Boolean> REDSTONE_BUSY = ThreadLocal.withInitial(() -> false);
 
 	@Override
@@ -249,8 +249,8 @@ public class ScreenBlock extends BaseEntityBlock {
 
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-		// Ekran etkilesimi istemci tarafinda (DirectControl) yakalanir; blok tiki yutmasin ki
-		// elindeki bloklar ekranin uzerine/yanina yerlestirilebilsin.
+		// Screen interaction is captured on the client side (DirectControl); the block must not swallow the click,
+		// so that blocks held in hand can still be placed on/next to the screen.
 		return InteractionResult.PASS;
 	}
 }

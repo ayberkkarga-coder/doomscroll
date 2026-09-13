@@ -1,19 +1,19 @@
-/* doomscroll - ana sayfalarin ortak cizim dili (Minecraft arayuzu).
-   Kurallar: yuvarlak kose yok, bulaniklik yok, degrade yok, animasyon yok.
-   Panel = 2px siyah kontur + iceride sol-ust acik / sag-alt koyu kenar.
-   Yuva (yazi alani, basili dugme) ayni kenarlarin tersi.
-   Yazi = piksel font + 2px sert golge. */
+/* doomscroll - shared visual language of the home pages (Minecraft UI).
+   Rules: no rounded corners, no blur, no gradients, no animation.
+   Panel = 2px black outline + light top-left / dark bottom-right inner edge.
+   Slot (text field, pressed button) = the same edges inverted.
+   Text = pixel font + 2px hard shadow. */
 
 :root{
-  --ink:#f0f1f6;      /* ana yazi */
-  --dim:#a9aec2;      /* ikincil yazi */
-  --faint:#767c91;    /* ucuncul */
-  --sh:#15151d;       /* yazi golgesi */
-  --panel:#2b2b33;    /* panel yuzu */
-  --hi:#4e4e5c;       /* kabartma acik kenar */
-  --lo:#15151b;       /* kabartma koyu kenar */
-  --field:#08080c;    /* icine basik alan */
-  --edge:#6e6e80;     /* alan dis konturu */
+  --ink:#f0f1f6;      /* main text */
+  --dim:#a9aec2;      /* secondary text */
+  --faint:#767c91;    /* tertiary */
+  --sh:#15151d;       /* text shadow */
+  --panel:#2b2b33;    /* panel face */
+  --hi:#4e4e5c;       /* emboss light edge */
+  --lo:#15151b;       /* emboss dark edge */
+  --field:#08080c;    /* inset field */
+  --edge:#6e6e80;     /* field outer outline */
   --btn:#3a3a45;
   --btn-hi:#5c5c6c;
   --btn-on:#4a5f7a;
@@ -34,12 +34,12 @@ body{
 }
 ::selection{background:var(--btn-on);color:#fff}
 
-/* --- yazi --- */
+/* --- text --- */
 .t-sh,.status,.label,.big,.day,.foot,h1,h2,h3,h4,.wrow,.empty,.hint{text-shadow:var(--px) var(--px) 0 var(--sh)}
 .dim{color:var(--dim)}
 .faint{color:var(--faint)}
 
-/* --- panel: disa kabarik --- */
+/* --- panel: raised --- */
 .panel{
   background:var(--tile-panel) repeat;
   background-size:64px 64px;
@@ -47,14 +47,14 @@ body{
   box-shadow:inset var(--px) var(--px) 0 var(--hi), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 var(--lo);
 }
 
-/* --- yuva: icine basik (yazi alani, liste kutusu) --- */
+/* --- slot: inset (text field, list box) --- */
 .slot{
   background:var(--field);
   border:var(--px) solid #000;
   box-shadow:inset var(--px) var(--px) 0 #000, inset calc(-1*var(--px)) calc(-1*var(--px)) 0 #3a3a46, 0 0 0 var(--px) var(--edge);
 }
 
-/* --- dugme --- */
+/* --- button --- */
 .btn{
   background:var(--btn);
   border:var(--px) solid #000;
@@ -69,7 +69,7 @@ body{
 .btn.ok{background:var(--btn-on)}
 .btn.ok:hover{background:#5a739a}
 
-/* --- piksel simge (maske: rengi yazidan alir) --- */
+/* --- pixel icon (mask: takes its color from the text) --- */
 .ico{
   display:inline-block;
   background:currentColor;
@@ -95,7 +95,7 @@ body{
 .ico-lock{-webkit-mask-image:var(--ic-lock);mask-image:var(--ic-lock)}
 .ico-search{-webkit-mask-image:var(--ic-search);mask-image:var(--ic-search)}
 
-/* --- uygulama yuvasi: duz renk + kabartma --- */
+/* --- app slot: flat color + emboss --- */
 .tileface{
   border:var(--px) solid #000;
   box-shadow:inset var(--px) var(--px) 0 rgba(255,255,255,.30), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 rgba(0,0,0,.42);
@@ -104,7 +104,7 @@ body{
 a:hover>.tileface,.tileface:hover{filter:brightness(1.18)}
 a:active>.tileface,.tileface:active{filter:brightness(.85);box-shadow:inset var(--px) var(--px) 0 rgba(0,0,0,.42), inset calc(-1*var(--px)) calc(-1*var(--px)) 0 rgba(255,255,255,.30)}
 
-/* --- kaldir dugmesi (kucuk kirmizi kare) --- */
+/* --- remove button (small red square) --- */
 .rm{
   position:absolute;width:18px;height:18px;display:none;z-index:2;cursor:pointer;
   background:var(--red);border:var(--px) solid #000;
@@ -114,7 +114,7 @@ a:active>.tileface,.tileface:active{filter:brightness(.85);box-shadow:inset var(
   -webkit-mask:var(--ic-close) center/contain no-repeat;mask:var(--ic-close) center/contain no-repeat}
 .rm:hover{background:#e0564c}
 
-/* --- kaydirma cubugu: ince ve kare --- */
+/* --- scrollbar: thin and square --- */
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:var(--field)}
 ::-webkit-scrollbar-thumb{background:var(--btn);border:var(--px) solid #000}

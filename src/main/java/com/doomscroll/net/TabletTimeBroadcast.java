@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.UUID;
 
-/** Sunucu -> istemci: su oyuncunun tabletindeki videonun konumu (izleyenler bu ana hizalanir). */
+/** Server -> client: position of the video on this player's tablet (watchers align to this moment). */
 public record TabletTimeBroadcast(UUID player, float time, float duration, boolean paused) implements CustomPacketPayload {
 	public static final Type<TabletTimeBroadcast> TYPE = new Type<>(Doomscroll.id("tablet_time_broadcast"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, TabletTimeBroadcast> CODEC = StreamCodec.composite(

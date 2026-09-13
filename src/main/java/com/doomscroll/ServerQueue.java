@@ -14,19 +14,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Ekran basina paylasilan video sirasi, oylamayla.
+ * Per-screen shared video queue, with voting.
  *
- * <p>Eskiden sira her istemcinin kendi belleginde duruyordu; yani "herkes siraya eklesin"
- * aslinda calismiyordu, yalnizca ekrani suren kisinin listesi isliyordu. Artik sunucuda:
- * herkes ekleyebilir, herkes gorur, siradaki video <b>en cok oyu alan</b> olur.
+ * <p>The queue used to live in each client's own memory; so "everyone can add to the queue"
+ * did not really work, only the list of the person driving the screen was processed. Now on the server:
+ * everyone can add, everyone sees it, and the next video is <b>the one with the most votes</b>.
  *
- * <p>Siralama: once oy sayisi (cok olan ustte), esitlikte once eklenen ustte. Ekleyen kisi
- * kendi videosuna otomatik oy vermis sayilir, yani oysuz bir liste eklenme sirasini korur.
+ * <p>Ordering: vote count first (most on top), ties broken by earliest added. The person who adds
+ * counts as having voted for their own video automatically, so a list without votes keeps insertion order.
  *
- * <p>Oturumluk: diske yazilmaz, sunucu kapaninca gider.
+ * <p>Session-only: not written to disk, gone when the server shuts down.
  */
 public final class ServerQueue {
-	/** Ekran basina en fazla video. */
+	/** Maximum videos per screen. */
 	public static final int MAX = 50;
 
 	private static final Map<Doomscroll.ScreenKey, List<Entry>> QUEUES = new ConcurrentHashMap<>();
@@ -34,14 +34,14 @@ public final class ServerQueue {
 
 	private ServerQueue() {}
 
-	/** Siradaki bir video. {@code seq} eklenme sirasi, esit oyda bunu kullaniriz. */
+	/** One video in the queue. {@code seq} is the insertion order; we use it as the tie-breaker on equal votes. */
 	public static final class Entry {
 		public final String url;
 		public String title;
 		public final UUID by;
 		public final String byName;
 		public final long seq;
-		/** Oy veren oyuncular; ekleyen de icinde. */
+		/** Players who voted; includes the one who added it. */
 		public final Set<UUID> votes = new LinkedHashSet<>();
 
 		Entry(String url, String title, UUID by, String byName) {
@@ -63,7 +63,7 @@ public final class ServerQueue {
 	private static final Comparator<Entry> ORDER =
 			Comparator.<Entry>comparingInt(e -> -e.voteCount()).thenComparingLong(e -> e.seq);
 
-	/** Siranin o anki hali, oynatma sirasiyla. */
+	/** Current state of the queue, in playback order. */
 	public static List<Entry> list(@Nullable Doomscroll.ScreenKey key) {
 		if (key == null) {
 			return List.of();
@@ -88,10 +88,10 @@ public final class ServerQueue {
 	}
 
 	/**
-	 * Siraya ekler. Ayni adres zaten varsa yeni girdi acmaz, o girdiye oy verir:
-	 * "ben de bunu istiyorum" demenin dogal yolu.
+	 * Adds to the queue. If the same URL is already present it does not open a new entry but votes for that one:
+	 * the natural way of saying "I want this too".
 	 *
-	 * @return eklendiyse ya da oy verildiyse true; sira doluysa false
+	 * @return true if added or voted; false if the queue is full
 	 */
 	public static boolean add(Doomscroll.ScreenKey key, String url, String title, ServerPlayer by) {
 		List<Entry> q = QUEUES.computeIfAbsent(key, k -> new ArrayList<>());
@@ -113,7 +113,7 @@ public final class ServerQueue {
 		}
 	}
 
-	/** Oyu ac/kapat. Girdi yoksa false. */
+	/** Toggle a vote. False if there is no such entry. */
 	public static boolean vote(Doomscroll.ScreenKey key, String url, ServerPlayer p) {
 		List<Entry> q = QUEUES.get(key);
 		if (q == null) {
@@ -132,7 +132,7 @@ public final class ServerQueue {
 		return false;
 	}
 
-	/** Siradan cikarir. Yalnizca ekleyen ve yoneticiler silebilir. */
+	/** Removes from the queue. Only the one who added it and admins can delete. */
 	public static boolean remove(Doomscroll.ScreenKey key, String url, ServerPlayer p, boolean admin) {
 		List<Entry> q = QUEUES.get(key);
 		if (q == null) {
@@ -156,12 +156,12 @@ public final class ServerQueue {
 		return false;
 	}
 
-	/** Sirayi bosaltir (ekran sahibi ya da yonetici). */
+	/** Empties the queue (screen owner or admin). */
 	public static void clear(Doomscroll.ScreenKey key) {
 		QUEUES.remove(key);
 	}
 
-	/** Bir sonraki videoyu cikarip dondurur (en cok oy alan); sira bossa null. */
+	/** Removes and returns the next video (the one with the most votes); null if the queue is empty. */
 	@Nullable
 	public static Entry poll(Doomscroll.ScreenKey key) {
 		List<Entry> q = QUEUES.get(key);
@@ -182,7 +182,7 @@ public final class ServerQueue {
 		}
 	}
 
-	/** Belirli bir adresi siradan cikarip dondurur (hemen oynat). */
+	/** Removes and returns a specific URL from the queue (play now). */
 	@Nullable
 	public static Entry take(Doomscroll.ScreenKey key, String url) {
 		List<Entry> q = QUEUES.get(key);
@@ -203,12 +203,12 @@ public final class ServerQueue {
 		return null;
 	}
 
-	/** Ekran kirildi: sirasi da gitsin (yoksa sunucu boyunca birikir). */
+	/** Screen broken: its queue goes too (otherwise it piles up for the server's lifetime). */
 	public static void forget(Doomscroll.ScreenKey key) {
 		QUEUES.remove(key);
 	}
 
-	/** Sunucu kapanirken / dunya bosalirken. */
+	/** On server shutdown / when the world unloads. */
 	public static void clearAll() {
 		QUEUES.clear();
 	}

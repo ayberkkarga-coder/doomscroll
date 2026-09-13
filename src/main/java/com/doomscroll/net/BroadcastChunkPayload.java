@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Yayinci istemci -> sunucu: WebM parcasinin bir dilimi (sunucuya giden paket siniri 32 KB). */
+/** Broadcaster client -> server: one slice of a WebM chunk (the serverbound packet limit is 32 KB). */
 public record BroadcastChunkPayload(BlockPos pos, int seq, int piece, int pieces, boolean init, byte[] data) implements CustomPacketPayload {
 	public static final int MAX_PIECE = 30000;
 	public static final Type<BroadcastChunkPayload> TYPE = new Type<>(Doomscroll.id("bc_chunk"));

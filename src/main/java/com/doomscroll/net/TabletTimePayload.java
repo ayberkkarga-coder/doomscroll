@@ -6,9 +6,9 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Istemci -> sunucu: kendi tabletimdeki videonun konumu (saniyede bir).
- * Baskalarinin istemcisi ayni sayfayi kendi acar; bu konum sayesinde ayni ana hizalanir.
- * time &lt; 0: sayfada video yok.
+ * Client -> server: position of the video on my own tablet (once per second).
+ * Other players' clients open the same page themselves; this position lets them align to the same moment.
+ * time &lt; 0: no video on the page.
  */
 public record TabletTimePayload(float time, float duration, boolean paused) implements CustomPacketPayload {
 	public static final Type<TabletTimePayload> TYPE = new Type<>(Doomscroll.id("tablet_time"));

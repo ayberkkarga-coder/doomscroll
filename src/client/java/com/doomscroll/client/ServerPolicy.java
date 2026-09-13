@@ -11,13 +11,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Sunucunun adres politikasinin istemcideki kopyasi (girise ve her ayar degisikligine gelir).
+ * Client-side copy of the server's URL policy (arrives on login and on every settings change).
  *
- * <p>Neden istemcide de var: sunucu yalnizca <b>paylasilan</b> adresi denetleyebilir, ama
- * yonlendirmeler once tarayicida olur. Kisaltilmis bir adres engelli bir siteye giderse
- * sayfa bir an yuklenir. Ayni kurali her tarayicida, her adres degisikliginde uygulayinca
- * sayfa hic acilmaz. Degistirilmis bir istemci bunu yok sayabilir; sunucudaki denetim yine
- * gecerlidir, bu katman durustlugu degil sizintiyi engeller.
+ * <p>Why it also lives on the client: the server can only check the <b>shared</b> URL, but
+ * redirects happen in the browser first. If a shortened URL leads to a blocked site, the page
+ * loads for a moment. Applying the same rule in every browser, on every URL change, means the
+ * page never opens at all. A modified client can ignore this; the server-side check still
+ * stands, so this layer prevents leaks, not dishonesty.
  */
 public final class ServerPolicy {
 	private static volatile List<String> blocked = List.of();
@@ -25,7 +25,7 @@ public final class ServerPolicy {
 	private static volatile int flags = ServerPolicyBroadcast.SHOW_DOMAIN;
 	private static volatile int urlCooldownMs = 1500;
 
-	/** Izleyicinin bu oturumda "goster" dedigi alan adlari. */
+	/** Domains the viewer has said "show" to in this session. */
 	private static final Set<String> TRUSTED = ConcurrentHashMap.newKeySet();
 
 	private ServerPolicy() {}
@@ -35,10 +35,10 @@ public final class ServerPolicy {
 		allowed = List.copyOf(p.allowed());
 		flags = p.flags();
 		urlCooldownMs = p.urlCooldownMs();
-		Doomscroll.LOGGER.info("[politika] engelli {}, izinli {}, bayraklar {}", blocked.size(), allowed.size(), flags);
+		Doomscroll.LOGGER.info("[policy] blocked {}, allowed {}, flags {}", blocked.size(), allowed.size(), flags);
 	}
 
-	/** Dunyadan cikinca: bir sonraki sunucunun politikasi sizmasin. */
+	/** On leaving the world: no stale policy may leak into the next server. */
 	public static void reset() {
 		blocked = List.of();
 		allowed = List.of();
@@ -59,7 +59,7 @@ public final class ServerPolicy {
 		return (flags & ServerPolicyBroadcast.MUTE_OTHERS) != 0;
 	}
 
-	/** Sunucu ekran cerezlerinin ayrilmasini zorluyor mu? */
+	/** Does the server force screen cookies to be kept separate? */
 	public static boolean separateCookies() {
 		return (flags & ServerPolicyBroadcast.SEPARATE_COOKIES) != 0;
 	}
@@ -72,7 +72,7 @@ public final class ServerPolicy {
 		return urlCooldownMs;
 	}
 
-	/** Adres sunucu kurallarina uyuyor mu? (Sunucudaki ServerConfig.check ile ayni mantik.) */
+	/** Does the URL pass the server rules? (Same logic as ServerConfig.check on the server.) */
 	public static boolean allows(@Nullable String url) {
 		if (url == null || url.isEmpty()) {
 			return true;
@@ -110,8 +110,8 @@ public final class ServerPolicy {
 	}
 
 	/**
-	 * Sayfa cizilmeden once izleyicinin onayi gerekiyor mu?
-	 * Sunucu onayi acmissa ve adres beyaz listede degilse, oyuncu "goster" diyene kadar yuklenmez.
+	 * Is the viewer's consent needed before the page is drawn?
+	 * If the server has consent enabled and the URL is not on the allow list, nothing loads until the player says "show".
 	 */
 	public static boolean needsConsent(@Nullable String url) {
 		if (!consentRequired() || url == null || url.isEmpty()) {
@@ -132,7 +132,7 @@ public final class ServerPolicy {
 		return true;
 	}
 
-	/** Oyuncu "goster" dedi: bu oturum boyunca bu alan adi sorulmaz. */
+	/** The player said "show": this domain is not asked about again for the rest of the session. */
 	public static void trust(String host) {
 		String h = host == null ? "" : host.trim().toLowerCase(Locale.ROOT);
 		if (!h.isEmpty()) {

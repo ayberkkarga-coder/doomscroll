@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Sunucu -> izleyici istemciler: yayin parcasinin bir dilimi. */
+/** Server -> viewer clients: one slice of a broadcast chunk. */
 public record BroadcastChunkBroadcast(BlockPos pos, int seq, int piece, int pieces, boolean init, byte[] data) implements CustomPacketPayload {
 	public static final Type<BroadcastChunkBroadcast> TYPE = new Type<>(Doomscroll.id("bc_chunk_bc"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, BroadcastChunkBroadcast> CODEC = StreamCodec.composite(

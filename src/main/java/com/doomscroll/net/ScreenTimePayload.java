@@ -7,8 +7,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Istemci (kontrolcu) -> sunucu: ekrandaki videonun konumu. Ayni zamanda "hala buradayim" sinyali.
- * time < 0: sayfada video yok (yalnizca sinyal).
+ * Client (controller) -> server: position of the video on the screen. Also serves as an "I'm still here" signal.
+ * time < 0: no video on the page (signal only).
  */
 public record ScreenTimePayload(BlockPos pos, float time, float duration, boolean paused) implements CustomPacketPayload {
 	public static final Type<ScreenTimePayload> TYPE = new Type<>(Doomscroll.id("screen_time"));

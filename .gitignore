@@ -2,7 +2,7 @@
 .gradle/
 build/
 
-# Gelistirme ciktilari
+# Development output
 run/
 libs/
 backups/
@@ -16,15 +16,15 @@ build-log*.txt
 .classpath
 .project
 
-# Isletim sistemi
+# Operating system
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Minecraft siniflarinin javap dokumu: gelistirme notu, depoya girmez
+# javap dumps of Minecraft classes: development notes, kept out of the repo
 api-notes-*.txt
 
-# Ic gelistirme notlari: diskte kalir, depoya girmez
+# Internal development notes: stay on disk, kept out of the repo
 GECE_RAPORU.md
 ARASTIRMA.md
 

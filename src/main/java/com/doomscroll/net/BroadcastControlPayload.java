@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Istemci -> sunucu: yayin baslat/durdur, yayina abone ol/ayril. */
+/** Client -> server: start/stop a broadcast, subscribe to/unsubscribe from a broadcast. */
 public record BroadcastControlPayload(BlockPos pos, int action) implements CustomPacketPayload {
 	public static final int START = 0;
 	public static final int STOP = 1;

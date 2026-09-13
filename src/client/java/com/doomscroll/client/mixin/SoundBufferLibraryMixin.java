@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.CompletableFuture;
 
-/** doomscroll:sounds/screen.ogg ve tablet.ogg istenince .ogg yerine canli tarayici PCM akisini verir. */
+/** When doomscroll:sounds/screen.ogg or tablet.ogg is requested, serves the live browser PCM stream instead of the .ogg. */
 @Mixin(SoundBufferLibrary.class)
 public class SoundBufferLibraryMixin {
 	private static final Identifier SCREEN = Doomscroll.id("sounds/screen.ogg");

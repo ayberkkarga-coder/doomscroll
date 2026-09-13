@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Sunucu -> yayinci istemci: yeni izleyici geldi, kaydediciyi yeniden baslat (anahtar kare + baslangic parcasi). */
+/** Server -> broadcaster client: a new viewer arrived, restart the recorder (keyframe + init chunk). */
 public record BroadcastControlBroadcast(BlockPos pos, int action) implements CustomPacketPayload {
 	public static final int RESTART = 0;
 

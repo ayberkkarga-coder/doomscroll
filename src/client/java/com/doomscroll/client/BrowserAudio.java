@@ -7,9 +7,9 @@ import net.minecraft.client.sounds.SoundManager;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Tarayici seslerini Minecraft ses motorunda calan/durduran yonetici.
- * Ses CEF'ten PCM olarak gelir (mcef-codec AudioHandler), burada SoundInstance olarak calinir;
- * boylece mesafe, Sound Physics (duvar, su alti, yanki) ve ses ayarlari (Bloklar kaydiricisi) otomatik uygulanir.
+ * Manager that plays/stops browser sounds through the Minecraft sound engine.
+ * Audio arrives from CEF as PCM (mcef-codec AudioHandler) and is played here as a SoundInstance,
+ * so distance, Sound Physics (walls, underwater, reverb) and the sound settings (Blocks slider) apply automatically.
  */
 public final class BrowserAudio {
 	@Nullable
@@ -36,7 +36,7 @@ public final class BrowserAudio {
 		boolean tabletWants = tablet != null && tablet.hasAudioStream() && tabletHeld;
 		if (tabletWants) {
 			if (tabletSound != null && tabletRate != tablet.audioSampleRate()) {
-				sm.stop(tabletSound); // ornekleme hizi duzeltildi: dogru hizla yeniden ac
+				sm.stop(tabletSound); // sample rate was corrected: reopen at the right rate
 				tabletSound = null;
 			}
 			if (tabletSound == null || !sm.isActive(tabletSound)) {
@@ -50,7 +50,7 @@ public final class BrowserAudio {
 			tabletSound = null;
 		}
 
-		// ---- Sound Physics: uzun suren ses icin ortam hesabini (duvar/su alti/yanki) periyodik yenile ----
+		// ---- Sound Physics: periodically refresh the environment computation (walls/underwater/reverb) for the long-running sound ----
 		if (SoundPhysicsBridge.available() && ++physicsTick % 20 == 0) {
 			if (tabletSound != null && sm.isActive(tabletSound)) {
 				SoundPhysicsBridge.refresh(tabletSound, mc.player.getEyePosition(), Doomscroll.TABLET_SOUND.location());
@@ -58,7 +58,7 @@ public final class BrowserAudio {
 		}
 	}
 
-	/** Elindeki tabletin sesi: tabletin kendi kaydiricisi (kumandadaki ekran sesinden bagimsiz). */
+	/** Volume of the tablet in hand: the tablet's own slider (independent of the screen volume on the remote). */
 	private static float volume() {
 		return Browsers.isTabletMuted() ? 0f : Browsers.getTabletVolume();
 	}

@@ -7,7 +7,7 @@ loom {
 
 	runs {
 		client {
-			// Duman testi: run/saves/"New World" dogrudan acilir (dunya yoksa ana menu)
+			// Smoke test: run/saves/"New World" opens directly (main menu if the world doesn't exist)
 			programArgs "--quickPlaySingleplayer", "New World"
 			vmArg "-Ddoomscroll.selftest=true"
 		}
@@ -21,8 +21,8 @@ loom {
 	}
 }
 
-// Kardes proje mcef-codec'in jar'i: surum numarasini kaliba yazmiyoruz ki mcef-codec
-// surum atlayinca burasi sessizce bos kalmasin. Bos kalirsa derleme anlasilir bir hata versin.
+// Jar of the sibling project mcef-codec: the version number is left out of the pattern so that when mcef-codec
+// bumps its version this does not silently end up empty. If it is empty, the build fails with a clear error.
 def mcefJars = fileTree(dir: "../mcef-codec/build/libs", include: "mcef-codec-*.jar", excludes: ["*-sources.jar"])
 
 dependencies {
@@ -30,18 +30,18 @@ dependencies {
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	// Codec'li Chromium katmani; calisma zamaninda mods klasorunde ayri jar olarak durur
+	// Chromium layer with codecs; at runtime it sits in the mods folder as a separate jar
 	compileOnly mcefJars
-	// Gelistirme istemcisi (./gradlew runClient) icin ayni jar mod olarak yuklensin
+	// Load the same jar as a mod for the development client (./gradlew runClient)
 	runtimeOnly mcefJars
 }
 
 tasks.named("compileJava").configure {
 	doFirst {
 		if (mcefJars.isEmpty()) {
-			throw new GradleException("mcef-codec jar'i bulunamadi. Once kardes projeyi derle:\n" +
+			throw new GradleException("mcef-codec jar not found. Build the sibling project first:\n" +
 					"  cd ../mcef-codec && ./gradlew build\n" +
-					"Beklenen yer: ../mcef-codec/build/libs/mcef-codec-*.jar")
+					"Expected at: ../mcef-codec/build/libs/mcef-codec-*.jar")
 		}
 	}
 }
@@ -74,8 +74,8 @@ jar {
 	from("NOTICE") {
 		rename { "${it}_$projectName" }
 	}
-	// Jersey 10 yazi tipi font.css icine gomulu geliyor; OFL 1.1 metnin de her kopyayla
-	// birlikte dagitilmasini istiyor.
+	// The Jersey 10 font ships embedded in font.css; OFL 1.1 requires the license text to be distributed
+	// with every copy as well.
 	from("LICENSE-jersey10") {
 		into "META-INF"
 	}

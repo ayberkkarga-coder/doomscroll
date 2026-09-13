@@ -14,9 +14,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Paylasimli isaretci: ekrana bakan oyuncunun crosshair'i digerlerinin ekraninda renkli bir nokta olarak gorunur
- * ("suraya bak" demek icin). Konum panel orani (0..1) olarak sn'de en fazla 10 kez yayinlanir; ekrandan cikinca
- * bir kez "kayboldu" gonderilir. Renk oyuncu kimliginden turetilir.
+ * Shared pointer: the crosshair of a player looking at a screen appears to the other players as a colored dot on that screen
+ * (to say "look here"). The position is broadcast as a panel fraction (0..1) at most 10 times per second; when the crosshair leaves the screen,
+ * a single "gone" is sent. The color is derived from the player's UUID.
  */
 public final class Pointers {
 	public record Pointer(BlockPos pos, UUID player, String name, float u, float v, long stampMs, int color) {}
@@ -29,7 +29,7 @@ public final class Pointers {
 	private static int sent = 0;
 	private static int echoed = 0;
 
-	/** Duman testi: sunucu kendi imlecimizi geri yansitti. */
+	/** Smoke test: the server echoed our own cursor back. */
 	public static void noteEcho() {
 		echoed++;
 	}
@@ -44,7 +44,7 @@ public final class Pointers {
 
 	private Pointers() {}
 
-	/** Sunucudan gelen baskasinin imleci. */
+	/** Another player's cursor, received from the server. */
 	public static void apply(ScreenPointerBroadcast b) {
 		if (b.u() < 0 || b.v() < 0) {
 			POINTERS.remove(b.player());
@@ -53,7 +53,7 @@ public final class Pointers {
 		POINTERS.put(b.player(), new Pointer(b.pos().immutable(), b.player(), b.name(), b.u(), b.v(), System.currentTimeMillis(), colorFor(b.player())));
 	}
 
-	/** Bu ekrandaki taze imlecler. */
+	/** Fresh cursors on this screen. */
 	public static List<Pointer> at(BlockPos anchor) {
 		if (POINTERS.isEmpty()) return List.of();
 		long now = System.currentTimeMillis();
@@ -68,7 +68,7 @@ public final class Pointers {
 		return out;
 	}
 
-	/** Istemci tick'i: bakilan ekrandaki konumu yayinla (degistiyse 100 ms'de bir, degismediyse sn'de bir). */
+	/** Client tick: broadcast the position on the looked-at screen (every 100 ms if it changed, once per second if not). */
 	public static void tick(Minecraft mc) {
 		if (mc.player == null || mc.getConnection() == null) {
 			return;
@@ -99,7 +99,7 @@ public final class Pointers {
 		lastPos = u < 0 ? null : pos.immutable();
 	}
 
-	/** Duman testi: dogrudan bir konum gonder. */
+	/** Smoke test: send a position directly. */
 	public static void sendTest(BlockPos pos) {
 		send(pos, 0.5f, 0.5f, System.currentTimeMillis());
 	}
@@ -111,7 +111,7 @@ public final class Pointers {
 		lastV = -1f;
 	}
 
-	/** Oyuncu kimliginden canli, ayirt edilebilir bir renk (HSB, doygun). */
+	/** A vivid, easily distinguishable color derived from the player's UUID (HSB, saturated). */
 	static int colorFor(UUID id) {
 		float hue = ((id.hashCode() & 0x7fffffff) % 360) / 360f;
 		return java.awt.Color.HSBtoRGB(hue, 0.85f, 1f) & 0xFFFFFF;

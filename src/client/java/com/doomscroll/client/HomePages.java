@@ -12,10 +12,10 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Ana menu sayfalari: doomscroll://home/screen?pos=x,y,z (ekran) ve doomscroll://home/tablet (tablet).
- * HTML sablonu assets/doomscroll/home/home.html; veriler (kanallar, sira, yer imleri, gecmis) JSON olarak gomulur.
- * Sayfa, komutlari console kanaliyla ({"home":...}) gonderir; {@link #onScreenCommand} / {@link #onTabletCommand} isler.
- * Uretici CEF IO is parcaciginda cagrilir: yalnizca kopya listeler okunur.
+ * Home menu pages: doomscroll://home/screen?pos=x,y,z (screen) and doomscroll://home/tablet (tablet).
+ * The HTML template is assets/doomscroll/home/home.html; the data (channels, queue, bookmarks, history) is embedded as JSON.
+ * The page sends commands over the console channel ({"home":...}); {@link #onScreenCommand} / {@link #onTabletCommand} handle them.
+ * The generator is called on the CEF IO thread: only copied lists are read.
  */
 public final class HomePages {
 	public static final String SCHEME = "doomscroll://";
@@ -25,7 +25,7 @@ public final class HomePages {
 	private static volatile String template;
 	private static volatile String tabletTemplate;
 	private static volatile String consentTemplate;
-	/** font.css + tiles.css + icons.css + kit.css: sayfalarin ortak cizim dili, bir kez okunur. */
+	/** font.css + tiles.css + icons.css + kit.css: the pages' shared visual language, read once. */
 	private static volatile String kit;
 
 	private HomePages() {}
@@ -34,7 +34,7 @@ public final class HomePages {
 		return url != null && url.startsWith(SCHEME);
 	}
 
-	/** Izleyici onayi karti: gercek sayfa yerine bu acilir, siteye hicbir istek gitmez. */
+	/** Viewer consent card: opens instead of the real page, no request goes to the site. */
 	public static String consentUrl(@Nullable BlockPos anchor, String host, String by) {
 		StringBuilder sb = new StringBuilder(SCHEME).append("home/consent?host=").append(enc(host));
 		if (by != null && !by.isEmpty()) {
@@ -61,12 +61,12 @@ public final class HomePages {
 		return null;
 	}
 
-	/** Ekranin ana menusu: sira o ekrana ait. */
+	/** The screen's home menu: the queue belongs to that screen. */
 	public static String screenUrl(@Nullable BlockPos anchor) {
 		return anchor == null ? SCREEN : SCREEN + "?pos=" + anchor.getX() + "," + anchor.getY() + "," + anchor.getZ();
 	}
 
-	/** CEF'ten (IO is parcacigi) istek: HTML ya da null (404). */
+	/** Request from CEF (IO thread): HTML or null (404). */
 	@Nullable
 	public static String html(String url) {
 		URI u;
@@ -119,8 +119,8 @@ public final class HomePages {
 				data.add("history", entries(TabletBookmarks.history()));
 			} else {
 				BlockPos pos = parsePos(u.getQuery());
-				// Sira tazeleme paket gonderir; burasi CEF'in IO is parcaciginda calistigi
-				// icin istegi oyun is parcacigina birak.
+				// Refreshing the queue sends a packet; since this runs on CEF's IO thread,
+				// hand the request over to the game thread.
 				net.minecraft.client.Minecraft.getInstance().execute(() -> ScreenQueue.refresh(pos));
 				JsonArray q = new JsonArray();
 				for (com.doomscroll.net.QueueBroadcast.Row r : ScreenQueue.list(pos)) {
@@ -135,7 +135,7 @@ public final class HomePages {
 				data.add("queue", q);
 			}
 		} catch (Exception e) {
-			// veri toplanamadiysa (es zamanli degisiklik) sayfa yine acilsin
+			// if the data could not be gathered (concurrent modification), the page should still open
 		}
 		String t = template(tablet);
 		if (t == null) {
@@ -144,12 +144,12 @@ public final class HomePages {
 		return page(t).replace("/*__DATA__*/", "window.__DS=" + GSON.toJson(data) + ";");
 	}
 
-	/** Ortak cizim dilini ve dil metinlerini sablona yerlestirir. */
+	/** Inserts the shared visual language and the translated texts into the template. */
 	private static String page(String t) {
 		return translate(t.replace("/*__KIT__*/", kit()));
 	}
 
-	/** Yazi tipi, karolar, simgeler ve ortak stil; hepsi tek parca halinde gomulur. */
+	/** Font, tiles, icons and the shared style; all embedded as a single piece. */
 	private static String kit() {
 		String k = kit;
 		if (k == null) {
@@ -160,7 +160,7 @@ public final class HomePages {
 						sb.append(new String(in.readAllBytes(), StandardCharsets.UTF_8)).append(System.lineSeparator());
 					}
 				} catch (Exception e) {
-					Doomscroll.LOGGER.warn("ana sayfa stili okunamadi ({}): {}", name, e.toString());
+					Doomscroll.LOGGER.warn("could not read home page style ({}): {}", name, e.toString());
 				}
 			}
 			k = sb.toString();
@@ -170,8 +170,8 @@ public final class HomePages {
 	}
 
 	/**
-	 * Sablondaki {{anahtar}} (HTML metni) ve {{js:anahtar}} (JS dizgisi icinde) yer tutucularini
-	 * oyuncunun diline cevirir. Sablon ham haliyle onbellekte kalir, ceviri her istekte yapilir.
+	 * Translates the {{key}} (HTML text) and {{js:key}} (inside a JS string) placeholders in the template
+	 * into the player's language. The template stays cached in its raw form; translation happens on every request.
 	 */
 	private static String translate(String t) {
 		StringBuilder out = new StringBuilder(t.length() + 256);
@@ -202,7 +202,7 @@ public final class HomePages {
 				.replace("\"", "&quot;").replace("'", "&#39;");
 	}
 
-	/** Tek tirnakli JS dizgisi icin: ters bolu, tirnaklar ve satir sonu. */
+	/** For a single-quoted JS string: backslash, quotes and line breaks. */
 	private static String escapeJs(String s) {
 		return s.replace("\\", "\\\\").replace("'", "\\'").replace("\"", "\\\"")
 				.replace("\n", "\\n").replace("\r", "").replace("<", "\\u003c");
@@ -246,23 +246,23 @@ public final class HomePages {
 		return t;
 	}
 
-	/** home/ altindaki bir sablonu okur (onbelleksiz; cagiranlar kendi onbelleklerini tutar). */
+	/** Reads a template under home/ (uncached; callers keep their own caches). */
 	@Nullable
 	private static String asset(String name) {
 		try (InputStream in = HomePages.class.getResourceAsStream("/assets/doomscroll/home/" + name)) {
 			return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
 		} catch (Exception e) {
-			Doomscroll.LOGGER.warn("ana sayfa sablonu okunamadi ({}): {}", name, e.toString());
+			Doomscroll.LOGGER.warn("could not read home page template ({}): {}", name, e.toString());
 			return null;
 		}
 	}
 
-	/** Yayin alici sayfasinin adresi (izleyicinin ekrani buna gider). */
+	/** Address of the broadcast receiver page (the viewer's screen navigates to it). */
 	public static String receiverUrl() {
 		return SCHEME + "home/receiver";
 	}
 
-	/** Sablon: ekran icin home.html (TV menusu), tablet icin home_tablet.html (iPad ana ekrani). */
+	/** Template: home.html for the screen (TV menu), home_tablet.html for the tablet (iPad home screen). */
 	@Nullable
 	private static String template(boolean tablet) {
 		String t = tablet ? tabletTemplate : template;
@@ -279,7 +279,7 @@ public final class HomePages {
 		return t;
 	}
 
-	/** Ekran ana menusunden komut (oyun is parcacigi): siradan oynat / cikar. */
+	/** Command from the screen's home menu (game thread): play from / remove from the queue. */
 	public static void onScreenCommand(BlockPos anchor, JsonObject o) {
 		String c = o.get("home").getAsString();
 		switch (c) {
@@ -302,7 +302,7 @@ public final class HomePages {
 		return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString().trim() : "";
 	}
 
-	/** Tablet ana menusunden komut (oyun is parcacigi): yer imi cikar / gecmisi temizle. */
+	/** Command from the tablet's home menu (game thread): remove bookmark / clear history. */
 	public static void onTabletCommand(JsonObject o) {
 		String c = o.get("home").getAsString();
 		switch (c) {

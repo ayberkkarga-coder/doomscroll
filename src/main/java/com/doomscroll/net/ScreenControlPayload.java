@@ -6,14 +6,14 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Istemci -> sunucu: ekran kontrolu al / birak / kilidi degistir. */
+/** Client -> server: take / release screen control / toggle the lock. */
 public record ScreenControlPayload(BlockPos pos, int action) implements CustomPacketPayload {
 	public static final int TAKE = 0;
 	public static final int RELEASE = 1;
 	public static final int TOGGLE_LOCK = 2;
-	/** Ekranin redstone ile acilip kapanmasini ac/kapat (sahibi/yonetici). */
+	/** Enable/disable toggling the screen via redstone (owner/admin). */
 	public static final int TOGGLE_REDSTONE = 3;
-	/** Ekranin ortak sesini sirala: kapali -> kisik -> orta -> tam (kontrolu elinde tutan). */
+	/** Cycle the screen's shared volume: off -> low -> mid -> full (whoever holds control). */
 	public static final int CYCLE_VOLUME = 4;
 
 	public static final Type<ScreenControlPayload> TYPE = new Type<>(Doomscroll.id("screen_control"));

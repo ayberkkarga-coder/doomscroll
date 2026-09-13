@@ -10,42 +10,42 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Kullanici ayarlari: config/doomscroll.json (kumanda, /ds komutlari ve dosyadan degistirilebilir). */
+/** User settings: config/doomscroll.json (editable via the remote, /ds commands, or the file itself). */
 public final class DoomscrollConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("doomscroll.json");
 	private static DoomscrollConfig instance;
 
-	/** Ekran tarayicisi cozunurlugu (YouTube akis kalitesini de belirler). */
+	/** Screen browser resolution (also determines the YouTube stream quality). */
 	public int screenWidth = 1280;
 	public int screenHeight = 720;
-	/** Tarayici ses ornekleme hizi; 0 = otomatik olc. Ses ince/kalin gelirse 44100 ya da 48000 yaz. */
+	/** Browser audio sample rate; 0 = measure automatically. If the audio sounds too high/low pitched, set 44100 or 48000. */
 	public int audioSampleRate = 0;
-	/** Shorts/Reels/TikTok: video bitince (ya da basa sarinca) otomatik sonraki videoya gec. */
+	/** Shorts/Reels/TikTok: automatically advance to the next video when one ends (or loops back to the start). */
 	public boolean autoScroll = true;
-	/** Tarayici kimligi (User-Agent). Google girisi icin guncel Chrome kimligi; bos = Chromium varsayilani. */
+	/** Browser identity (User-Agent). A current Chrome identity for Google sign-in; empty = Chromium default. */
 	public String userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 	/**
-	 * Google/YouTube giris modu: Google gomulu tarayicidan girisi engeller ("browser may not be secure"); Firefox
-	 * kimligi bu kontrolu gecer. Acikken tarayici Firefox olarak tanitilir ve ekran Google giris sayfasini acar.
-	 * Giris bitince kapatilir; oturum cerezleri kaldigi icin normal kimlikte de giris yapilmis kalir. Yeniden baslatma ister.
+	 * Google/YouTube sign-in mode: Google blocks sign-in from embedded browsers ("browser may not be secure"); a Firefox
+	 * identity passes that check. While on, the browser identifies as Firefox and the screen opens the Google sign-in page.
+	 * Turn it off once signed in; the session cookies remain, so you stay signed in under the normal identity too. Requires a restart.
 	 */
 	public boolean tvLogin = false;
 	/**
-	 * Ses gecikmesi profili: "dusuk" (20 ms parca, 40 ms tampon; ~150 ms toplam), "normal" (25/60; ~180 ms),
-	 * "yuksek" (50/100; ~320 ms, en guvenli). Takilma/citirti olursa bir kademe yukari cik.
+	 * Audio latency profile: "dusuk" (low: 20 ms chunk, 40 ms buffer; ~150 ms total), "normal" (25/60; ~180 ms),
+	 * "yuksek" (high: 50/100; ~320 ms, safest). On stutter/crackle, step up one level.
 	 */
 	public String audioLatency = "normal";
-	/** Senin koymadigin ekranlarin sesi (0 = duyma). Sunucu "sessiz basla" derse oturum 0'dan baslar. */
+	/** Volume of screens you did not place (0 = mute). If the server says "start muted", the session starts at 0. */
 	public float othersScreenVolume = 1.0f;
 	/**
-	 * Ekranlar kalici Chromium profilinden ayri, gecici bir cerez baglaminda calissin.
-	 * Varsayilan kapali: acikken ekranda yapilan giris oyun kapaninca kaybolur.
-	 * Sunucu kendi ayarindan zorlayabilir; o zaman bu ayar kapali olsa da gecerli olur.
+	 * Run screens in a temporary cookie context, separate from the persistent Chromium profile.
+	 * Off by default: when on, a sign-in made on a screen is lost when the game closes.
+	 * The server can force it from its own setting; then it applies even if this setting is off.
 	 */
 	public boolean separateScreenCookies = false;
 
-	/** Ses akisinin OpenAL parca suresi (ms). Profilden turetilir. */
+	/** OpenAL chunk duration of the audio stream (ms). Derived from the profile. */
 	public int audioChunkMs() {
 		return switch (audioLatency == null ? "normal" : audioLatency) {
 			case "dusuk" -> 20;
@@ -54,7 +54,7 @@ public final class DoomscrollConfig {
 		};
 	}
 
-	/** Halka tampon hedefi (ms). Profilden turetilir. */
+	/** Ring buffer target (ms). Derived from the profile. */
 	public int audioTargetBacklogMs() {
 		return switch (audioLatency == null ? "normal" : audioLatency) {
 			case "dusuk" -> 40;
@@ -63,47 +63,47 @@ public final class DoomscrollConfig {
 		};
 	}
 
-	/** Tarayici sesine dijital kazanc (0.5..6). Web videolari oyun seslerine gore kisik; 1 = ham. Tepeler yumusak sinirlanir. */
+	/** Digital gain on browser audio (0.5..6). Web videos are quiet compared to game sounds; 1 = raw. Peaks are soft-limited. */
 	public float audioBoost = 2.5f;
 
-	/** Yakindaki ekranin altyazisini HUD'da goster (ekrana bakmasan da). */
+	/** Show the nearby screen's subtitles on the HUD (even when not looking at the screen). */
 	public boolean subtitles = true;
 
-	/** Reklam engelleme: alan adi listesi (istekler hic cikmaz) + YouTube reklam atlayici. */
+	/** Ad blocking: domain list (requests never go out) + YouTube ad skipper. */
 	public boolean adBlock = true;
-	/** Ekran isigi (ambilight): ekrandaki renkler yakindaki yuzeylere yansir. 0 kapali, 0.5 az, 1 normal, 1.8 cok. */
+	/** Screen glow (ambilight): the screen's colors are cast onto nearby surfaces. 0 off, 0.5 low, 1 normal, 1.8 high. */
 	public float screenGlow = 1.0f;
-	/** Ekran isiginin ulastigi mesafe (blok). */
+	/** Distance the screen glow reaches (blocks). */
 	public int screenGlowRange = 10;
-	/** Yumusak isik: komsu yuzeyler arasinda kesintisiz gecis (kapali = blok blok mozaik). */
+	/** Smooth glow: seamless transition between neighboring surfaces (off = block-by-block mosaic). */
 	public boolean screenGlowSmooth = true;
 	/**
-	 * Kisisel ses seviyeleri (0..1) ve sessiz durumlari. Ekranlar (kumandadaki kaydirici) ile elindeki tablet
-	 * (tabletin kendi hoparlor tusu) ayri ayarlanir; ikisi de oyunlar arasi hatirlanir.
+	 * Personal volume levels (0..1) and mute states. Screens (the slider on the remote) and the tablet in your hand
+	 * (the tablet's own speaker button) are set separately; both are remembered across game sessions.
 	 */
 	public float screenVolume = 0.8f;
 	public boolean screenMuted = false;
 	public float tabletVolume = 0.8f;
 	public boolean tabletMuted = false;
-	/** Baskalarinin elindeki tabletin sesi (0 = duyma). Onlarin sayfasi senin tarayicinda acilir, seviye senindir. */
+	/** Volume of tablets held by other players (0 = mute). Their page opens in your browser; the level is yours. */
 	public float remoteTabletVolume = 0.8f;
-	/** Tablet eldeyken yurume/kosma sallanmasinin kalan orani: 0 = sabit, 1 = vanilla. */
+	/** Remaining fraction of walk/run bobbing while holding the tablet: 0 = steady, 1 = vanilla. */
 	public float tabletSway = 0.35f;
-	/** Paylasimli isaretci: bakilan ekrandaki crosshair'i digerlerine yayinla ve digerlerininkini goster. */
+	/** Shared pointer: broadcast your crosshair on the screen you are looking at to others, and show theirs. */
 	public boolean pointer = true;
-	/** Yayin modu kodlama ayarlari: genislik (16:9), kare hizi, video bit hizi (kbps). */
+	/** Broadcast mode encoding settings: width (16:9), frame rate, video bitrate (kbps). */
 	public int broadcastWidth = 960;
 	public int broadcastFps = 24;
 	public int broadcastKbps = 1200;
-	/** Ilk giris mesaji gosterildi mi. */
+	/** Whether the first-launch message has been shown. */
 	public boolean welcomeShown = false;
 
-	/** Tarayici boyama kare hizi (10..60). Bakilan ekran bu hizda; bakilmayanlar otomatik dusurulur. */
+	/** Browser paint frame rate (10..60). The screen being looked at runs at this rate; the others are lowered automatically. */
 	public int browserFps = 60;
 
-	/** Kontrolcunun video konumuna hizalan (uzun video/film izlerken herkes ayni saniyede olsun). */
+	/** Align to the controller's video position (so everyone is at the same second when watching long videos/films). */
 	public boolean syncPlayback = true;
-	/** Kanal listesi (kumanda: Kanal ◀ ▶; /ds kanal ekle|sil|liste). Bos birakilirsa varsayilanlar. */
+	/** Channel list (remote: Channel ◀ ▶; /ds kanal ekle|sil|liste). Defaults are used if left empty. */
 	public java.util.List<ChannelEntry> channels = null;
 
 	public static final class ChannelEntry {
@@ -133,7 +133,7 @@ public final class DoomscrollConfig {
 				instance = GSON.fromJson(Files.readString(FILE, StandardCharsets.UTF_8), DoomscrollConfig.class);
 			}
 		} catch (Exception e) {
-			Doomscroll.LOGGER.warn("doomscroll.json okunamadi, varsayilanlar kullaniliyor", e);
+			Doomscroll.LOGGER.warn("Could not read doomscroll.json, using defaults", e);
 		}
 		if (instance == null) {
 			instance = new DoomscrollConfig();
@@ -163,14 +163,14 @@ public final class DoomscrollConfig {
 			Files.createDirectories(FILE.getParent());
 			Files.writeString(FILE, GSON.toJson(get()), StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			Doomscroll.LOGGER.warn("doomscroll.json yazilamadi", e);
+			Doomscroll.LOGGER.warn("Could not write doomscroll.json", e);
 		}
 	}
 
-	/** Ekran cozunurlugu etiketi: 720p / 1080p / 1440p ya da GxY. */
+	/** Screen resolution label: 720p / 1080p / 1440p or WxH. */
 	/**
-	 * Ekran cozunurlugune gore YouTube en yuksek kalite (oynatici seviye adi): ekranin gosterebildiginden
-	 * yukarisi gorunmez, sadece islemciyi yorar. 720p ekran -> hd720, 1080p -> hd1080, 1440p -> hd1440.
+	 * Maximum YouTube quality for the screen resolution (player level name): anything above what the screen
+	 * can show is not visible and only burdens the CPU. 720p screen -> hd720, 1080p -> hd1080, 1440p -> hd1440.
 	 */
 	public String youtubeQualityCap() {
 		if (screenHeight <= 480) return "large";
@@ -196,7 +196,7 @@ public final class DoomscrollConfig {
 		else { screenWidth = 1280; screenHeight = 720; }
 	}
 
-	/** "720p"/"1080p"/"1440p" ya da "1920x1080" ayristirir; gecersizse false. */
+	/** Parses "720p"/"1080p"/"1440p" or "1920x1080"; false if invalid. */
 	public static String glowLabelOf(float g) {
 		return Lang.tr(g <= 0.01f ? "gui.doomscroll.glow.off"
 				: g <= 0.6f ? "gui.doomscroll.glow.low"
@@ -207,7 +207,7 @@ public final class DoomscrollConfig {
 		return glowLabelOf(screenGlow);
 	}
 
-	/** kapali -> az -> normal -> cok -> kapali */
+	/** off -> low -> normal -> high -> off */
 	public void cycleGlow() {
 		screenGlow = screenGlow <= 0.01f ? 0.5f : screenGlow <= 0.6f ? 1.0f : screenGlow <= 1.2f ? 1.8f : 0f;
 	}

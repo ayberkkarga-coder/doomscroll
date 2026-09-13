@@ -3,12 +3,12 @@ package com.doomscroll.client;
 import com.doomscroll.ScreenBlockEntity;
 import net.minecraft.client.Minecraft;
 
-/** Ekran adresi senkronu artik ekran basina ScreenBrowsers icinde; bu sinif ince bir sarmalayici. */
+/** Screen URL sync now lives per screen inside ScreenBrowsers; this class is a thin wrapper. */
 public final class ScreenSync {
 	private ScreenSync() {}
 
 	public static void applyScreenUrl(ScreenBlockEntity be) {
-		// ScreenBrowsers.noteRendered icinde uygulanir
+		// applied inside ScreenBrowsers.noteRendered
 	}
 
 	public static void tick(Minecraft mc) {

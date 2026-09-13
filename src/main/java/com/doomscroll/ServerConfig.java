@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Sunucu yonetici ayarlari: config/doomscroll-server.json (tek oyunculuda da ayni dosya).
- * Sunucu tarafinda okunur; istemcilerin konfigurasyonundan bagimsizdir.
+ * Server admin settings: config/doomscroll-server.json (the same file in singleplayer too).
+ * Read on the server side; independent of the clients' configuration.
  */
 public final class ServerConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -25,7 +25,7 @@ public final class ServerConfig {
 			"Her ayarin ne ise yaradigi yanindaki doomscroll-server.txt dosyasinda ve oyun icinde /doomscroll yardim komutunda."
 			+ "  |  What each setting does: see doomscroll-server.txt next to this file, or run /doomscroll help in game.";
 
-	/** Adres reddedilme sebepleri; istemciye de ayni sirayla gider. */
+	/** Reasons an address is refused; sent to the client in the same order. */
 	public static final int OK = 0;
 	public static final int DENY_BLOCKED = 1;
 	public static final int DENY_NOT_ALLOWED = 2;
@@ -33,65 +33,65 @@ public final class ServerConfig {
 	public static final int DENY_LOCKDOWN = 4;
 
 	/**
-	 * JSON'a yorum yazilamiyor; yonetici dosyayi acinca nereye bakacagini bilsin diye
-	 * en uste konan yonlendirme. Degeri her yuklemede yenilenir.
+	 * JSON cannot carry comments; this pointer sits at the top so an admin opening the file
+	 * knows where to look. Its value is refreshed on every load.
 	 */
 	public String _readme = README;
 
-	/** Engelli alan adlari (alt alanlar dahil): ekranlarda acilamaz, acilirsa herkes eski adrese geri doner. */
+	/** Blocked domains (subdomains included): cannot be opened on screens; if one is opened anyway, everyone falls back to the previous address. */
 	public List<String> blockedDomains = new ArrayList<>();
-	/** Bos degilse yalnizca bu alan adlari (ve alt alanlari) acilabilir. */
+	/** If not empty, only these domains (and their subdomains) can be opened. */
 	public List<String> allowedDomains = new ArrayList<>();
-	/** Acik ekranin blok isigi (0-15). Degisiklik yeniden baslatma ister. */
+	/** Block light of a screen that is on (0-15). Changing it requires a restart. */
 	public int screenLightLevel = 12;
-	/** "X ekranda site acti" bildirimi. */
+	/** The "X opened a site on the screen" notice. */
 	public boolean announce = true;
-	/** Bildirimin ulastigi mesafe (blok). */
+	/** How far the notice reaches (blocks). */
 	public int announceRange = 32;
-	/** Ekranlarin redstone ile acilip kapanmasina izin ver (ekran basina /ds redstone ile etkinlestirilir). */
+	/** Allow screens to be switched on and off by redstone (enabled per screen with /ds redstone). */
 	public boolean redstoneControl = true;
-	/** Paylasimli isaretci (baskalarinin ekrandaki imleci) yayini. */
+	/** Shared pointer broadcast (other players' cursors on the screen). */
 	public boolean pointer = true;
-	/** Yayin modu (bir oyuncunun goruntusu herkese aktarilir): sunucu bant genisligi kullanir. */
+	/** Broadcast mode (one player's view is relayed to everyone): uses server bandwidth. */
 	public boolean broadcast = true;
-	/** Kontrolcunun sessiz kalinca kontrolu kaybettigi sure (sn). */
+	/** How long a controller may stay silent before losing control (seconds). */
 	public int controlTimeoutSeconds = 45;
 
-	// ---------- denetim ve guvenlik ----------
+	// ---------- audit and safety ----------
 
-	/** Acilan adresleri config/doomscroll-audit.log dosyasina yaz. */
+	/** Write opened addresses to config/doomscroll-audit.log. */
 	public boolean auditLog = true;
-	/** Acil kapatma: butun ekranlar karartilir ve acilamaz. /doomscroll acil ile degisir. */
+	/** Emergency shutdown: every screen is darkened and none can be turned on. Toggled with /doomscroll emergency. */
 	public boolean lockdown = false;
 	/**
-	 * Yerel ag ve loopback adreslerine izin ver. Varsayilan kapali: acik olsa bir oyuncu
-	 * ekrana 192.168.1.1 koyup herkesin kendi modem arayuzunu actirabilir.
-	 * Yalnizca kendi LAN'inde denemek icin ac.
+	 * Allow local-network and loopback addresses. Off by default: if it were on, a player
+	 * could put 192.168.1.1 on a screen and make everyone open their own router interface.
+	 * Turn it on only to experiment on your own LAN.
 	 */
 	public boolean allowPrivateNetwork = false;
 	/**
-	 * Beyaz listede olmayan bir adres dogrudan cizilmez: once "su alan adi, su oyuncu koydu, goster"
-	 * karti cikar. Izleyici onaylayana kadar sayfa yuklenmez (sok icerik ve IP sizintisi icin).
+	 * An address outside the allow list is not drawn right away: first a "this domain, placed by this player,
+	 * show it" card appears. The page is not loaded until the viewer approves (against shock content and IP leaks).
 	 */
 	public boolean requireConsent = false;
-	/** Senin koymadigin ekranlar sessiz baslasin (oyuncu kendi ses kaydiricisiyla acabilir). */
+	/** Screens you did not place start muted (the player can turn them up with their own volume slider). */
 	public boolean muteOthersByDefault = false;
-	/** Gercek alan adi ekranin altinda yazsin (sahte giris sayfasina karsi). */
+	/** Show the real domain under the screen (against fake sign-in pages). */
 	public boolean showDomain = true;
 	/**
-	 * Ekranlar kalici Chromium profilinden ayri, gecici bir cerez baglaminda calissin.
-	 * Acikken oyuncunun kendi ayari kapali olsa da gecerli: baskasinin actigi sayfa,
-	 * oyuncunun giris yaptigi oturumla ayni baglamda calismaz. Yalnizca yeni acilan
-	 * tarayicilari etkiler; zaten acik ekranlar bir sonraki yuklemede gecer.
+	 * Run screens in a temporary cookie context, separate from the persistent Chromium profile.
+	 * When on, it applies even if the player's own setting is off: a page somebody else opened
+	 * does not run in the same context as the player's signed-in session. Only affects newly
+	 * opened browsers; screens that are already open switch over on their next load.
 	 */
 	public boolean separateScreenCookies = false;
-	/** Tek bir panelin en fazla kac blok olabilecegi (0 = sinirsiz). */
+	/** Maximum size of a single panel in blocks (0 = unlimited). */
 	public int maxPanelBlocks = 0;
-	/** Bir oyuncunun ayni anda kac ekran blogu koyabilecegi (0 = sinirsiz). */
+	/** How many screen blocks one player may have placed at the same time (0 = unlimited). */
 	public int maxScreensPerPlayer = 0;
 	/**
-	 * Ayni oyuncunun iki adres degisikligi arasinda beklemesi gereken sure (ms).
-	 * Varsayilan 0: kanal gezerken yolu kesmesin. Halka acik sunucuda 1000-2000 arasi iyi.
+	 * Minimum gap between two address changes by the same player (ms).
+	 * Default 0: it must not get in the way while channel-surfing. 1000-2000 is good on a public server.
 	 */
 	public int urlCooldownMs = 0;
 
@@ -109,7 +109,7 @@ public final class ServerConfig {
 				c = GSON.fromJson(Files.readString(FILE, StandardCharsets.UTF_8), ServerConfig.class);
 			}
 		} catch (Exception e) {
-			Doomscroll.LOGGER.warn("doomscroll-server.json okunamadi, varsayilanlar kullaniliyor: {}", e.toString());
+			Doomscroll.LOGGER.warn("doomscroll-server.json could not be read, using defaults: {}", e.toString());
 		}
 		if (c == null) {
 			c = new ServerConfig();
@@ -124,7 +124,7 @@ public final class ServerConfig {
 		c.urlCooldownMs = Math.max(0, Math.min(60000, c.urlCooldownMs));
 		c._readme = README;
 		instance = c;
-		// Her acilista yeniden yaz: mod guncellenip yeni ayar geldiginde dosyada da gorunsun.
+		// Rewrite on every start: when the mod is updated and a new setting arrives, it shows up in the file too.
 		save();
 		ServerGuide.write(FILE.getParent());
 	}
@@ -134,19 +134,19 @@ public final class ServerConfig {
 			Files.createDirectories(FILE.getParent());
 			Files.writeString(FILE, GSON.toJson(instance == null ? new ServerConfig() : instance), StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			Doomscroll.LOGGER.warn("doomscroll-server.json yazilamadi: {}", e.toString());
+			Doomscroll.LOGGER.warn("doomscroll-server.json could not be written: {}", e.toString());
 		}
 	}
 
-	/** Adresin alan adi sunucu kurallarina uyuyor mu? */
+	/** Does the address's domain comply with the server rules? */
 	public static boolean urlAllowed(String url) {
 		return check(url) == OK;
 	}
 
-	/** Adres neden reddedildi? OK ya da DENY_* sabitlerinden biri. */
+	/** Why was the address refused? OK or one of the DENY_* constants. */
 	public static int check(String url) {
 		if (url != null && url.startsWith("doomscroll://")) {
-			return OK; // mod ici sayfalar (ana menu, onay karti)
+			return OK; // in-mod pages (home menu, consent card)
 		}
 		ServerConfig c = get();
 		if (c.lockdown) {
@@ -178,7 +178,7 @@ public final class ServerConfig {
 		return OK;
 	}
 
-	/** Adres beyaz listede mi? (Bos beyaz liste = hicbir sey "bilinen" degil; izleyici onayi buna bakar.) */
+	/** Is the address on the allow list? (An empty allow list = nothing is "known"; viewer consent checks this.) */
 	public static boolean onAllowList(String url) {
 		if (url != null && url.startsWith("doomscroll://")) {
 			return true;
@@ -197,9 +197,9 @@ public final class ServerConfig {
 	}
 
 	/**
-	 * Loopback, yerel ag, link-local (bulut metadata dahil) ve ic ag adi mi?
-	 * Boyle bir adres ekrana konursa her izleyicinin istemcisi KENDI agindaki
-	 * o adresi acar; yani oyunun icine ag tarayicisi koymus oluruz.
+	 * Is it loopback, a local network, link-local (cloud metadata included) or an intranet name?
+	 * If such an address is put on a screen, every viewer's client opens that address on ITS OWN
+	 * network; we would effectively be putting a network scanner inside the game.
 	 */
 	public static boolean isPrivateHost(String host) {
 		if (host == null || host.isEmpty()) {
@@ -213,12 +213,12 @@ public final class ServerConfig {
 				|| h.endsWith(".internal") || h.endsWith(".home.arpa")) {
 			return true;
 		}
-		// Noktasiz ad = ic ag adi (router, nas, printer...)
+		// Dotless name = intranet host name (router, nas, printer...)
 		if (h.indexOf('.') < 0 && h.indexOf(':') < 0) {
 			return true;
 		}
 		if (h.indexOf(':') >= 0) {
-			// IPv6: ::1, benzersiz yerel (fc00::/7), link-local (fe80::/10), IPv4 esleme
+			// IPv6: ::1, unique local (fc00::/7), link-local (fe80::/10), IPv4-mapped
 			if (h.equals("::1") || h.equals("::")) return true;
 			if (h.startsWith("fc") || h.startsWith("fd")) return true;
 			if (h.startsWith("fe8") || h.startsWith("fe9") || h.startsWith("fea") || h.startsWith("feb")) return true;
@@ -230,9 +230,9 @@ public final class ServerConfig {
 	}
 
 	/**
-	 * Yerel/ozel IPv4 mu? Tarayicilar "127.1", "0x7f.0.0.1", "010.1" gibi kisa ve
-	 * sekizlik/onaltilik yazimlari da ayni adrese cozer; duz dortlu ayristirma
-	 * bunlari kacirdigi icin burada inet_aton kurallari uygulanir.
+	 * Is it a local/private IPv4? Browsers resolve short and octal/hex spellings such as
+	 * "127.1", "0x7f.0.0.1", "010.1" to the same address; a plain dotted-quad parse
+	 * misses them, so the inet_aton rules are applied here.
 	 */
 	private static boolean isPrivateIpv4(String h) {
 		long addr = parseIpv4(h);
@@ -242,18 +242,18 @@ public final class ServerConfig {
 		int o0 = (int) ((addr >> 24) & 0xff);
 		int o1 = (int) ((addr >> 16) & 0xff);
 		int o2 = (int) ((addr >> 8) & 0xff);
-		if (o0 == 0 || o0 == 127) return true;                           // bu ag / loopback
-		if (o0 == 10) return true;                                       // ozel
-		if (o0 == 172 && o1 >= 16 && o1 <= 31) return true;              // ozel
-		if (o0 == 192 && o1 == 168) return true;                         // ozel
-		if (o0 == 169 && o1 == 254) return true;                         // link-local + bulut metadata
-		if (o0 == 100 && o1 >= 64 && o1 <= 127) return true;             // operator NAT
+		if (o0 == 0 || o0 == 127) return true;                           // this network / loopback
+		if (o0 == 10) return true;                                       // private
+		if (o0 == 172 && o1 >= 16 && o1 <= 31) return true;              // private
+		if (o0 == 192 && o1 == 168) return true;                         // private
+		if (o0 == 169 && o1 == 254) return true;                         // link-local + cloud metadata
+		if (o0 == 100 && o1 >= 64 && o1 <= 127) return true;             // carrier-grade NAT
 		if (o0 == 192 && o1 == 0 && (o2 == 0 || o2 == 2)) return true;
-		if (o0 == 198 && (o1 == 18 || o1 == 19)) return true;            // olcum
-		return o0 >= 224;                                                // cok noktaya yayin + ayrilmis
+		if (o0 == 198 && (o1 == 18 || o1 == 19)) return true;            // benchmarking
+		return o0 >= 224;                                                // multicast + reserved
 	}
 
-	/** Adres degilse -1. Bir ile dort parca; son parca kalan baytlari kapsar. */
+	/** -1 if not an address. One to four parts; the last part covers the remaining bytes. */
 	private static long parseIpv4(String h) {
 		String[] parts = h.split("\\.", -1);
 		if (parts.length < 1 || parts.length > 4) {
@@ -281,7 +281,7 @@ public final class ServerConfig {
 		return addr;
 	}
 
-	/** Onluk, "0x" ile onaltilik, bas sifirla sekizlik. Sayi degilse -1. */
+	/** Decimal, hex with "0x", octal with a leading zero. -1 if not a number. */
 	private static long parseOctet(String s) {
 		if (s.isEmpty() || s.length() > 11) {
 			return -1;
@@ -312,7 +312,7 @@ public final class ServerConfig {
 		try {
 			String h = URI.create(url).getHost();
 			if (h == null) {
-				// URI.getHost() yalnizca kurallara uyan adlari dondurur; alt cizgili ana makine adlari null gelir.
+				// URI.getHost() only returns syntactically valid names; host names containing underscores come back null.
 				String s = url == null ? "" : url;
 				int i = s.indexOf("://");
 				if (i < 0) return "";

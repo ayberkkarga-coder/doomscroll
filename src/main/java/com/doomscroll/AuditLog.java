@@ -23,42 +23,42 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Denetim kaydi: hangi oyuncu, ne zaman, nerede, hangi adresi acti.
- * Ekrani "gorulmeyen yuzey" olmaktan cikarip yoneticinin sonradan bakabilecegi bir seye cevirir.
+ * Audit log: which player opened which address, when and where.
+ * Turns the screen from an "unseen surface" into something an admin can look back at later.
  *
- * Dosya: config/doomscroll-audit.log — satir basina bir olay, sekme ayracli.
- * Son {@link #MEMORY} olay bellekte de tutulur; /doomscroll kayit bunlari gosterir.
+ * File: config/doomscroll-audit.log — one event per line, tab-separated.
+ * The last {@link #MEMORY} events are also kept in memory; /doomscroll audit shows them.
  *
- * <p><b>Onemli:</b> adres ve oyuncu adi hicbir zaman bicim dizesi olarak kullanilmaz.
- * Ayni islevi goren baska bir modda "%" iceren bir adres sunucuyu dusurmustu.
+ * <p><b>Important:</b> the address and the player name are never used as a format string.
+ * In another mod serving the same purpose, an address containing "%" crashed the server.
  */
 public final class AuditLog {
-	/** Bellekte tutulan son olay sayisi (komutla gosterilir). */
+	/** Number of recent events kept in memory (shown by the command). */
 	private static final int MEMORY = 200;
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("doomscroll-audit.log");
 	private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 	private static final Deque<Entry> RECENT = new ArrayDeque<>();
 	private static final Object LOCK = new Object();
-	/** Dosya buyudugunde .1'e tasinir; kayit sonsuza kadar buyumesin. */
+	/** Once the file grows this big it is moved to .1; the log must not grow forever. */
 	private static final long MAX_BYTES = 8L * 1024 * 1024;
-	/** Yazma kuyrugu: sunucu is parcacigi dosyaya hic dokunmaz. Dolarsa en eski dusurulur. */
+	/** Write queue: the server thread never touches the file. When it fills up, the oldest entry is dropped. */
 	private static final BlockingQueue<Entry> PENDING = new ArrayBlockingQueue<>(4096);
 	private static volatile Thread writer;
 	private static volatile boolean warned;
 
-	/** Adres acildi. */
+	/** An address was opened. */
 	public static final String OPEN = "open";
-	/** Adres sunucu kurallarinca reddedildi. */
+	/** The address was refused by the server rules. */
 	public static final String BLOCKED = "blocked";
-	/** Yayin modu baslatildi. */
+	/** Broadcast mode was started. */
 	public static final String BROADCAST = "broadcast";
-	/** Ekran acildi/kapatildi. */
+	/** A screen was turned on/off. */
 	public static final String POWER = "power";
-	/** Siraya video eklendi. */
+	/** A video was added to the queue. */
 	public static final String QUEUE = "queue";
-	/** Oyuncu ekrani rapor etti. */
+	/** A player reported the screen. */
 	public static final String REPORT = "report";
-	/** Yonetici islemi (acil kapatma vb.). */
+	/** Admin action (emergency shutdown etc.). */
 	public static final String ADMIN = "admin";
 
 	public record Entry(String time, String player, String action, String where, String detail) {
@@ -69,7 +69,7 @@ public final class AuditLog {
 
 	private AuditLog() {}
 
-	/** Ekranla ilgili bir olay. {@code a} null olabilir (ekran bulunamadi). */
+	/** An event related to a screen. {@code a} may be null (screen not found). */
 	public static void record(@Nullable ServerPlayer p, @Nullable ScreenBlockEntity a, String action, String detail) {
 		String where = "-";
 		if (a != null) {
@@ -81,7 +81,7 @@ public final class AuditLog {
 		write(new Entry(ZonedDateTime.now().format(STAMP), who, action, where, clean(detail)));
 	}
 
-	/** Ekrani olmayan olay (yonetici islemi). */
+	/** An event without a screen (admin action). */
 	public static void record(@Nullable ServerPlayer p, String action, String detail) {
 		record(p, null, action, detail);
 	}
@@ -98,12 +98,12 @@ public final class AuditLog {
 		}
 		ensureWriter();
 		if (!PENDING.offer(e)) {
-			PENDING.poll(); // kuyruk doluysa en eskiyi birak, sunucuyu bekletme
+			PENDING.poll(); // queue full: drop the oldest, never make the server wait
 			PENDING.offer(e);
 		}
 	}
 
-	/** Yazici is parcacigi: ilk olayda baslar, sunucuyla birlikte kapanir. */
+	/** Writer thread: starts on the first event, shuts down together with the server. */
 	private static void ensureWriter() {
 		if (writer != null) {
 			return;
@@ -156,7 +156,7 @@ public final class AuditLog {
 				}
 			}
 		} catch (IOException ex) {
-			// Kayit tutulamiyorsa oyun durmasin.
+			// If the log cannot be written, the game must not stop.
 			warnOnce(ex.toString());
 		}
 	}
@@ -171,11 +171,11 @@ public final class AuditLog {
 	private static void warnOnce(String what) {
 		if (!warned) {
 			warned = true;
-			Doomscroll.LOGGER.warn("denetim kaydi yazilamadi: {}", what);
+			Doomscroll.LOGGER.warn("audit log could not be written: {}", what);
 		}
 	}
 
-	/** Sunucu kapanirken: kuyrukta kalanlari diske yaz (en fazla iki saniye bekler). */
+	/** On server shutdown: write whatever is left in the queue to disk (waits at most two seconds). */
 	public static void flush() {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 		while (!PENDING.isEmpty() && System.nanoTime() < deadline) {
@@ -187,7 +187,7 @@ public final class AuditLog {
 		}
 	}
 
-	/** Son n olay, eskiden yeniye. */
+	/** The last n events, oldest to newest. */
 	public static List<Entry> recent(int n) {
 		synchronized (LOCK) {
 			List<Entry> all = new ArrayList<>(RECENT);
@@ -200,7 +200,7 @@ public final class AuditLog {
 		return FILE;
 	}
 
-	/** Satir sonlarini ve sekmeleri temizler; kayit dosyasinin bicimi bozulmasin. */
+	/** Strips line breaks and tabs so the log file's format cannot be broken. */
 	private static String clean(String s) {
 		if (s == null || s.isEmpty()) {
 			return "-";
@@ -208,8 +208,8 @@ public final class AuditLog {
 		StringBuilder b = new StringBuilder(Math.min(s.length(), 512));
 		for (int i = 0; i < s.length() && b.length() < 512; i++) {
 			char c = s.charAt(i);
-			// Sekme/satir sonu kayit bicimini bozar; § ise /doomscroll kayit
-			// ciktisinda satiri gizlemeye ya da sahte satir uydurmaya yarar.
+			// A tab/line break corrupts the log format; § could be used to hide the line
+			// in the /doomscroll audit output or to fake an extra line.
 			b.append(c == '§' || c < ' ' || c == 127 ? ' ' : c);
 		}
 		return s.length() > 512 ? b + "..." : b.toString();

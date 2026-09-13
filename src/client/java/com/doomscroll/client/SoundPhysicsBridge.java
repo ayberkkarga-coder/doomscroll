@@ -16,10 +16,10 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 /**
- * Sound Physics Remastered kopru (yumusak bagimlilik, yansima ile).
- * SPR duvar/su alti/yanki hesabini sesi baslatirken bir kez yapar; bizim ses saatlerce aktigi icin
- * Simple Voice Chat'in yaptigi gibi periyodik olarak yeniden hesaplatiriz:
- * setLastSoundCategoryAndName -> onPlayReverb -> onPlaySound (OpenAL kaynak kimligiyle).
+ * Sound Physics Remastered bridge (soft dependency, via reflection).
+ * SPR computes walls/underwater/reverb once when a sound starts; since our sound streams for hours,
+ * we make it recompute periodically, the way Simple Voice Chat does:
+ * setLastSoundCategoryAndName -> onPlayReverb -> onPlaySound (with the OpenAL source id).
  */
 public final class SoundPhysicsBridge {
 	private static final boolean AVAILABLE;
@@ -36,9 +36,9 @@ public final class SoundPhysicsBridge {
 			onPlayReverb = l.findStatic(sp, "onPlayReverb", MethodType.methodType(void.class, double.class, double.class, double.class, int.class));
 			onPlaySound = l.findStatic(sp, "onPlaySound", MethodType.methodType(void.class, double.class, double.class, double.class, int.class));
 			ok = true;
-			Doomscroll.LOGGER.info("Sound Physics Remastered bulundu: tarayici sesi icin periyodik ortam hesabi acik");
+			Doomscroll.LOGGER.info("Sound Physics Remastered found: periodic environment computation enabled for browser audio");
 		} catch (Throwable t) {
-			Doomscroll.LOGGER.info("Sound Physics Remastered yok ({}), tarayici sesi duz konumsal", t.getClass().getSimpleName());
+			Doomscroll.LOGGER.info("Sound Physics Remastered not present ({}), browser audio is plain positional", t.getClass().getSimpleName());
 		}
 		AVAILABLE = ok;
 	}
@@ -49,7 +49,7 @@ public final class SoundPhysicsBridge {
 		return AVAILABLE;
 	}
 
-	/** Calan bir sesin OpenAL kaynagi icin SPR ortam hesabini (duvar, su, yanki) yeniden yaptirir. */
+	/** Makes SPR recompute the environment (walls, water, reverb) for the OpenAL source of a playing sound. */
 	public static void refresh(SoundInstance instance, Vec3 pos, Identifier name) {
 		if (!AVAILABLE || pos == null) {
 			return;
@@ -61,7 +61,7 @@ public final class SoundPhysicsBridge {
 			return;
 		}
 		final SoundSource src = instance.getSource();
-		// Ses motoru is parcaciginda calistir (OpenAL cagrilari orada yapilir)
+		// Run on the sound engine thread (OpenAL calls are made there)
 		handle.execute(channel -> {
 			try {
 				int source = ((ChannelAccessor) channel).doomscroll$source();
@@ -69,7 +69,7 @@ public final class SoundPhysicsBridge {
 				onPlayReverb.invoke(pos.x, pos.y, pos.z, source);
 				onPlaySound.invoke(pos.x, pos.y, pos.z, source);
 			} catch (Throwable t) {
-				Doomscroll.LOGGER.warn("Sound Physics cagrisi basarisiz", t);
+				Doomscroll.LOGGER.warn("Sound Physics call failed", t);
 			}
 		});
 	}

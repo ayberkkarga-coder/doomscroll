@@ -25,16 +25,16 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Elde tutulan tablet: WebDisplays 1.20 (CinemaMod dali) MinePadRenderer'in tutusu (tek elle, yanda) birebir
- * korunur; yalnizca govde {@link TabletModel} ile cizilir (ince plaka, cerceve, kamera). Kol: vanilla renderPlayerArm.
- * WebDisplays kamu malidir (montoyo).
+ * Held tablet: the grip of the WebDisplays 1.20 (CinemaMod branch) MinePadRenderer (one-handed, at the side) is kept
+ * exactly; only the body is drawn with {@link TabletModel} (thin slab, bezel, camera). Arm: vanilla renderPlayerArm.
+ * WebDisplays is public domain (montoyo).
  */
 @Mixin(net.minecraft.client.renderer.ItemInHandRenderer.class)
 public abstract class ItemInHandRendererMixin {
 	private static final float PI = (float) Math.PI;
 	private static final int FULL_LIGHT = 0xF000F0;
 	private static final int NO_OVERLAY = OverlayTexture.NO_OVERLAY;
-	/** Plaka kalinligi (blok birimi). */
+	/** Slab thickness (block units). */
 	private static final float THICK = 0.022f;
 
 	@Shadow
@@ -56,7 +56,7 @@ public abstract class ItemInHandRendererMixin {
 		HumanoidArm arm = hand == InteractionHand.MAIN_HAND ? player.getMainArm() : player.getMainArm().getOpposite();
 		float sign = arm == HumanoidArm.RIGHT ? 1.0f : -1.0f;
 
-		// --- WD: on hesaplar ---
+		// --- WD: precomputations ---
 		float sqrtSwing = (float) Math.sqrt(swingProgress);
 		float sinSqrtSwing1 = (float) Math.sin(sqrtSwing * PI);
 		float sinSqrtSwing2 = (float) Math.sin(sqrtSwing * PI * 2.0f);
@@ -64,10 +64,10 @@ public abstract class ItemInHandRendererMixin {
 		float sinSwing2 = (float) Math.sin(swingProgress * swingProgress * PI);
 
 		boolean portrait = Browsers.isTabletPortrait();
-		// Her zaman yanda/elde (tek elle); shift ile one alma yok
+		// Always at the side/in hand (one-handed); no bringing it forward with shift
 		boolean sideHold = true;
 
-		// --- Kol (WD renderArmFirstPerson == vanilla renderPlayerArm) ---
+		// --- Arm (WD renderArmFirstPerson == vanilla renderPlayerArm) ---
 		if (!player.isInvisible()) {
 			pose.pushPose();
 			renderPlayerArm(pose, collector, light, equipProgress, swingProgress, arm);
@@ -96,15 +96,15 @@ public abstract class ItemInHandRendererMixin {
 			pose.translate(0.065f, 0.0f, 0.0f);
 		}
 
-		// --- WD ModelMinePad + web view (ayni yerel uzay): ekran dortgeni eskisiyle birebir ayni ---
+		// --- WD ModelMinePad + web view (same local space): the screen quad is exactly the same as before ---
 		pose.translate(0.063f, 0.28f, 0.001f);
 		final float x1 = 0.0f, y1 = 0.0f;
 		final float x2 = 27.65f / 32.0f + 0.01f;
 		final float y2 = 14.0f / 32.0f + 0.002f;
 
-		final float sx0, sy0, sx1, sy1; // ekran dortgeni
+		final float sx0, sy0, sx1, sy1; // screen quad
 		if (portrait) {
-			// Telefon modu: dik 9:16 yuzey (tablet tarayicisi 720x1280)
+			// Phone mode: upright 9:16 surface (tablet browser 720x1280)
 			final float pw = 0.34f;
 			final float ph = pw * 16f / 9f;
 			final float cx = x2 / 2f;
@@ -118,7 +118,7 @@ public abstract class ItemInHandRendererMixin {
 			sx1 = x2;
 			sy1 = y2;
 		}
-		// Govde: ekran dortgeninin cevresinde cerceve kadar buyuk plaka, ekran +Z'ye bakar
+		// Body: a slab extending the bezel width around the screen quad, screen faces +Z
 		final float b = TabletModel.BEZEL;
 		final float ccx = (sx0 + sx1) / 2f, ccy = (sy0 + sy1) / 2f;
 		final float hw = (sx1 - sx0) / 2f + b, hh = (sy1 - sy0) / 2f + b;
@@ -134,9 +134,9 @@ public abstract class ItemInHandRendererMixin {
 	}
 
 	/**
-	 * Yururken/kosarken el sallanmasini azaltir: vanilla bobView'in (kaydirma + Z/X donusleri) belirli bir yuzdesini
-	 * ters uygular. config tabletSway = kalan sallanma orani (0 = sabit, 1 = vanilla). Yalnizca gorus sallanmasi
-	 * acikken ve kamera bu oyuncudayken.
+	 * Reduces hand bobbing while walking/running: applies a given percentage of vanilla bobView (translation + Z/X
+	 * rotations) in reverse. config tabletSway = remaining bobbing fraction (0 = steady, 1 = vanilla). Only while view
+	 * bobbing is enabled and the camera is on this player.
 	 */
 	private static void dampBob(AbstractClientPlayer player, float partialTick, PoseStack pose) {
 		Minecraft mc = Minecraft.getInstance();
@@ -153,7 +153,7 @@ public abstract class ItemInHandRendererMixin {
 		pose.translate(-k * Mth.sin(f1 * PI) * f2 * 0.5f, k * Math.abs(Mth.cos(f1 * PI) * f2), 0.0f);
 	}
 
-	/** (x0,y0)-(x1,y1) dikdortgeni +Z bakan yuz olarak cizer. UV: (x0,y0)->(u0,v1), (x1,y1)->(u1,v0). */
+	/** Draws the (x0,y0)-(x1,y1) rectangle as a face looking towards +Z. UV: (x0,y0)->(u0,v1), (x1,y1)->(u1,v0). */
 	private static void rect(PoseStack.Pose p, VertexConsumer c,
 							 float x0, float y0, float x1, float y1, float z,
 							 float u0, float v0, float u1, float v1, int color) {

@@ -18,19 +18,19 @@ import org.joml.Vector3fc;
 import java.util.function.Consumer;
 
 /**
- * Ucuncu sahista ve baskalarinin elinde tablet: {@link TabletModel} govdesi (ince plaka, cerceve, kamera) ve
- * ustunde tarayici (kendi tabletin ya da o oyuncunun sayfasi). Ekran blogu ile ayni dunya-render yolu.
- * Konum: eski WD minepad yerlesimi (x 1..15, z 0..9, 1/16 birim); ekran 16:9 oranla plakaya oturur.
+ * Tablet in third person and in other players' hands: {@link TabletModel} body (thin slab, bezel, camera) with
+ * the browser on top (your own tablet or that player's page). Same world-render path as the screen block.
+ * Placement: the old WD minepad layout (x 1..15, z 0..9, 1/16 units); the screen sits on the slab at a 16:9 ratio.
  */
 public class TabletSpecialRenderer implements SpecialModelRenderer<UUID> {
 	public static final Identifier ID = Doomscroll.id("tablet");
 	public static final Identifier BROWSER_TEXTURE_ID = Doomscroll.id("held_tablet_browser");
 	private static final CefTexture TEXTURE = new CefTexture(Browsers::getTabletIfPresent);
 	private static boolean textureRegistered = false;
-	/** Plaka kalinligi (blok birimi); ekran plakanin ustunde. */
+	/** Slab thickness (block units); the screen sits on top of the slab. */
 	private static final float T = 0.028f;
 
-	/** Tarayici dokusunu kaydeder/tazeler; hazir degilse false. Held-item mixin de kullanir. */
+	/** Registers/refreshes the browser texture; false if not ready. Also used by the held-item mixin. */
 	public static boolean ensureTexture() {
 		CefBrowserView b = Browsers.getOrCreateTablet();
 		if (b == null || b.getTextureView() == null) {
@@ -63,10 +63,10 @@ public class TabletSpecialRenderer implements SpecialModelRenderer<UUID> {
 		poseStack.pushPose();
 		final boolean portrait = portraitMode;
 		if (portrait) {
-			// Telefon modu: pad ekran normali (Y) etrafinda 90 derece doner; ekran yine oyuncuya bakar, uzun kenar dik
+			// Phone mode: the pad rotates 90 degrees around the screen normal (Y); the screen still faces the player, long edge vertical
 			poseStack.translate(0.5f, T / 2f, 4.5f / 16f);
 			poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(90f));
-			// ... ve kisa ekseni etrafinda kaldir: telefon dik dursun, ekran oyuncuya baksin
+			// ... and tilt it up around its short axis: the phone stands upright, the screen faces the player
 			poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-80f));
 			poseStack.translate(-0.5f, -T / 2f, -4.5f / 16f);
 		}
@@ -74,7 +74,7 @@ public class TabletSpecialRenderer implements SpecialModelRenderer<UUID> {
 		final int fullLight = 0xF000F0;
 		final int noOverlay = OverlayTexture.NO_OVERLAY;
 
-		// Plaka: x 1..15, y 0..T, z ortasi 4.5/16; ekran 16:9
+		// Slab: x 1..15, y 0..T, z center 4.5/16; screen 16:9
 		final float x0 = 1f / 16f, x1 = 15f / 16f;
 		final float sw = x1 - x0;
 		final float sh = sw * 9f / 16f;
@@ -82,22 +82,22 @@ public class TabletSpecialRenderer implements SpecialModelRenderer<UUID> {
 		final float z0 = zc - sh / 2f, z1 = zc + sh / 2f;
 		final float y = T + 0.0025f;
 
-		// Govde: R = -X (resmin sagi batida: u=0 x1'de), U = +Z (resmin ustu guneyde: v=0 z1'de), N = +Y
+		// Body: R = -X (picture right is west: u=0 at x1), U = +Z (picture top is south: v=0 at z1), N = +Y
 		collector.submitCustomGeometry(poseStack, RenderTypes.entityCutout(TabletModel.WHITE), (pose, consumer) ->
 			TabletModel.body(pose, consumer, 0.5f, T, zc, -1f, 0f, 0f, 0f, 0f, 1f, 0f, 1f, 0f, sw / 2f, sh / 2f, T, light, noOverlay));
 
-		// Tarayici: cerceve icinde, ust yuz (+Y)
+		// Browser: inside the bezel, top face (+Y)
 		final float b = TabletModel.BEZEL;
 		final float ex0 = x0 + b, ex1 = x1 - b, ez0 = z0 + b, ez1 = z1 - b;
 		if (tex != null) collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(tex), (pose, consumer) -> {
 			if (portrait) {
-				// dik doku (720x1280): v uzun kenar (x) boyunca, u kisa kenar (z) boyunca
+				// portrait texture (720x1280): v along the long edge (x), u along the short edge (z)
 				consumer.addVertex(pose, ex0, y, ez0).setColor(-1).setUv(0f, 1f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
 				consumer.addVertex(pose, ex0, y, ez1).setColor(-1).setUv(1f, 1f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
 				consumer.addVertex(pose, ex1, y, ez1).setColor(-1).setUv(1f, 0f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
 				consumer.addVertex(pose, ex1, y, ez0).setColor(-1).setUv(0f, 0f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
 			} else {
-				// yatay: goruntu tutan kisiye duz (ust kenar govdeden uzakta) -> 180 derece cevrili UV
+				// landscape: picture upright for the holder (top edge away from the body) -> UV flipped 180 degrees
 				consumer.addVertex(pose, ex0, y, ez0).setColor(-1).setUv(1f, 1f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
 				consumer.addVertex(pose, ex0, y, ez1).setColor(-1).setUv(1f, 0f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
 				consumer.addVertex(pose, ex1, y, ez1).setColor(-1).setUv(0f, 0f).setOverlay(noOverlay).setLight(fullLight).setNormal(pose, 0f, 1f, 0f);
@@ -114,7 +114,7 @@ public class TabletSpecialRenderer implements SpecialModelRenderer<UUID> {
 		consumer.accept(new Vector3f(1f, 0.1f, 0.5625f));
 	}
 
-	/** Model yukleme sistemi icin: veri tasimayan basit unbaked. */
+	/** For the model loading system: a simple unbaked that carries no data. */
 	@Override
 	public UUID extractArgument(net.minecraft.world.item.ItemStack stack) {
 		return stack.get(Doomscroll.TABLET_OWNER);

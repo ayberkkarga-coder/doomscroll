@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
-"""Modrinth / GitHub sayfa gorselleri: banner, ambilight kolaji, film gecesi ve tablet kartlari.
+"""Modrinth / GitHub page images: banner, ambilight collage, film night and tablet cards.
 
-Kullanim:
-    python tools/make_media.py --src KLASOR [--out docs/media]
+Usage:
+    python tools/make_media.py --src FOLDER [--out docs/media]
 
-KLASOR icinde su adlarla 1920x1080 oyun ekran goruntuleri beklenir:
-    neon.png       ekran + mavi neon (banner arka plani, kolaj)
-    lanterns.png   kirmizi fenerler (kolaj)
-    charade.png    Charade (1963) film karesi (film gecesi karti, kolaj)
-    mclintock.png  McLintock! (1963) film karesi (kolaj)
-    tablet.png     elde dik tablet (tablet karti; HUD alttan kirpilir, arti isareti kapatilir)
+FOLDER is expected to contain 1920x1080 in-game screenshots with these names:
+    neon.png       screen + blue neon (banner background, collage)
+    lanterns.png   red lanterns (collage)
+    charade.png    Charade (1963) film still (film night card, collage)
+    mclintock.png  McLintock! (1963) film still (collage)
+    tablet.png     tablet held upright in hand (tablet card; the HUD is cropped off the bottom, the crosshair is covered up)
 
-Yazi tipi: jar'daki Jersey 10 (home/font.css icindeki woff2), ikon: assets/doomscroll/icon.png.
-Slogan icin Windows'taki Segoe UI Semibold kullanilir; yoksa Jersey 10'a duser.
+Font: Jersey 10 from the jar (the woff2 inside home/font.css), icon: assets/doomscroll/icon.png.
+The tagline uses Segoe UI Semibold from Windows; if it is missing, it falls back to Jersey 10.
 
 pip install pillow
 """
@@ -29,10 +29,10 @@ RES = os.path.join(ROOT, "src", "main", "resources", "assets", "doomscroll")
 FONT_CSS = os.path.join(RES, "home", "font.css")
 ICON = os.path.join(RES, "icon.png")
 
-K = (11, 11, 15)                                   # ikonla ayni dis kontur rengi
+K = (11, 11, 15)                                   # same outer outline color as the icon
 WHITE = (246, 246, 250)
-CORAL = (224, 86, 76)                              # oyun ici marka: doom<em>scroll</em> rengi
-STOPS = [(255, 150, 60), (255, 96, 82), (242, 48, 130), (150, 60, 235)]   # ikonun gun batimi gradyani
+CORAL = (224, 86, 76)                              # in-game branding: the doom<em>scroll</em> color
+STOPS = [(255, 150, 60), (255, 96, 82), (242, 48, 130), (150, 60, 235)]   # the icon's sunset gradient
 
 
 def lerp_stop(t):
@@ -45,7 +45,7 @@ def lerp_stop(t):
 
 
 def jersey_font(size):
-    """font.css icindeki latin @font-face blogunu cozer; Pillow woff2 dosyasini dogrudan acar."""
+    """Decodes the latin @font-face block in font.css; Pillow opens the woff2 file directly."""
     css = open(FONT_CSS, encoding="utf-8").read()
     blocks = re.findall(r"@font-face\{[^}]*\}", css)
     chosen = None
@@ -69,11 +69,11 @@ def ui_font(size):
 
 
 def pixel_text(text, small=20, scale=12, fill="gradient", split_at=None, outline=1):
-    """Jersey 10'u kucuk boyda cizip NEAREST buyutur: ikonla ayni sert piksel gorunumu.
+    """Draws Jersey 10 at a small size and scales it up with NEAREST: the same crisp pixel look as the icon.
 
-    fill: "gradient", bir (r,g,b) rengi ya da (sol, sag) ikilisi; ikili verilirse metnin
-    split_at'inci karakterinden itibaren sag dolgu kullanilir.
-    Dondurur: (RGBA katman, metin kutusu (x0,y0,x1,y1) katman icinde).
+    fill: "gradient", an (r,g,b) color or a (left, right) pair; with a pair, the right fill is used
+    from the split_at-th character of the text onwards.
+    Returns: (RGBA layer, text box (x0,y0,x1,y1) within the layer).
     """
     font = jersey_font(small)
     d0 = ImageDraw.Draw(Image.new("L", (1, 1)))
@@ -89,7 +89,7 @@ def pixel_text(text, small=20, scale=12, fill="gradient", split_at=None, outline
     edge_b = edge.resize(big, Image.NEAREST)
 
     layer = Image.new("RGBA", big, (0, 0, 0, 0))
-    shadow = Image.new("RGBA", big, K + (150,))          # golge: kontur 1 kucuk piksel sag-alta
+    shadow = Image.new("RGBA", big, K + (150,))          # shadow: the outline shifted 1 small pixel down and to the right
     layer.paste(shadow, (scale, scale), edge_b)
     layer.paste(Image.new("RGBA", big, K + (255,)), (0, 0), edge_b)
 
@@ -118,14 +118,14 @@ def pixel_text(text, small=20, scale=12, fill="gradient", split_at=None, outline
 
 
 def icon_pixels(px_size):
-    """512'lik ikonu 32'lik izgaraya indirip tam kat buyutur; piksel sanati bozulmaz."""
+    """Reduces the 512 px icon to the 32 px grid and scales it up by a whole multiple, so the pixel art stays intact."""
     ic = Image.open(ICON).convert("RGBA").resize((32, 32), Image.NEAREST)
     k = max(1, px_size // 32)
     return ic.resize((32 * k, 32 * k), Image.NEAREST)
 
 
 def soft_box(size, box, alpha, radius):
-    """Yazi arkasina yumusak kenarli koyu dikdortgen maskesi."""
+    """Mask for a soft-edged dark rectangle behind the text."""
     m = Image.new("L", size, 0)
     ImageDraw.Draw(m).rounded_rectangle(box, radius=40, fill=alpha)
     return m.filter(ImageFilter.GaussianBlur(radius))
@@ -134,7 +134,7 @@ def soft_box(size, box, alpha, radius):
 def banner(src, out, style="lower", blur=3, size=(1920, 640)):
     W, H = size
     bg = Image.open(os.path.join(src, "neon.png")).convert("RGB")
-    top = (bg.height - H) // 2 - 50                     # ekran biraz yukarida kalsin, altta oyuncu basi
+    top = (bg.height - H) // 2 - 50                     # keep the screen a little high, with the player's head at the bottom
     bg = bg.crop((0, top, W, top + H))
     if blur:
         bg = bg.filter(ImageFilter.GaussianBlur(blur))
@@ -178,7 +178,7 @@ def banner(src, out, style="lower", blur=3, size=(1920, 640)):
 
 
 def fit_crop(im, box, size):
-    """box'u kirp, size'a sigdir (oran farkini ortadan kirparak)."""
+    """Crop to box, then fit to size (center-cropping away the aspect-ratio difference)."""
     im = im.crop(box)
     tw, th = size
     s = max(tw / im.width, th / im.height)
@@ -205,14 +205,14 @@ def collage(src, out, gutter=8, size=(1920, 1080)):
 
 def film_night(src, out):
     im = Image.open(os.path.join(src, "charade.png")).convert("RGB")
-    im.crop((200, 60, 1720, 915)).save(out)          # 1520x855, ekran + isiyan duvarlar
+    im.crop((200, 60, 1720, 915)).save(out)          # 1520x855, screen + glowing walls
 
 
 def tablet_card(src, out):
     im = Image.open(os.path.join(src, "tablet.png")).convert("RGB")
-    patch = im.crop((948, 553, 972, 577))            # arti isaretini hemen altindaki dokuyla kapat
+    patch = im.crop((948, 553, 972, 577))            # cover the crosshair with the texture right below it
     im.paste(patch, (948, 528))
-    im.crop((0, 0, 1706, 960)).save(out)              # HUD (can, aclik, hotbar) disarida kalir
+    im.crop((0, 0, 1706, 960)).save(out)              # HUD (health, hunger, hotbar) stays outside the crop
 
 
 def main():

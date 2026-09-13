@@ -8,13 +8,13 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import java.util.List;
 
 /**
- * Sunucu -> istemci (girise ve ayar degisikligine): adres politikasi.
+ * Server -> client (on login and on config change): the URL policy.
  *
- * <p>Sunucu zaten paylasilan adresi denetliyor, ama yonlendirmeler once istemcide olur:
- * kisaltilmis bir adres engelli bir siteye giderse sayfa istemcide bir an yuklenir.
- * Politikayi istemciye de verince her tarayici her adres degisikliginde ayni kurali
- * yerinde uygular ve sayfa hic acilmaz. Degistirilmis istemci bunu yok sayabilir;
- * sunucu tarafindaki denetim yine de gecerlidir.
+ * <p>The server already checks the shared URL, but redirects happen on the client first:
+ * if a shortened URL leads to a blocked site, the page loads on the client for a moment.
+ * Handing the policy to the client as well lets every browser apply the same rule in place
+ * on every URL change, so the page never opens. A modified client may ignore this;
+ * the server-side check still applies.
  */
 public record ServerPolicyBroadcast(List<String> blocked, List<String> allowed, int flags, int urlCooldownMs)
 		implements CustomPacketPayload {

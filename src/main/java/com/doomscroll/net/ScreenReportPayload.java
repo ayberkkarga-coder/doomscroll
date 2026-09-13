@@ -7,9 +7,9 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Istemci -> sunucu: "bu ekrani bildiriyorum". Sunucu ekranin sahibini ve adresini
- * kendisi okur (istemcinin yolladigi metne guvenmez), denetim kaydina yazar ve
- * cevrimici yoneticilere bildirir.
+ * Client -> server: "I'm reporting this screen". The server reads the screen's owner and URL
+ * itself (it does not trust the text sent by the client), writes to the audit log and
+ * notifies the online admins.
  */
 public record ScreenReportPayload(BlockPos pos, String note) implements CustomPacketPayload {
 	public static final Type<ScreenReportPayload> TYPE = new Type<>(Doomscroll.id("screen_report"));

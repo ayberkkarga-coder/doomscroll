@@ -6,9 +6,9 @@ import net.minecraft.client.renderer.texture.AbstractTexture;
 import java.util.function.Supplier;
 
 /**
- * TextureManager'a kaydedilen sarmalayici: her karede verilen tarayicinin guncel
- * GPU dokusuna isaret eder. GUI blit(Identifier,...) bu yolu kullaninca metin/video
- * dogru cizilir (dogrudan textureView blit'i sadece duz renk basiyordu).
+ * Wrapper registered with the TextureManager: every frame it points at the given browser's
+ * current GPU texture. When GUI blit(Identifier,...) goes through this path, text/video is
+ * drawn correctly (blitting the textureView directly only produced a flat colour).
  */
 public class CefTexture extends AbstractTexture {
 	private final Supplier<CefBrowserView> source;
@@ -31,7 +31,7 @@ public class CefTexture extends AbstractTexture {
 
 	@Override
 	public void close() {
-		// Dokunun sahibi CEF; burada serbest birakmiyoruz.
+		// CEF owns the texture; we do not release it here.
 		this.texture = null;
 		this.textureView = null;
 	}

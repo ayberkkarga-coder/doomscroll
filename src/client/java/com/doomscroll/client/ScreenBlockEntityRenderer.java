@@ -43,7 +43,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 			return;
 		}
 
-		// Ekran basina tarayici: kaydi guncelle, gerekiyorsa ac; dokusunu al
+		// One browser per screen: update the record, open it if needed; grab its texture
 		ScreenBrowsers.Screen s = ScreenBrowsers.noteRendered(be, state.on);
 		state.texId = ScreenBrowsers.textureFor(s);
 		state.hasTexture = state.texId != null;
@@ -76,8 +76,8 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 		float h = state.screenHeight;
 		Direction facing = state.facing;
 
-		// Ekran isigi: ekranin onundeki yuzeylere kendinden aydinlik, yari saydam renk yamalari (blok kosesi
-		// cercevesinde, donusum yok). Ekranin kendisiyle ayni cizim yolu: shader paketlerinde de gorunur.
+		// Screen glow: self-lit, translucent color patches on the surfaces in front of the screen (in the block-corner
+		// frame, no transform). Same draw path as the screen itself: visible in shader packs too.
 		if (live && state.glow != null && state.tiles != null && !state.glow.isEmpty()) {
 			final java.util.List<ScreenGlow.Patch> patches = state.glow;
 			final float[] tiles = state.tiles;
@@ -91,7 +91,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 			}
 			final float avgR = sr / nt, avgG = sg / nt, avgB = sb / nt;
 			final boolean smooth = DoomscrollConfig.get().screenGlowSmooth;
-			// kare basina renk tablosu: [karisim kovasi][kutucuk] -> algisal parlaklikla duzeltilmis rgb
+			// per-frame color table: [mix bucket][tile] -> rgb corrected for perceptual brightness
 			final int mbN = ScreenGlow.MIX_BUCKETS;
 			final float[] table = new float[mbN * nt * 3];
 			for (int mb = 0; mb < mbN; mb++) {
@@ -115,7 +115,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 					for (int j = 0; j < 4; j++) {
 						float r = pr, g = pg, b = pb, a = pa;
 						if (blend) {
-							// kose rengi = ayni yonlu komsu yuzlerin agirlikli ortalamasi (blok blok yerine kesintisiz)
+							// corner color = weighted average of the neighboring faces with the same direction (seamless instead of block-by-block)
 							float cr = 0, cg = 0, cb = 0, ws = 0;
 							int n = 0;
 							for (int k = 0; k < 4; k++) {
@@ -145,26 +145,26 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 
 		poseStack.pushPose();
 		poseStack.translate(0.5, 0.5, 0.5);
-		// Yerel cerceve: +X = bakanin sagi (ust x on), +Y = resmin ustu, +Z = on yuz (bakana dogru).
-		// Duvar, yer ve tavan ekrani ayni matrisle; ScreenTracker.raycast ve ScreenGlow ayni cerceveyi kullanir.
+		// Local frame: +X = viewer's right (top x front), +Y = top of the picture, +Z = front face (towards the viewer).
+		// Wall, floor and ceiling screens use the same matrix; ScreenTracker.raycast and ScreenGlow use the same frame.
 		Direction topDir = state.top;
 		Direction rightDir = ScreenBlock.right(facing, topDir);
 		poseStack.mulPose(new org.joml.Matrix4f(new org.joml.Matrix3f(
 				rightDir.getStepX(), rightDir.getStepY(), rightDir.getStepZ(),
 				topDir.getStepX(), topDir.getStepY(), topDir.getStepZ(),
 				facing.getStepX(), facing.getStepY(), facing.getStepZ())));
-		// Derinlik araliklari: blok yuzu 0.5, siyah zemin 0.503, canli goruntu +0.004, imlecler +0.006. Yarim milimetrelik
-		// araliklar uzaktan/egik bakista (ozellikle shader'da) z-fighting yapiyordu (noktali bant).
+		// Depth spacing: block face 0.5, black backdrop 0.503, live picture +0.004, pointers +0.006. Half-millimeter
+		// spacing caused z-fighting (dotted band) when viewed from afar/at an angle (especially with shaders).
 		poseStack.translate(0.0, 0.0, 0.503);
 
-		final int light = 0xF000F0; // ekran kendi isigini yayar
+		final int light = 0xF000F0; // the screen emits its own light
 		final int overlay = OverlayTexture.NO_OVERLAY;
 		final Identifier tex = live ? state.texId : OFF_TEXTURE;
 		final int shade = 255;
 
 		if (live) {
-			// Canli ekran: "eyes" tipi (shader paketlerinde isik yayan, toplamsal karisim). Siyah pikseller
-			// seffaf kalmasin diye altina normal aydinlatilan siyah bir zemin cizilir.
+			// Live screen: "eyes" type (emissive in shader packs, additive blending). A normally lit black backdrop
+			// is drawn underneath so that black pixels do not end up transparent.
 			collector.submitCustomGeometry(poseStack, RenderTypes.entityCutout(OFF_TEXTURE), (pose, consumer) ->
 				quad(pose, consumer, w, h, 0f, 0, overlay, light));
 			collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(tex), (pose, consumer) ->
@@ -174,7 +174,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 				quad(pose, consumer, w, h, 0f, shade, overlay, light));
 		}
 
-		// Paylasimli isaretci: baskalarinin crosshair'i (renkli nokta + koyu kenar), panelin hemen onunde
+		// Shared pointer: other players' crosshairs (colored dot + dark border), just in front of the panel
 		if (live && state.pointers != null && !state.pointers.isEmpty()) {
 			final java.util.List<Pointers.Pointer> pts = state.pointers;
 			collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(WHITE_TEXTURE), (pose, consumer) -> {
@@ -192,7 +192,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 
 	private static final Identifier WHITE_TEXTURE = Doomscroll.id("textures/block/white.png");
 
-	/** Ekran duzleminde kucuk kare (isaretci). */
+	/** Small square on the screen plane (pointer). */
 	private static void dot(PoseStack.Pose pose, com.mojang.blaze3d.vertex.VertexConsumer c, float cx, float cy, float r, float z, int rgb, int a, int overlay, int light) {
 		int cr = (rgb >> 16) & 0xFF, cg = (rgb >> 8) & 0xFF, cb = rgb & 0xFF;
 		c.addVertex(pose, cx + r, cy - r, z).setColor(cr, cg, cb, a).setUv(0.5f, 0.5f).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);
@@ -201,7 +201,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 		c.addVertex(pose, cx + r, cy + r, z).setColor(cr, cg, cb, a).setUv(0.5f, 0.5f).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);
 	}
 
-	/** Ekran duzlemi: (0.5,-0.5) sag-alt, (0.5-w, -0.5+h) sol-ust; +Z bakar. */
+	/** Screen plane: (0.5,-0.5) bottom-right, (0.5-w, -0.5+h) top-left; faces +Z. */
 	private static void quad(PoseStack.Pose pose, com.mojang.blaze3d.vertex.VertexConsumer consumer, float w, float h, float z, int c, int overlay, int light) {
 		float x0 = 0.5f, x1 = 0.5f - w, y0 = -0.5f, y1 = -0.5f + h;
 		consumer.addVertex(pose, x0, y0, z).setColor(c, c, c, 255).setUv(1f, 1f).setOverlay(overlay).setLight(light).setNormal(pose, 0f, 0f, 1f);

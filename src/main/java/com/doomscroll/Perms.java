@@ -10,19 +10,19 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
 /**
- * Izin kontrolu. LuckPerms gibi bir izin yoneticisi varsa (fabric-permissions-api)
- * dugum adiyla sorar; yoksa oyunun kendi izin kumesine duser.
+ * Permission checks. If a permission manager such as LuckPerms is present (fabric-permissions-api)
+ * it is asked by node name; otherwise this falls back to the game's own permission set.
  *
- * <p>Bagimlilik eklemeden calisir: API sinifi yansima ile aranir, bulunamazsa bir kez
- * isaretlenip bir daha denenmez. Izin yoneticisi olmayan sunucuda hicbir maliyeti yok.
+ * <p>Works without adding a dependency: the API class is looked up via reflection; if it is missing,
+ * that is noted once and never retried. On a server without a permission manager it costs nothing.
  *
- * <p>Dugumler ve izin yoneticisi yokken gecerli olan varsayilanlar:
+ * <p>The nodes, and the defaults that apply when there is no permission manager:
  * <ul>
- *   <li>{@code doomscroll.place} — ekran koyabilme (varsayilan: herkes)</li>
- *   <li>{@code doomscroll.url} — ekranda adres degistirebilme (varsayilan: herkes)</li>
- *   <li>{@code doomscroll.broadcast} — yayin modu baslatabilme (varsayilan: herkes)</li>
- *   <li>{@code doomscroll.bypass} — engelli adresleri ve sinirlari asabilme (varsayilan: oyun yoneticisi)</li>
- *   <li>{@code doomscroll.admin} — /doomscroll komutlari ve rapor bildirimleri (varsayilan: oyun yoneticisi)</li>
+ *   <li>{@code doomscroll.place} — placing screens (default: everyone)</li>
+ *   <li>{@code doomscroll.url} — changing the address on a screen (default: everyone)</li>
+ *   <li>{@code doomscroll.broadcast} — starting broadcast mode (default: everyone)</li>
+ *   <li>{@code doomscroll.bypass} — bypassing blocked addresses and the limits (default: gamemaster)</li>
+ *   <li>{@code doomscroll.admin} — /doomscroll commands and report alerts (default: gamemaster)</li>
  * </ul>
  */
 public final class Perms {
@@ -32,9 +32,9 @@ public final class Perms {
 	public static final String BYPASS = "doomscroll.bypass";
 	public static final String ADMIN = "doomscroll.admin";
 
-	/** Yonetici islemleri icin oyunun kendi izni (op 2 karsiligi). */
+	/** The game's own permission for admin actions (equivalent of op level 2). */
 	public static final Permission GAMEMASTER = Permissions.COMMANDS_GAMEMASTER;
-	/** "Herkes" anlaminda: izin yoneticisi yoksa serbest. */
+	/** Means "everyone": open to all when there is no permission manager. */
 	public static final Permission EVERYONE = null;
 
 	private static MethodHandle check;
@@ -43,9 +43,9 @@ public final class Perms {
 	private Perms() {}
 
 	/**
-	 * Oyuncunun dugume izni var mi?
+	 * Does the player have permission for the node?
 	 *
-	 * @param fallback izin yoneticisi yokken bakilacak oyun izni; {@link #EVERYONE} ise serbest
+	 * @param fallback the game permission checked when there is no permission manager; {@link #EVERYONE} means open to all
 	 */
 	public static boolean has(ServerPlayer p, String node, @Nullable Permission fallback) {
 		boolean vanilla = fallback == null || p.permissions().hasPermission(fallback);
@@ -53,7 +53,7 @@ public final class Perms {
 		return api != null ? api : vanilla;
 	}
 
-	/** fabric-permissions-api varsa sonucu dondurur, yoksa null. */
+	/** Returns the result if fabric-permissions-api is present, null otherwise. */
 	@Nullable
 	private static Boolean ask(ServerPlayer p, String node, boolean fallback) {
 		if (!looked) {
@@ -62,9 +62,9 @@ public final class Perms {
 				Class<?> c = Class.forName("me.lucko.fabric.api.permissions.v0.Permissions");
 				check = MethodHandles.publicLookup().findStatic(c, "check",
 						MethodType.methodType(boolean.class, net.minecraft.world.entity.Entity.class, String.class, boolean.class));
-				Doomscroll.LOGGER.info("izin yoneticisi bulundu: doomscroll.* dugumleri kullanilabilir");
+				Doomscroll.LOGGER.info("permission manager found: doomscroll.* nodes can be used");
 			} catch (Throwable ignored) {
-				check = null; // izin yoneticisi yok: oyunun kendi izinleriyle devam
+				check = null; // no permission manager: carry on with the game's own permissions
 			}
 		}
 		if (check == null) {
@@ -74,7 +74,7 @@ public final class Perms {
 			return (boolean) check.invoke((net.minecraft.world.entity.Entity) p, node, fallback);
 		} catch (Throwable t) {
 			check = null;
-			Doomscroll.LOGGER.warn("izin API'si cagrilamadi, oyunun izinlerine dusuluyor: {}", t.toString());
+			Doomscroll.LOGGER.warn("permission API call failed, falling back to the game's permissions: {}", t.toString());
 			return null;
 		}
 	}

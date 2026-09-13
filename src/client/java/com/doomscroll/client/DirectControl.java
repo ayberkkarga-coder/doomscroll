@@ -19,19 +19,19 @@ import org.lwjgl.glfw.GLFW;
 
 
 /**
- * Dunyadaki ekrani dogrudan kullanma: crosshair = imlec, sol tik = tikla,
- * tekerlek = kaydir, sag tik = klavyeyi ekrana bagla/birak (ESC de birakir).
+ * Using a screen in the world directly: crosshair = cursor, left click = click,
+ * wheel = scroll, right click = bind/release the keyboard to the screen (ESC also releases).
  *
- * Kural: dogrudan kontrol yalnizca el bos, kumanda ya da tablet tutuluyorken aktiftir
- * (klavye kilidi aciksa her zaman). Boylece insa ederken ekran araya girmez.
+ * Rule: direct control is only active with an empty hand or while holding the remote or the tablet
+ * (always while the keyboard is captured). That way the screen doesn't get in the way while building.
  */
 public final class DirectControl {
 	private static final double MAX_REACH = 48.0;
 
 	private static boolean keyboardCaptured = false;
 	/**
-	 * Klavye baglandigi andaki ekran. Tuslar hep bu ekrana gider: yoksa artiisaret
-	 * panelden kayinca yazdigin geri kalani yandaki ekran aliyordu.
+	 * The screen at the moment the keyboard was bound. Keys always go to this screen: otherwise, once the
+	 * crosshair slipped off the panel, the rest of what you typed went to the screen next to it.
 	 */
 	@Nullable
 	private static BlockPos capturedPos;
@@ -44,12 +44,12 @@ public final class DirectControl {
 	private static int hintCooldown = 0;
 	private static int remoteHintCooldown = 0;
 	private static long lastWheelKeyNanos = 0L;
-	/** Basmasini bizim yuttugumuz fare tuslari -> basildigi sayfa noktasi (birakma ayni noktaya gider: tik kaybolmaz). */
+	/** Mouse buttons whose press we swallowed -> page point where they were pressed (the release goes to the same point: the click isn't lost). */
 	private static final java.util.Map<Integer, int[]> heldButtons = new java.util.HashMap<>();
-	/** Klavye, sayfa bir yazi alanina odaklandigi icin otomatik baglandi (odak gidince otomatik birakilir). */
+	/** The keyboard was bound automatically because the page focused a text field (released automatically when focus leaves). */
 	private static boolean autoCaptured = false;
 	private static int handHintCooldown = 0;
-	/** Son bakilan ekran (simdi oynuyor bildirimi icin). */
+	/** Last looked-at screen (for the now-playing notice). */
 	@Nullable private static BlockPos lastLookedAt;
 	private static long lookedSinceMs = 0L;
 	private static boolean nowPlayingShown = false;
@@ -77,7 +77,7 @@ public final class DirectControl {
 		return main.isEmpty() || main.getItem() == Doomscroll.REMOTE_ITEM || main.getItem() == Doomscroll.TABLET_ITEM;
 	}
 
-	/** Ekranin onunde daha yakin gercek bir blok varsa (ekran blogunun kendisi haric) vanilla kazanir. */
+	/** If there is a closer real block in front of the screen (other than the screen block itself), vanilla wins. */
 	private static boolean vanillaTargetCloser(Minecraft mc, ScreenTracker.Hit hit) {
 		HitResult hr = mc.hitResult;
 		if (!(hr instanceof BlockHitResult bhr) || hr.getType() != HitResult.Type.BLOCK) {
@@ -90,7 +90,7 @@ public final class DirectControl {
 		return d < hit.distance() - 0.05;
 	}
 
-	/** Su an ekran kontrolu devrede mi? */
+	/** Is screen control active right now? */
 	private static boolean controlActive(Minecraft mc) {
 		return inWorld(mc) && currentHit != null && handAllows(mc) && !vanillaTargetCloser(mc, currentHit);
 	}
@@ -101,7 +101,7 @@ public final class DirectControl {
 			if (keyboardCaptured && mc.gui.screen() != null) {
 				setCaptured(mc, false);
 			}
-			Pointers.tick(mc); // ekrandan cikildi: "kayboldu" gonderilsin
+			Pointers.tick(mc); // left the screen: send the "gone" notice
 			return;
 		}
 
@@ -111,7 +111,7 @@ public final class DirectControl {
 		if (currentHit != null) {
 			lastHit = currentHit;
 		}
-		// "Simdi oynuyor": yeni bir ekrana 1 sn bakinca baslik + sure + kontrol (kisa, bir kez)
+		// "Now playing": after looking at a new screen for 1 s, show title + time + control (brief, once)
 		BlockPos looking = currentHit == null ? null : currentHit.pos();
 		if (looking == null || !looking.equals(lastLookedAt)) {
 			lastLookedAt = looking;
@@ -129,8 +129,8 @@ public final class DirectControl {
 						? "  · " + Lang.tr("gui.doomscroll.lcd.broadcast_short", Broadcast.label(s)) : "";
 				boolean hasCtl = s != null && !s.isFree() && !ctl.isEmpty();
 				String dom = ServerPolicy.showDomain() ? ServerPolicy.host(s == null ? "" : s.currentUrl()) : "";
-				// Alan adi HUD'da yazar: sayfa oyunun arayuzune dokunamaz, sahte giris sayfasi
-				// gercek adresi gizleyemez.
+				// The domain is shown on the HUD: the page can't touch the game's UI, so a fake login page
+				// can't hide the real address.
 				mc.player.sendOverlayMessage(Component.literal((title.length() > 40 ? title.substring(0, 40) + "…" : title)
 						+ (dom.isEmpty() ? "" : "  §7" + dom + "§r")
 						+ (time.isEmpty() ? "" : "  " + time) + (hasCtl ? "  · " + Lang.tr("gui.doomscroll.lcd.control", ctl) : "") + bc
@@ -155,7 +155,7 @@ public final class DirectControl {
 			hintCooldown = 40;
 			mc.player.sendOverlayMessage(Component.translatable("message.doomscroll.keyboard.bound"));
 		}
-		// Elde bagli olmayan kumanda + bakilan ekran: nasil baglanacagini soyle (3 sn'de bir)
+		// Unbound remote in hand + a looked-at screen: tell how to bind it (every 3 s)
 		if (!keyboardCaptured && currentHit != null && remoteHintCooldown-- <= 0) {
 			remoteHintCooldown = 60;
 			ItemStack main = mc.player.getMainHandItem();
@@ -165,11 +165,11 @@ public final class DirectControl {
 		}
 	}
 
-	/** Fare tusu. true donerse vanilla islenmez. */
+	/** Mouse button. If true is returned, vanilla does not process it. */
 	public static boolean onMouseButton(Minecraft mc, MouseButtonInfo info, int action) {
 		int button = info.input();
 
-		// Birakma: yalnizca basmasini bizim aldigimiz tuslar icin
+		// Release: only for buttons whose press we took
 		if (action == GLFW.GLFW_RELEASE) {
 			int[] at = heldButtons.remove(button);
 			if (at == null) {
@@ -177,7 +177,7 @@ public final class DirectControl {
 			}
 			CefBrowserView b = Browsers.getIfPresent();
 			if (b != null && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-				// Birakma, basilan noktaya gider: crosshair bu arada kaysa da tik ayni ogeye iner
+				// The release goes to the pressed point: even if the crosshair moved meanwhile, the click lands on the same element
 				b.onMouseReleased(new MouseButtonEvent(at[0], at[1], info));
 			}
 			return true;
@@ -186,14 +186,14 @@ public final class DirectControl {
 			return false;
 		}
 		if (!controlActive(mc)) {
-			// Ekrana bakiyor ama elinde baska bir esya var: neden calismadigini soyle (3 sn'de bir)
+			// Looking at the screen but holding some other item: say why it doesn't work (every 3 s)
 			if (inWorld(mc) && currentHit != null && !handAllows(mc) && !vanillaTargetCloser(mc, currentHit) && handHintCooldown <= 0) {
 				handHintCooldown = 60;
 				mc.player.sendOverlayMessage(Component.translatable("message.doomscroll.free_hand"));
 			}
 			return false;
 		}
-		// Elde kumanda + ekrana sag tik: vanilla islesin -> RemoteItem.useOn kumandayi ekrana baglar
+		// Remote in hand + right click on the screen: let vanilla handle it -> RemoteItem.useOn binds the remote to the screen
 		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && mc.player.getMainHandItem().getItem() == Doomscroll.REMOTE_ITEM) {
 			return false;
 		}
@@ -207,7 +207,7 @@ public final class DirectControl {
 
 		int[] stale = heldButtons.get(button);
 		if (stale != null && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-			// Birakmasi kaybolmus bir basma (GUI acilmis vb.): once onu bitir, yoksa tarayici tusu basili sanir
+			// A press whose release was lost (a GUI opened etc.): finish it first, otherwise the browser thinks the button is still held
 			b.onMouseReleased(new MouseButtonEvent(stale[0], stale[1], info));
 		}
 		heldButtons.put(button, new int[] {currentHit.px(), currentHit.py()});
@@ -220,11 +220,11 @@ public final class DirectControl {
 			return true;
 		}
 
-		ScreenBrowsers.noteExplicitAt(currentHit.pos()); // tiklama = ekrani ben suruyorum
+		ScreenBrowsers.noteExplicitAt(currentHit.pos()); // click = I'm driving the screen
 		b.setFocus(true);
 		b.onMouseClicked(new MouseButtonEvent(currentHit.px(), currentHit.py(), info), false);
 		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-			// Tik bir yazi alanina indiyse sayfa odak raporunu tazelesin (ayni alana ikinci tikta focusin gelmez)
+			// If the click landed on a text field, have the page refresh its focus report (a second click on the same field fires no focusin)
 			try {
 				var cb = b.getCefBrowser();
 				cb.executeJavaScript("if(window.__dsFocusSend){window.__dsClickPt=[" + currentHit.px() + "," + currentHit.py() + ",Date.now()];window.__dsLastFocus=-1;setTimeout(window.__dsFocusSend,80);}", cb.getURL(), 0);
@@ -234,7 +234,7 @@ public final class DirectControl {
 		return true;
 	}
 
-	/** Tekerlek. true donerse vanilla (hotbar) islenmez. */
+	/** Wheel. If true is returned, vanilla (hotbar) does not process it. */
 	public static boolean onScroll(Minecraft mc, double dy) {
 		if (!controlActive(mc)) {
 			return onTabletScroll(mc, dy);
@@ -245,9 +245,9 @@ public final class DirectControl {
 		}
 		ScreenBrowsers.noteExplicitAt(currentHit.pos());
 		if (Browsers.isShortFormPage(Browsers.currentUrl())) {
-			// Shorts/Reels/TikTok: bir tik = bir video (tekerlek kaydirmasi yetmiyor)
+			// Shorts/Reels/TikTok: one notch = one video (wheel scrolling isn't enough)
 			long now = System.nanoTime();
-			if (now - lastWheelKeyNanos > 250_000_000L) { // yuksek cozunurluklu tekerlek: tek centik = tek tus
+			if (now - lastWheelKeyNanos > 250_000_000L) { // high-resolution wheel: one notch = one key press
 				lastWheelKeyNanos = now;
 				if (dy < 0) Browsers.nextVideo(); else Browsers.prevVideo();
 			}
@@ -258,8 +258,8 @@ public final class DirectControl {
 	}
 
 	/**
-	 * Tablet ana eldeyken tekerlek tablete gider: Shorts/Reels/TikTok'ta bir centik = bir video, diger sayfalarda
-	 * sayfa kaydirilir. Egilerek (Shift) cevirince hotbar degisir; tablet yan eldeyken hotbar normal calisir.
+	 * With the tablet in the main hand the wheel goes to the tablet: on Shorts/Reels/TikTok one notch = one video, on other
+	 * pages it scrolls. Scrolling while sneaking (Shift) switches the hotbar; with the tablet in the off hand the hotbar works normally.
 	 */
 	private static boolean onTabletScroll(Minecraft mc, double dy) {
 		if (!inWorld(mc) || mc.player.isShiftKeyDown()) {
@@ -284,7 +284,7 @@ public final class DirectControl {
 		return true;
 	}
 
-	/** Klavye. true donerse vanilla islenmez. */
+	/** Keyboard. If true is returned, vanilla does not process it. */
 	public static boolean onKey(Minecraft mc, int action, KeyEvent event) {
 		if (!keyboardCaptured || mc.gui.screen() != null) {
 			return false;
@@ -321,8 +321,8 @@ public final class DirectControl {
 	}
 
 	/**
-	 * Sayfa bir yazi alanina odaklandi (editing=true) ya da odagi birakti: bakilan ekransa klavyeyi
-	 * otomatik bagla; otomatik baglanan klavye odak gidince (Enter, sayfa degisimi) otomatik birakilir.
+	 * The page focused a text field (editing=true) or lost focus: if it is the looked-at screen, bind the
+	 * keyboard automatically; an auto-bound keyboard is released automatically when focus leaves (Enter, page change).
 	 */
 	private static long lastFocusChangeMs;
 
@@ -330,7 +330,7 @@ public final class DirectControl {
 		Minecraft mc = Minecraft.getInstance();
 		long now = System.currentTimeMillis();
 		if (now - lastFocusChangeMs < 500L) {
-			return; // sayfa odagi hizli yanip sonduruyorsa gormezden gel
+			return; // ignore if the page is flickering focus rapidly
 		}
 		lastFocusChangeMs = now;
 		if (editing) {
@@ -343,7 +343,7 @@ public final class DirectControl {
 		}
 	}
 
-	/** Klavyenin bagli oldugu ekranin tarayicisi (bagli degilse bakilan/etkin ekran). */
+	/** Browser of the screen the keyboard is bound to (if not bound, the looked-at/active screen). */
 	@Nullable
 	private static CefBrowserView capturedBrowser() {
 		if (capturedPos != null) {
@@ -374,7 +374,7 @@ public final class DirectControl {
 		}
 	}
 
-	/** Bir ekran yok oldu: yalnizca o ekrana bagli durumu birak. */
+	/** A screen is gone: drop only the state bound to that screen. */
 	public static void screenGone(BlockPos pos) {
 		if (capturedPos != null && capturedPos.equals(pos)) {
 			keyboardCaptured = false;

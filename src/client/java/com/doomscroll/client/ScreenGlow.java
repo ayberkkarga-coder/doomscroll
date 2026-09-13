@@ -27,24 +27,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Ekran isigi (ambilight): ekranin onundeki yuzeylere, ekranin o bolgesindeki renkle (uzaklastikca tum ekranin
- * ortalamasiyla karisarak) yari saydam, kendinden aydinlik isik yamalari cizilir. Boylece oda ekrandaki goruntuye
- * gore renklenir; shader paketleriyle de calisir (ekranin kendisiyle ayni "emissive" cizim yolu). Yuzey listesi
- * arka planda 2 sn'de bir hesaplanir (blok taramasi + gorus cizgisi, duvar arkasina isik sizmaz); renkler her
- * karede tarayicinin kaba renk haritasindan alinir.
+ * Screen glow (ambilight): semi-transparent, self-lit light patches are drawn on the surfaces in front of the
+ * screen, using the color of the matching region of the screen (blending toward the whole-screen average with
+ * distance). The room thus takes on the colors of what's on screen; it also works with shader packs (same "emissive"
+ * draw path as the screen itself). The surface list is computed in the background every 2 s (block scan + line of
+ * sight, no light leaks behind walls); the colors are taken every frame from the browser's coarse color map.
  */
 public final class ScreenGlow {
 	private static final Logger LOGGER = LoggerFactory.getLogger("doomscroll-isik");
 
 	/**
-	 * Tek isik yamasi: anchor blok kosesine gore 4 kose (12 float), ekran kutucugu, agirlik 0..1, uzaklik (blok), yuz yonu.
-	 * Yumusak isik icin kose basina en fazla 4 komsu yuzun (kutucuk, agirlik, karisim kovasi) kaydi: indeks kose*4+k, -1 = bos.
+	 * One light patch: 4 corners relative to the anchor block corner (12 floats), screen tile, weight 0..1, distance (blocks), face direction.
+	 * For soft light, up to 4 neighbouring faces' (tile, weight, mix bucket) records per corner: index corner*4+k, -1 = empty.
 	 */
 	public record Patch(float[] v, int tile, float weight, float dist, Direction dir, int[] vTiles, float[] vWeights, byte[] vMix) {}
 
 	public static final int MIX_BUCKETS = 8;
 
-	/** Uzakliga gore kenar rengi / ekran ortalamasi karisim orani, kovaya yuvarlanmis (renk tablosu indeksi). */
+	/** Distance-based blend ratio between the edge color and the screen average, rounded to a bucket (color table index). */
 	public static int mixBucket(float dist) {
 		float mix = Math.max(0.3f, Math.min(0.85f, dist / 5f));
 		return Math.round((mix - 0.3f) / 0.55f * (MIX_BUCKETS - 1));
@@ -69,7 +69,7 @@ public final class ScreenGlow {
 
 	private ScreenGlow() {}
 
-	/** Render is parcacigindan: guncel yamalar (henuz yoksa bos); gerekiyorsa arka planda yeniden hesap baslatir. */
+	/** From the render thread: the current patches (empty if none yet); kicks off a background recompute if needed. */
 	public static List<Patch> patches(BlockPos anchor, Direction facing, Direction top, float w, float h) {
 		Entry e = CACHE.get(anchor);
 		long now = System.currentTimeMillis();
@@ -86,12 +86,12 @@ public final class ScreenGlow {
 						list = compute(level, a, facing, top, w, h, range);
 					}
 				} catch (Throwable t) {
-					LOGGER.warn("ekran isigi hesaplanamadi ({})", a.toShortString(), t);
+					LOGGER.warn("screen glow computation failed ({})", a.toShortString(), t);
 					list = List.of();
 				} finally {
 					long ms = (System.nanoTime() - t0) / 1_000_000;
 					if (list.size() != before) {
-						LOGGER.info("[isik] {}: {} yama, {} ms (menzil {})", a.toShortString(), list.size(), ms, range);
+						LOGGER.info("[glow] {}: {} patches, {} ms (range {})", a.toShortString(), list.size(), ms, range);
 					}
 					CACHE.put(a, new Entry(list, System.currentTimeMillis(), ms));
 					PENDING.remove(a);
@@ -101,7 +101,7 @@ public final class ScreenGlow {
 		return e == null ? List.of() : e.patches();
 	}
 
-	/** Tek ekran gitti (kirildi ya da chunk'i bosaldi): yalnizca onun kaydini birak. */
+	/** A single screen is gone (broken or its chunk unloaded): drop only its record. */
 	public static void forget(BlockPos pos) {
 		CACHE.remove(pos);
 		PENDING.remove(pos);
@@ -113,8 +113,8 @@ public final class ScreenGlow {
 	}
 
 	/**
-	 * Parlakligi algisal egriyle yukseltir, renk tonunu ve doygunlugu korur (kanal kanal egri renkleri griye cekiyordu).
-	 * Koyu renkler (parlaklik < 0.03) odayi aydinlatmaz.
+	 * Boosts brightness with a perceptual curve while preserving hue and saturation (a per-channel curve was pulling colors toward grey).
+	 * Dark colors (luminance < 0.03) don't light the room.
 	 */
 	public static void boostRgb(float r, float g, float b, float[] out, int o) {
 		float lum = 0.299f * r + 0.587f * g + 0.114f * b;
@@ -130,7 +130,7 @@ public final class ScreenGlow {
 		out[o + 2] = Math.min(1f, b * k);
 	}
 
-	/** Algilanan parlaklik: koyu renkler odayi aydinlatmaz, orta tonlar belirgin gorunsun. */
+	/** Perceived brightness: dark colors don't light the room, mid-tones should show clearly. */
 	public static float boost(float c) {
 		if (c < 0.03f) {
 			return 0f;
@@ -138,8 +138,8 @@ public final class ScreenGlow {
 		return (float) Math.min(1.0, Math.pow(c, 0.65));
 	}
 
-	/** /ds isik icin durum metni. */
-	/** Hesaplanmis isik yamasi sayisi (dilden bagimsiz; duman testi bunu kullanir). */
+	/** Status text for /ds isik (alias: /ds light). */
+	/** Number of computed light patches (language-independent; the smoke test uses this). */
 	public static int patchCount(@Nullable BlockPos anchor) {
 		if (anchor == null) return -1;
 		Entry e = CACHE.get(anchor);
@@ -174,14 +174,14 @@ public final class ScreenGlow {
 	}
 
 	/**
-	 * Yerel cerceve: F = ekranin baktigi yon, R = ekranin sagi (yerel +X), U = yukari; dunya = C0 + R*x + U*y + F*z.
-	 * Panel: x in [0.5-w, 0.5], y in [-0.5, -0.5+h], z = 0.5 (ScreenBlockEntityRenderer ile ayni duzlem).
+	 * Local frame: F = the direction the screen faces, R = the screen's right (local +X), U = up; world = C0 + R*x + U*y + F*z.
+	 * Panel: x in [0.5-w, 0.5], y in [-0.5, -0.5+h], z = 0.5 (same plane as ScreenBlockEntityRenderer).
 	 */
 	private static List<Patch> compute(ClientLevel level, BlockPos anchor, Direction facing, Direction top, float w, float h, int range) {
 		return withVertexBlend(scan(level, anchor, facing, top, w, h, range));
 	}
 
-	/** Ayni yonlu komsu yuzlerin ortak koselerine komsularin (kutucuk, agirlik) kayitlarini yazar: kesintisiz gecis icin. */
+	/** Writes the neighbours' (tile, weight) records onto the shared corners of same-facing adjacent faces: for seamless transitions. */
 	private static List<Patch> withVertexBlend(List<Patch> in) {
 		Map<Long, float[]> acc = new HashMap<>(in.size() * 3);
 		for (Patch p : in) {
@@ -222,14 +222,14 @@ public final class ScreenGlow {
 	}
 
 	private static List<Patch> scan(ClientLevel level, BlockPos anchor, Direction facing, Direction top, float w, float h, int range) {
-		// F = on yuz, U = resmin ustu, R = bakanin sagi (ust x on); yer/tavan ekraninda U yatay, F dikeydir
+		// F = front face, U = top of the picture, R = viewer's right (top x front); on a floor/ceiling screen U is horizontal and F vertical
 		Vec3 f = facing.getUnitVec3();
 		Vec3 u = top.getUnitVec3();
 		Vec3 r = com.doomscroll.ScreenBlock.right(facing, top).getUnitVec3();
 		Vec3 c0 = Vec3.atCenterOf(anchor);
 		double xMin = 0.5 - w, xMax = 0.5, yMin = -0.5, yMax = -0.5 + h;
 
-		// tarama kutusu (yerel) -> dunya AABB
+		// scan box (local) -> world AABB
 		double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE, minZ = Double.MAX_VALUE;
 		double maxX = -Double.MAX_VALUE, maxY = -Double.MAX_VALUE, maxZ = -Double.MAX_VALUE;
 		double[] lxs = {xMin - range, xMax + range}, lys = {yMin - range, yMax + range}, lzs = {0.5, 0.5 + range};
@@ -264,20 +264,20 @@ public final class ScreenGlow {
 						continue;
 					}
 					for (Direction d : Direction.values()) {
-						// yuz merkezi (dunya) ve yerel koordinatlari
+						// face center (world) and its local coordinates
 						double fx = bx + 0.5 + d.getStepX() * 0.5, fy = by + 0.5 + d.getStepY() * 0.5, fz = bz + 0.5 + d.getStepZ() * 0.5;
 						double px = fx - c0.x, py = fy - c0.y, pz = fz - c0.z;
 						double lx = px * r.x + py * r.y + pz * r.z;
 						double ly = px * u.x + py * u.y + pz * u.z;
 						double lz = px * f.x + py * f.y + pz * f.z;
 						if (lz <= 0.5) {
-							continue; // ekran duzleminin onunde degil
+							continue; // not in front of the screen plane
 						}
 						np.setWithOffset(mp, d);
 						if (level.getBlockState(np).canOcclude()) {
-							continue; // yuz kapali
+							continue; // face is covered
 						}
-						// en yakin panel noktasi: menzil siniri ve uzaklik icin
+						// nearest panel point: for the range limit and the distance
 						double qx = clamp(lx, xMin, xMax), qy = clamp(ly, yMin, yMax);
 						double ndx = lx - qx, ndy = ly - qy, dz = lz - 0.5;
 						double nearSq = ndx * ndx + ndy * ndy + dz * dz;
@@ -285,12 +285,12 @@ public final class ScreenGlow {
 							continue;
 						}
 						double near = Math.sqrt(nearSq);
-						// yuz normali (yerel)
+						// face normal (local)
 						double nx = d.getStepX() * r.x + d.getStepY() * r.y + d.getStepZ() * r.z;
 						double ny = d.getStepX() * u.x + d.getStepY() * u.y + d.getStepZ() * u.z;
 						double nz = d.getStepX() * f.x + d.getStepY() * f.y + d.getStepZ() * f.z;
-						// Alan isigi: her kutucugun merkezinden gelen isinim toplanir (kenara bitisik zemin/duvar
-						// en yakin noktadan sifir alsa da panelin yukarisindan/uzagindan isik alir)
+						// Area light: the irradiance from each tile center is summed (a floor/wall adjoining the edge
+						// gets zero from the nearest point but still receives light from higher up / farther across the panel)
 						double sum = 0, best = 0, bqx = 0, bqy = 0;
 						int bestTile = -1;
 						for (int tr = 0; tr < rows; tr++) {
@@ -300,11 +300,11 @@ public final class ScreenGlow {
 								double dx = lx - sx, dy = ly - sy;
 								double d2 = dx * dx + dy * dy + dz * dz;
 								double dist = Math.sqrt(d2);
-								double cosFace = (-dx * nx - dy * ny - dz * nz) / dist; // yuz bu kutucugu goruyor mu
+								double cosFace = (-dx * nx - dy * ny - dz * nz) / dist; // does the face see this tile
 								if (cosFace <= 0) {
 									continue;
 								}
-								double cosEmit = dz / dist; // kutucuk bu yuze dogru yayiyor mu
+								double cosEmit = dz / dist; // does the tile emit toward this face
 								double c = cosFace * cosEmit / (d2 + 0.25);
 								sum += c;
 								if (c > best) {
@@ -320,12 +320,12 @@ public final class ScreenGlow {
 						}
 						double irradiance = sum * ((double) w * h / (cols * rows));
 						double fall = 1.0 - near / range;
-						// ton esleme: yandan/yatay gelen zayif isik da gorunsun, karsidan gelen guclu isik 1'e yaklassin
+						// tone mapping: weak light from the side / at grazing angles should still show, strong head-on light approaches 1
 						double weight = (1.0 - Math.exp(-1.2 * irradiance)) * fall;
 						if (weight < 0.02) {
 							continue;
 						}
-						// gorus cizgisi: en guclu kutucugun merkezine; arada blok varsa isik sizmasin
+						// line of sight: to the center of the strongest tile; no light leaks if a block is in between
 						if (near > 1.2) {
 							Vec3 from = new Vec3(fx + d.getStepX() * 0.05, fy + d.getStepY() * 0.05, fz + d.getStepZ() * 0.05);
 							Vec3 to = new Vec3(c0.x + r.x * bqx + u.x * bqy + f.x * 0.56, c0.y + r.y * bqx + u.y * bqy + f.y * 0.56, c0.z + r.z * bqx + u.z * bqy + f.z * 0.56);
@@ -345,12 +345,12 @@ public final class ScreenGlow {
 		return out;
 	}
 
-	/** Blogun d yuzundeki kare (anchor kosesine gore), yuzeyin biraz onunde; sira: sag-alt, sol-alt, sol-ust, sag-ust. */
+	/** The quad on face d of the block (relative to the anchor corner), slightly in front of the surface; order: bottom-right, bottom-left, top-left, top-right. */
 	private static float[] faceQuad(int ox, int oy, int oz, Direction d) {
 		float cx = ox + 0.5f + d.getStepX() * (0.5f + EPS);
 		float cy = oy + 0.5f + d.getStepY() * (0.5f + EPS);
 		float cz = oz + 0.5f + d.getStepZ() * (0.5f + EPS);
-		// R' x U' = d olacak sekilde yerel eksenler
+		// local axes chosen so that R' x U' = d
 		float rx, ry, rz, ux, uy, uz;
 		switch (d) {
 			case SOUTH -> { rx = 1; ry = 0; rz = 0; ux = 0; uy = 1; uz = 0; }

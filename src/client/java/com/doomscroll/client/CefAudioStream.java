@@ -10,11 +10,11 @@ import java.nio.ByteBuffer;
 import java.util.function.Supplier;
 
 /**
- * Tarayicinin sesini Minecraft ses motoruna akitan AudioStream.
- * Mono 16-bit; her okumada sabit bir parca verir (eksik kisim yumusak sessizlik) ki OpenAL kuyrugu bosalmasin.
+ * AudioStream that pipes the browser's audio into the Minecraft sound engine.
+ * Mono 16-bit; every read returns a fixed-size chunk (the missing part is soft silence) so the OpenAL queue never runs dry.
  */
 public final class CefAudioStream implements AudioStream {
-	// Parca suresi profilden: Minecraft 4 parca kuyruklar -> gecikme ~ 4 x parca (25 ms -> ~100 ms)
+	// Chunk duration comes from the profile: Minecraft queues 4 chunks -> latency ~ 4 x chunk (25 ms -> ~100 ms)
 	private final Supplier<CefBrowserView> source;
 	private final AudioFormat format;
 	private final int chunkBytes;
@@ -27,7 +27,7 @@ public final class CefAudioStream implements AudioStream {
 		this.chunkBytes = (rate * DoomscrollConfig.get().audioChunkMs() / 1000) * 2;
 	}
 
-	/** Her okumada yeniden ayirmak yerine tek arabellek (akis basina saniyede ~40 okuma). */
+	/** A single buffer instead of reallocating on every read (~40 reads per second per stream). */
 	@Nullable
 	private ByteBuffer buffer;
 
@@ -58,8 +58,8 @@ public final class CefAudioStream implements AudioStream {
 	}
 
 	/**
-	 * 16-bit mono ornekleri kazancla carpar; 0.7 tam olcege kadar dogrusal, ustu tanh ile yumusakca
-	 * sinirlanir (kirpilma catirtisi olmaz). Kazanc 1 ise dokunmaz.
+	 * Multiplies the 16-bit mono samples by the gain; linear up to 0.7 of full scale, above that soft-limited
+	 * with tanh (no clipping crackle). Leaves the samples untouched when the gain is 1.
 	 */
 	private static void applyGain(ByteBuffer buf, int bytes, float gain) {
 		if (Math.abs(gain - 1f) < 0.01f) {

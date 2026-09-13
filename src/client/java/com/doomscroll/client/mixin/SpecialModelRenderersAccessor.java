@@ -8,7 +8,7 @@ import net.minecraft.util.ExtraCodecs;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-/** SpecialModelRenderers.ID_MAPPER'a erisim: kendi ozel item renderer'imizi kaydetmek icin. */
+/** Access to SpecialModelRenderers.ID_MAPPER: for registering our own special item renderer. */
 @Mixin(SpecialModelRenderers.class)
 public interface SpecialModelRenderersAccessor {
 	@Accessor("ID_MAPPER")

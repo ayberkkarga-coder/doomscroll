@@ -4,9 +4,9 @@ import com.doomscroll.cef.api.CefBrowserView;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 
 /**
- * TextureManager kaydi: her karede alanlar MCEF tarayicisinin
- * guncel dokusuna isaret edecek sekilde tazelenir. Boylece
- * RenderTypes.entityTranslucentEmissive(ID) dogrudan tarayiciyi orneklendirir.
+ * TextureManager entry: every frame the fields are refreshed to point
+ * at the MCEF browser's current texture. That way
+ * RenderTypes.entityTranslucentEmissive(ID) samples the browser directly.
  */
 public class BrowserTexture extends AbstractTexture {
 
@@ -24,7 +24,7 @@ public class BrowserTexture extends AbstractTexture {
 
 	@Override
 	public void close() {
-		// Dokunun sahibi MCEF; burada kapatmiyoruz.
+		// MCEF owns the texture; we do not close it here.
 		this.texture = null;
 		this.textureView = null;
 	}

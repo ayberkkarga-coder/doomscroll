@@ -9,13 +9,13 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Sunucu -> istemci: ekranla ilgili kisa bildirim.
- * code=DENIED: istek reddedildi (kilit); istemci ekrani sunucudaki adrese geri esler.
+ * Server -> client: a short notice about a screen.
+ * code=DENIED: the request was refused (lock); the client resets the screen back to the server's URL.
  */
 public record ScreenNoticePayload(BlockPos pos, int code, Component text) implements CustomPacketPayload {
 	public static final int INFO = 0;
 	public static final int DENIED = 1;
-	/** Adres sunucu kurallarinca engelli: istemci sunucudaki adrese geri doner. */
+	/** The URL is blocked by server rules: the client goes back to the server's URL. */
 	public static final int BLOCKED = 2;
 
 	public static final Type<ScreenNoticePayload> TYPE = new Type<>(Doomscroll.id("screen_notice"));

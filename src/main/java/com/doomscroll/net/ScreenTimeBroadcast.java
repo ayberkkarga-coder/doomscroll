@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Sunucu -> izleyiciler: kontrolcunun videosu su konumda (izleyiciler sapmayi duzeltir). */
+/** Server -> viewers: the controller's video is at this position (viewers correct their drift). */
 public record ScreenTimeBroadcast(BlockPos pos, float time, float duration, boolean paused) implements CustomPacketPayload {
 	public static final Type<ScreenTimeBroadcast> TYPE = new Type<>(Doomscroll.id("screen_time_broadcast"));
 	public static final StreamCodec<io.netty.buffer.ByteBuf, ScreenTimeBroadcast> CODEC = StreamCodec.composite(

@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** YouTube adresleriyle ilgili kucuk yardimcilar (kalite siniri ve otomatik gecis bunlari kullanir). */
+/** Small helpers for YouTube URLs (used by the quality cap and auto-advance). */
 public final class YouTube {
 	private static final Pattern[] ID_PATTERNS = {
 			Pattern.compile("[?&]v=([A-Za-z0-9_-]{11})"),
@@ -17,7 +17,7 @@ public final class YouTube {
 
 	private YouTube() {}
 
-	/** YouTube video kimligi (11 karakter) ya da null. */
+	/** The YouTube video id (11 characters), or null. */
 	@Nullable
 	public static String videoId(@Nullable String url) {
 		if (url == null || !url.contains("youtu")) {

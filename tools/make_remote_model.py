@@ -1,13 +1,13 @@
-"""Kumandanin 3B el modeli (models/item/remote.json) ve dokusu (textures/item/remote_model.png).
-Govde 4x12x1.5, yuvarlak uclar, cikintili tuslar: guc (kirmizi), D-pad, iki renkli kisayol, alt sira.
-Ekran/ground/fixed baglamlari 2B simgeyi (remote_icon) kullanir; bu model yalnizca elde gorunur."""
+"""The remote's 3D in-hand model (models/item/remote.json) and its texture (textures/item/remote_model.png).
+Body 4x12x1.5, rounded ends, raised buttons: power (red), D-pad, two colored shortcuts, bottom row.
+GUI/ground/fixed contexts use the 2D icon (remote_icon); this model is only visible in hand."""
 import json
 import os
 from PIL import Image  # pip install pillow
 
 A = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "main", "resources", "assets", "doomscroll")
 
-# ---------- doku: bolgeler (u0, v0, u1, v1) -> renk ----------
+# ---------- texture: regions (u0, v0, u1, v1) -> color ----------
 COL = {
     "L": (61, 61, 70, 255), "B": (44, 44, 51, 255), "D": (38, 38, 44, 255), "K": (30, 30, 35, 255),
     "cap": (51, 51, 59, 255), "ir": (16, 16, 20, 255),
@@ -37,10 +37,10 @@ def fill(reg, col):
             px[x, y] = COL[col]
 for reg, col in FILL.items():
     fill(reg, col)
-# on yuz: sol sutun acik, sag sutun koyu, ortada govde; alt ucte hafif koyu bant
+# front face: light left column, dark right column, body in between; a slightly darker band at the bottom end
 for y in range(0, 12):
     px[0, y] = COL["L"]; px[1, y] = COL["B"]; px[2, y] = COL["B"]; px[3, y] = COL["D"]
-# arka yuz: pil kapagi cizgisi
+# back face: battery cover line
 fill("back", "K")
 for y in range(3, 10):
     px[7, y] = COL["D"]; px[8, y] = COL["D"]
@@ -55,27 +55,27 @@ def elem(frm, to, faces):
     return {"from": frm, "to": to, "faces": {f: {"uv": uv(r), "texture": "#0"} for f, r in faces.items()}}
 
 def button(frm, to, top, side):
-    # on yuz (guney, +Z) tus rengi; yanlar golgeli; arka govdenin icinde (cizilmez)
+    # front face (south, +Z) in the button color; sides shaded; the back is inside the body (not drawn)
     return elem(frm, to, {"south": top, "up": side, "down": side, "east": side, "west": side})
 
 elements = [
-    # govde 4x12x1.5
+    # body 4x12x1.5
     elem([6, 2, 7.25], [10, 14, 8.75], {"south": "front", "north": "back", "east": "side", "west": "side", "up": "cap", "down": "cap"}),
-    # yuvarlak uclar
+    # rounded ends
     elem([6.5, 14, 7.5], [9.5, 14.5, 8.5], {"up": "cap", "north": "capside", "south": "capside", "east": "capside", "west": "capside"}),
     elem([6.5, 1.5, 7.5], [9.5, 2, 8.5], {"down": "cap", "north": "capside", "south": "capside", "east": "capside", "west": "capside"}),
-    # kizilotesi penceresi (ustte)
+    # infrared window (on top)
     elem([7.5, 14.5, 7.75], [8.5, 14.75, 8.25], {"up": "ir", "north": "ir", "south": "ir", "east": "ir", "west": "ir"}),
-    # guc tusu
+    # power button
     button([7, 12.25, 8.75], [9, 13.25, 9.25], "power", "powerside"),
-    # D-pad: yatay, dikey, orta
+    # D-pad: horizontal, vertical, center
     button([6.5, 8.5, 8.75], [9.5, 9.5, 9.1], "gray", "grayside"),
     button([7.5, 7.5, 8.75], [8.5, 10.5, 9.12], "gray", "grayside"),
     button([7.5, 8.5, 9.12], [8.5, 9.5, 9.3], "center", "grayside"),
-    # renkli kisayollar
+    # colored shortcuts
     button([6.5, 5.5, 8.75], [7.5, 6.5, 9.15], "blue", "blueside"),
     button([8.5, 5.5, 8.75], [9.5, 6.5, 9.15], "green", "greenside"),
-    # alt sira
+    # bottom row
     button([6.5, 3.5, 8.75], [7.25, 4.25, 9.1], "dgray", "dgrayside"),
     button([7.625, 3.5, 8.75], [8.375, 4.25, 9.1], "dgray", "dgrayside"),
     button([8.75, 3.5, 8.75], [9.5, 4.25, 9.1], "dgray", "dgrayside"),
@@ -87,9 +87,9 @@ model = {
     "textures": {"0": "doomscroll:item/remote_model", "particle": "doomscroll:item/remote_model"},
     "elements": elements,
     "display": {
-        # birinci sahis: ekrana dogru, hafif yukari ve ortaya (sol el otomatik aynalanir)
+        # first person: toward the screen, slightly up and toward the center (the left hand is mirrored automatically)
         "firstperson_righthand": {"rotation": [-60, 0, 20], "translation": [0, 3, -1], "scale": [0.8, 0.8, 0.8]},
-        # ucuncu sahis: yumrukta, one dogru, hafif yukari (model +Y = ileri)
+        # third person: in the fist, pointing forward, slightly up (model +Y = forward)
         "thirdperson_righthand": {"rotation": [15, 0, 0], "translation": [0, 3, 0], "scale": [0.8, 0.8, 0.8]},
         "gui": {"rotation": [-67.5, 0, 45], "scale": [1.35, 1.35, 1.35]},
         "ground": {"rotation": [90, 0, 0], "scale": [0.7, 0.7, 0.7]},
@@ -100,4 +100,4 @@ model = {
 os.makedirs(os.path.join(A, "models", "item"), exist_ok=True)
 with open(os.path.join(A, "models", "item", "remote.json"), "w", encoding="utf-8") as f:
     json.dump(model, f, indent=1)
-print("remote_model.png ve models/item/remote.json yazildi:", len(elements), "eleman")
+print("remote_model.png and models/item/remote.json written:", len(elements), "elements")

@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Tablet yer imleri ve gecmisi: config/doomscroll-tablet.json. Gecmis, adres degistikce kendiliginden yazilir
- * (ayni adres tekrar acilinca en uste tasinir); yer imleri arac cubugundaki yildizla eklenir/cikarilir.
+ * Tablet bookmarks and history: config/doomscroll-tablet.json. The history is written automatically as the URL
+ * changes (reopening the same URL moves it to the top); bookmarks are added/removed with the star on the toolbar.
  */
 public final class TabletBookmarks {
 	public static final class Entry {
@@ -27,7 +27,7 @@ public final class TabletBookmarks {
 			this.time = time;
 		}
 
-		/** Gosterilecek ad: kayitli baslik, yoksa oEmbed/site adi. */
+		/** Display name: the stored title, otherwise the oEmbed/site name. */
 		public String label() {
 			return title == null || title.isBlank() ? PageTitles.get(url) : title;
 		}
@@ -71,7 +71,7 @@ public final class TabletBookmarks {
 		}
 	}
 
-	/** Kaydedilmeye degmeyen adresler: bos sekme, ic sayfalar, yayin alicisi. */
+	/** URLs not worth saving: blank tab, internal pages, the broadcast receiver. */
 	static boolean ignorable(String url) {
 		if (url == null || url.isBlank()) return true;
 		String u = url.toLowerCase(java.util.Locale.ROOT);
@@ -94,7 +94,7 @@ public final class TabletBookmarks {
 		return false;
 	}
 
-	/** Yildiz: varsa cikar, yoksa ekler. Eklendiyse true. */
+	/** Star: removes if present, adds otherwise. True when it was added. */
 	public static boolean toggleBookmark(String url, String title) {
 		if (ignorable(url)) return false;
 		List<Entry> list = data().bookmarks;
@@ -111,7 +111,7 @@ public final class TabletBookmarks {
 		return true;
 	}
 
-	/** Ana sayfadan "+ Ekle": yoksa ekler (varsa dokunmaz). */
+	/** "+ Add" from the home page: adds if missing (leaves an existing entry alone). */
 	public static void addBookmark(String url, String title) {
 		if (ignorable(url) || isBookmarked(url)) return;
 		toggleBookmark(url, title);
@@ -121,7 +121,7 @@ public final class TabletBookmarks {
 		if (data().bookmarks.removeIf(e -> e.url.equals(url))) save();
 	}
 
-	/** Ziyaret: en uste tasir (ayni adres tekrarlanmaz), basligi gunceller. */
+	/** A visit: moves the entry to the top (the same URL is never duplicated) and updates the title. */
 	public static void noteVisit(String url, String title) {
 		if (ignorable(url)) return;
 		List<Entry> h = data().history;
@@ -140,7 +140,7 @@ public final class TabletBookmarks {
 		save();
 	}
 
-	/** Sayfa basligi sonradan gelince (rapor) gecmis ve yer imi kaydina yazar. */
+	/** When the page title arrives later (report), writes it into the history and bookmark entries. */
 	public static void updateTitle(String url, String title) {
 		if (ignorable(url) || title == null || title.isBlank()) return;
 		boolean changed = false;

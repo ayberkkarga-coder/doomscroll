@@ -7,9 +7,9 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Istemci -> sunucu: su ekranin adresi.
- * explicit=true: oyuncu bilerek yonlendirdi (kumanda, tablet, adres cubugu) -> kontrolu alir, adres herkese gider.
- * explicit=false: tarayicisi kendi kendine degisti (otomatik gecis, yonlendirme) -> yalnizca kontrol ondaysa yayilir.
+ * Client -> server: this screen's URL.
+ * explicit=true: the player navigated deliberately (remote, tablet, address bar) -> takes control, the URL goes to everyone.
+ * explicit=false: their browser changed on its own (automatic transition, redirect) -> only propagated if they hold control.
  */
 public record SetScreenUrlPayload(BlockPos pos, String url, boolean explicit) implements CustomPacketPayload {
 	public static final Type<SetScreenUrlPayload> TYPE = new Type<>(Doomscroll.id("set_screen_url"));

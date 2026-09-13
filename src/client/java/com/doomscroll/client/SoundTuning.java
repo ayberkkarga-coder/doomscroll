@@ -10,15 +10,15 @@ import net.minecraft.client.sounds.ChannelAccess;
 import org.lwjgl.openal.AL10;
 
 /**
- * Calan bir tarayici sesinin OpenAL kaynagina ince ayar: referans mesafesi.
- * Minecraft'in dogrusal azalmasi 0 bloktan baslar (ekranin dibinde bile tam ses degil);
- * referansi birkac blok yapinca ekranin onunde ses sabit kalir, sonra azalir.
- * Sound Physics varsa o kendi modelini kurar, buraya dokunulmaz.
+ * Fine-tuning of a playing browser sound's OpenAL source: the reference distance.
+ * Minecraft's linear attenuation starts at 0 blocks (not even full volume right next to the screen);
+ * with a reference distance of a few blocks the sound stays constant in front of the screen, then falls off.
+ * When Sound Physics is present it sets up its own model and this is left alone.
  */
 public final class SoundTuning {
 	private SoundTuning() {}
 
-	/** Kaynak henuz yoksa false doner (bir sonraki tick'te yeniden dene). */
+	/** Returns false when the source does not exist yet (retry on the next tick). */
 	public static boolean applyReferenceDistance(SoundInstance instance, float blocks) {
 		Minecraft mc = Minecraft.getInstance();
 		var engine = ((SoundManagerAccessor) mc.getSoundManager()).doomscroll$soundEngine();
@@ -31,7 +31,7 @@ public final class SoundTuning {
 				int source = ((ChannelAccessor) channel).doomscroll$source();
 				AL10.alSourcef(source, AL10.AL_REFERENCE_DISTANCE, blocks);
 			} catch (Throwable t) {
-				Doomscroll.LOGGER.warn("ses referans mesafesi ayarlanamadi", t);
+				Doomscroll.LOGGER.warn("could not set the sound reference distance", t);
 			}
 		});
 		return true;

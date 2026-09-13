@@ -10,12 +10,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Renderer'in cizdigi ekranlari (acik ve kapali) hatirlar. Bakis isinini ekran
- * duzlemleriyle kesistirir ve tarayici piksel koordinatina cevirir.
- * Kapali ekranlar yalnizca kumanda hedeflemesi icin kullanilir.
+ * Remembers the screens (on and off) drawn by the renderer. Intersects the view ray with the screen
+ * planes and converts the hit into browser pixel coordinates.
+ * Screens that are off are used only for remote targeting.
  */
 public final class ScreenTracker {
-	/** facing = on yuz, top = resmin ust kenari (duvarda UP). */
+	/** facing = front face, top = top edge of the picture (UP on a wall). */
 	public record ScreenInfo(BlockPos pos, Direction facing, Direction top, float width, float height, boolean on, long seenAt) {}
 
 	public record Hit(BlockPos pos, int px, int py, double distance) {}
@@ -29,7 +29,7 @@ public final class ScreenTracker {
 		SCREENS.put(pos.immutable(), new ScreenInfo(pos.immutable(), facing, top, width, height, on, System.nanoTime()));
 	}
 
-	/** Bilinen tum ekranlar (ekran listesi komutu icin). */
+	/** All known screens (for the screen list command). */
 	public static java.util.Collection<ScreenInfo> all() {
 		return new java.util.ArrayList<>(SCREENS.values());
 	}
@@ -42,7 +42,7 @@ public final class ScreenTracker {
 		SCREENS.clear();
 	}
 
-	/** Verilen konum disinda, son maxAgeNanos icinde cizilmis ACIK baska ekran var mi? */
+	/** Is there another screen, other than the given position, that is ON and was drawn within the last maxAgeNanos? */
 	public static boolean hasOtherRecent(BlockPos except, long maxAgeNanos) {
 		long now = System.nanoTime();
 		for (ScreenInfo s : SCREENS.values()) {
@@ -54,9 +54,9 @@ public final class ScreenTracker {
 	}
 
 	/**
-	 * Verilen konum disinda, DUNYADA HALA DURAN ve acik baska ekran var mi?
-	 * Zaman damgasina degil, blok varligina bakar (kirilan multiblok parcalari birbirini "canli" saymasin).
-	 * Artik var olmayan kayitlari da temizler.
+	 * Is there another screen, other than the given position, that STILL EXISTS IN THE WORLD and is on?
+	 * Checks that the block exists rather than the timestamp (so parts of a broken multiblock don't count each other as "live").
+	 * Also removes entries that no longer exist.
 	 */
 	public static boolean hasOtherLive(BlockPos except, net.minecraft.world.level.Level level) {
 		boolean found = false;
@@ -72,7 +72,7 @@ public final class ScreenTracker {
 		return found;
 	}
 
-	/** Oyuncuya en yakin ekranin anchor konumu (includeOff: kapali ekranlar da sayilsin). */
+	/** Anchor position of the screen nearest to the player (includeOff: count screens that are off as well). */
 	@Nullable
 	public static BlockPos nearestAnchor(Vec3 from, boolean includeOff) {
 		long now = System.nanoTime();
@@ -92,9 +92,9 @@ public final class ScreenTracker {
 	}
 
 	/**
-	 * Goz konumundan bakis yonunde isin atar; en yakin ekran kesisimini dondurur.
-	 * Geometri, ScreenBlockEntityRenderer'daki quad ile birebir ayni olmali: yerel +X = bakanin sagi (ust x on),
-	 * +Y = resmin ustu, +Z = on yuz; panel x in [0.5-w, 0.5], y in [-0.5, -0.5+h], z = 0.503.
+	 * Casts a ray from the eye position along the look direction; returns the nearest screen intersection.
+	 * The geometry must match the quad in ScreenBlockEntityRenderer exactly: local +X = the viewer's right (top x front),
+	 * +Y = top of the picture, +Z = front face; panel x in [0.5-w, 0.5], y in [-0.5, -0.5+h], z = 0.503.
 	 */
 	@Nullable
 	public static Hit raycast(Vec3 eye, Vec3 look, double maxDistance, boolean includeOff) {

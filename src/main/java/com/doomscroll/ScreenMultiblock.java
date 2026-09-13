@@ -11,9 +11,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Ayni yone bakan (ayni on yuz + ayni ust kenar) bitisik ekran bloklarini dikdortgenlere boler. Duvar, yer ve
- * tavan ekrani ayni kodla: panel duzlemi "uzama" (bakanin solu) ve "ust" vektorleriyle taranir.
- * Her dikdortgenin "ana blogu" (anchor) sag-alt kosedir (bakan kisiye gore); goruntuyu o cizer.
+ * Splits adjacent screen blocks facing the same way (same front face + same top edge) into rectangles. Wall, floor and
+ * ceiling screens share the same code: the panel plane is scanned with the "extend" (the viewer's left) and "up" vectors.
+ * Each rectangle's "main block" (anchor) is the bottom-right corner (from the viewer's perspective); it draws the image.
  */
 public final class ScreenMultiblock {
 	private static final int MAX_COMPONENT = 4096;
@@ -28,7 +28,7 @@ public final class ScreenMultiblock {
 		return dir.getAxis().choose(pos.getX(), pos.getY(), pos.getZ()) * dir.getAxisDirection().getStep();
 	}
 
-	/** origin'dan baslayarak bagli tum ekran bloklarini bulur ve dikdortgenlere atar. Sunucuda cagrilir. */
+	/** Starting from origin, finds all connected screen blocks and assigns them to rectangles. Called on the server. */
 	public static void recompute(Level level, BlockPos origin, BlockState ref) {
 		if (level.isClientSide() || ref.getBlock() != Doomscroll.SCREEN_BLOCK) {
 			return;
@@ -41,7 +41,7 @@ public final class ScreenMultiblock {
 		Direction back = extend.getOpposite();
 		Direction down = up.getOpposite();
 
-		// 1) Bagli bileseni topla (BFS, ekran duzleminde 4 komsu)
+		// 1) Collect the connected component (BFS, 4 neighbors in the screen plane)
 		Set<BlockPos> component = new HashSet<>();
 		ArrayDeque<BlockPos> queue = new ArrayDeque<>();
 		queue.add(origin.immutable());
@@ -56,10 +56,10 @@ public final class ScreenMultiblock {
 			}
 		}
 
-		// 2) Kalanlardan sirayla dikdortgen kes: en alt satir (ust'e gore en kucuk), sonra en sagdaki (uzama'ya gore en kucuk) blok anchor olur
+		// 2) Cut rectangles out of the remaining blocks in turn: the bottom row (smallest along up), then the rightmost block (smallest along extend) becomes the anchor
 		Set<BlockPos> remaining = new HashSet<>(component);
-		// Bir kez sirala: en alt satir, sonra en sagdaki. Her dikdortgen icin bastan
-		// taramak buyuk yapilarda kare karmasiklik cikariyordu.
+		// Sort once: bottom row first, then rightmost. Rescanning from scratch for every
+		// rectangle produced quadratic complexity on large builds.
 		java.util.List<BlockPos> order = new java.util.ArrayList<>(component);
 		order.sort(java.util.Comparator.<BlockPos>comparingInt(p -> along(p, up))
 				.thenComparingInt(p -> along(p, extend)));
@@ -91,9 +91,9 @@ public final class ScreenMultiblock {
 				}
 			}
 
-			// Yeni anchor'a gecmeden once eski anchor'un durumunu (adres, sahip, kilit, guc)
-			// devral: en cok bloga sahip olan eski panel kazanir. Yoksa panele tek blok
-			// ekleyen biri baskasinin ekranini sifirlamis oluyordu.
+			// Before switching to the new anchor, carry over the old anchor's state (URL, owner, lock, power):
+			// the old panel that owns the most blocks wins. Otherwise someone adding a single block to
+			// the panel would have reset someone else's screen.
 			java.util.Map<BlockPos, Integer> oldAnchors = new java.util.HashMap<>();
 			for (int i = 0; i < w; i++) {
 				for (int j = 0; j < h; j++) {
@@ -127,14 +127,14 @@ public final class ScreenMultiblock {
 					}
 				}
 			}
-			// Panelin isigi anchor'un guc durumuna esitlenir (birlesen parcalar da ayni yanar/soner)
+			// The panel's light is matched to the anchor's power state (merged parts light up/go dark together as well)
 			if (level.getBlockEntity(anchor) instanceof ScreenBlockEntity abe) {
 				applyLit(level, anchor, w, h, abe.isOn());
 			}
 		}
 	}
 
-	/** Panelin tum bloklarinda LIT ozelligini ayarlar (acik ekran isik yayar). Sunucuda cagrilir. */
+	/** Sets the LIT property on every block of the panel (a powered-on screen emits light). Called on the server. */
 	public static void applyLit(Level level, BlockPos anchor, int w, int h, boolean lit) {
 		if (level.isClientSide()) {
 			return;
@@ -156,7 +156,7 @@ public final class ScreenMultiblock {
 		}
 	}
 
-	/** Kaldirilan blogun komsularini yeniden hesaplar (blok zaten silinmis durumda; removedState eski durumu). */
+	/** Recomputes the neighbors of a removed block (the block is already gone; removedState is its old state). */
 	public static void recomputeAround(Level level, BlockPos removed, BlockState removedState) {
 		if (removedState.getBlock() != Doomscroll.SCREEN_BLOCK) {
 			return;
