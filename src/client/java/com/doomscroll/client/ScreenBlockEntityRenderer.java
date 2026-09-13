@@ -103,6 +103,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 				}
 			}
 			collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(WHITE_TEXTURE), (pose, consumer) -> {
+				float[] cornerRgba = new float[16];
 				for (ScreenGlow.Patch p : patches) {
 					if (p.tile() < 0 || p.tile() >= nt) continue;
 					int o = (ScreenGlow.mixBucket(p.dist()) * nt + p.tile()) * 3;
@@ -112,6 +113,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 					if (!blend && (pa < 0.01f || pr + pg + pb < 0.03f)) continue;
 					float[] v = p.v();
 					Direction d = p.dir();
+					float maxA = 0f;
 					for (int j = 0; j < 4; j++) {
 						float r = pr, g = pg, b = pb, a = pa;
 						if (blend) {
@@ -136,7 +138,28 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 								a = Math.min(1f, ws / n * inten * 0.9f);
 							}
 						}
-						consumer.addVertex(pose, v[j * 3], v[j * 3 + 1], v[j * 3 + 2]).setColor((int) (r * 255), (int) (g * 255), (int) (b * 255), (int) (a * 255))
+						// The patch is light, not paint. The colour is normalised to full brightness and the brightness goes
+						// into the alpha, so a dark tile fades the patch out; with plain alpha blending a dark colour at full
+						// alpha painted the wall black wherever the film was dark (jagged black bands along the screen edges).
+						float m = Math.max(r, Math.max(g, b));
+						if (m > 0.001f) {
+							r /= m;
+							g /= m;
+							b /= m;
+							a *= m;
+						} else {
+							a = 0f;
+						}
+						cornerRgba[j * 4] = r;
+						cornerRgba[j * 4 + 1] = g;
+						cornerRgba[j * 4 + 2] = b;
+						cornerRgba[j * 4 + 3] = a;
+						maxA = Math.max(maxA, a);
+					}
+					if (maxA < 0.01f) continue;
+					for (int j = 0; j < 4; j++) {
+						consumer.addVertex(pose, v[j * 3], v[j * 3 + 1], v[j * 3 + 2])
+								.setColor((int) (cornerRgba[j * 4] * 255), (int) (cornerRgba[j * 4 + 1] * 255), (int) (cornerRgba[j * 4 + 2] * 255), (int) (cornerRgba[j * 4 + 3] * 255))
 								.setUv(0.5f, 0.5f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0xF000F0).setNormal(pose, d.getStepX(), d.getStepY(), d.getStepZ());
 					}
 				}
