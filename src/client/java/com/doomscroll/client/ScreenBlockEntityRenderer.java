@@ -53,7 +53,7 @@ public class ScreenBlockEntityRenderer implements BlockEntityRenderer<ScreenBloc
 		float glow = DoomscrollConfig.get().screenGlow;
 		if (state.on && state.hasTexture && glow > 0.01f && s != null && s.browser != null) {
 			state.glow = ScreenGlow.patches(be.getBlockPos(), state.facing, state.top, state.screenWidth, state.screenHeight);
-			state.tiles = s.browser.lightTiles();
+			state.tiles = ScreenGlow.smoothTiles(be.getBlockPos(), s.browser.lightTiles());
 			state.glowIntensity = glow;
 		} else {
 			state.glow = null;

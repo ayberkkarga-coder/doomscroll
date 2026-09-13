@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
  * sight, no light leaks behind walls); the colors are taken every frame from the browser's coarse color map.
  */
 public final class ScreenGlow {
-	private static final Logger LOGGER = LoggerFactory.getLogger("doomscroll-isik");
+	private static final Logger LOGGER = LoggerFactory.getLogger("doomscroll-glow");
 
 	/**
 	 * One light patch: 4 corners relative to the anchor block corner (12 floats), screen tile, weight 0..1, distance (blocks), face direction.
@@ -105,37 +105,92 @@ public final class ScreenGlow {
 	public static void forget(BlockPos pos) {
 		CACHE.remove(pos);
 		PENDING.remove(pos);
+		SMOOTH.remove(pos);
+		SMOOTH_AT.remove(pos);
 	}
 
 	public static void clear() {
 		CACHE.clear();
 		PENDING.clear();
+		SMOOTH.clear();
+		SMOOTH_AT.clear();
 	}
 
 	/**
 	 * Boosts brightness with a perceptual curve while preserving hue and saturation (a per-channel curve was pulling colors toward grey).
-	 * Dark colors (luminance < 0.03) don't light the room.
+	 * Dark colors fade out smoothly below a luminance of 0.10. A hard threshold here made dark scenes blink: a tile
+	 * hovering around the cut-off alternated between black and a four-times boosted color from one sample to the next.
 	 */
 	public static void boostRgb(float r, float g, float b, float[] out, int o) {
 		float lum = 0.299f * r + 0.587f * g + 0.114f * b;
-		if (lum < 0.03f) {
+		if (lum <= 0.001f) {
 			out[o] = 0f;
 			out[o + 1] = 0f;
 			out[o + 2] = 0f;
 			return;
 		}
-		float k = (float) (Math.pow(lum, 0.6) / lum);
+		float k = (float) (Math.pow(lum, 0.6) / lum) * darkFade(lum);
 		out[o] = Math.min(1f, r * k);
 		out[o + 1] = Math.min(1f, g * k);
 		out[o + 2] = Math.min(1f, b * k);
 	}
 
-	/** Perceived brightness: dark colors don't light the room, mid-tones should show clearly. */
+	/** Perceived brightness: dark colors fade out smoothly, mid-tones show clearly. */
 	public static float boost(float c) {
-		if (c < 0.03f) {
+		if (c <= 0.001f) {
 			return 0f;
 		}
-		return (float) Math.min(1.0, Math.pow(c, 0.65));
+		return (float) Math.min(1.0, Math.pow(c, 0.65) * darkFade(c));
+	}
+
+	/** 0 at black, 1 from a luminance of 0.10 upwards, smooth in between (no step anywhere). */
+	private static float darkFade(float lum) {
+		float t = Math.min(1f, lum / 0.10f);
+		return t * t * (3f - 2f * t);
+	}
+
+	/** Per screen: temporally smoothed tile colors and the nanosecond time of the last update. */
+	private static final Map<BlockPos, float[]> SMOOTH = new ConcurrentHashMap<>();
+	private static final Map<BlockPos, Long> SMOOTH_AT = new ConcurrentHashMap<>();
+
+	/**
+	 * Smooths the browser's raw tile colors over time so the glow does not flicker. The raw map is a sparse sample taken
+	 * about 25 times a second and it jumps with subtitles, cuts and noise; under a dark shader pack the room has no other
+	 * light to hide that. Brightening follows within about 120 ms and darkening within about 350 ms, the rate chosen per
+	 * tile from its luminance so that all three channels move together and the hue does not drift mid-transition.
+	 * Render thread only.
+	 */
+	@Nullable
+	public static float[] smoothTiles(BlockPos anchor, @Nullable float[] raw) {
+		if (raw == null) {
+			return null;
+		}
+		long now = System.nanoTime();
+		BlockPos key = anchor.immutable();
+		float[] sm = SMOOTH.get(key);
+		Long at = SMOOTH_AT.get(key);
+		if (sm == null || sm.length != raw.length || at == null || now - at > 2_000_000_000L) {
+			sm = raw.clone();
+			SMOOTH.put(key, sm);
+			SMOOTH_AT.put(key, now);
+			return sm;
+		}
+		float dt = (now - at) / 1e9f;
+		SMOOTH_AT.put(key, now);
+		if (dt <= 0f) {
+			return sm;
+		}
+		float up = 1f - (float) Math.exp(-dt / 0.12f);
+		float down = 1f - (float) Math.exp(-dt / 0.35f);
+		for (int i = 0; i + 2 < raw.length; i += 3) {
+			float lr = 0.299f * raw[i] + 0.587f * raw[i + 1] + 0.114f * raw[i + 2];
+			float ls = 0.299f * sm[i] + 0.587f * sm[i + 1] + 0.114f * sm[i + 2];
+			float a = lr > ls ? up : down;
+			sm[i] += (raw[i] - sm[i]) * a;
+			sm[i + 1] += (raw[i + 1] - sm[i + 1]) * a;
+			sm[i + 2] += (raw[i + 2] - sm[i + 2]) * a;
+		}
+		return sm;
 	}
 
 	/** Status text for /ds isik (alias: /ds light). */
@@ -325,12 +380,26 @@ public final class ScreenGlow {
 						if (weight < 0.02) {
 							continue;
 						}
-						// line of sight: to the center of the strongest tile; no light leaks if a block is in between
+						// line of sight: three rays, to the strongest tile and to the middle tile of each side of the panel.
+						// Each blocked ray takes a third of the light away, so the edge of a shadow is a soft step instead of
+						// a hard line across the room; when all three are blocked there is no light (nothing leaks through walls).
 						if (near > 1.2) {
 							Vec3 from = new Vec3(fx + d.getStepX() * 0.05, fy + d.getStepY() * 0.05, fz + d.getStepZ() * 0.05);
-							Vec3 to = new Vec3(c0.x + r.x * bqx + u.x * bqy + f.x * 0.56, c0.y + r.y * bqx + u.y * bqy + f.y * 0.56, c0.z + r.z * bqx + u.z * bqy + f.z * 0.56);
-							BlockHitResult hit = level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-							if (hit.getType() == HitResult.Type.BLOCK && hit.getLocation().distanceToSqr(to) > 0.06) {
+							double midY = -0.5 + (1.0 - (rows / 2 + 0.5) / rows) * h;
+							double[][] targets = {{bqx, bqy}, {0.5 - (1.0 - 0.5 / cols) * w, midY}, {0.5 - (0.5 / cols) * w, midY}};
+							int seen = 0;
+							for (double[] tq : targets) {
+								Vec3 to = new Vec3(c0.x + r.x * tq[0] + u.x * tq[1] + f.x * 0.56, c0.y + r.y * tq[0] + u.y * tq[1] + f.y * 0.56, c0.z + r.z * tq[0] + u.z * tq[1] + f.z * 0.56);
+								BlockHitResult hit = level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
+								if (hit.getType() != HitResult.Type.BLOCK || hit.getLocation().distanceToSqr(to) <= 0.06) {
+									seen++;
+								}
+							}
+							if (seen == 0) {
+								continue;
+							}
+							weight *= seen / (double) targets.length;
+							if (weight < 0.02) {
 								continue;
 							}
 						}
