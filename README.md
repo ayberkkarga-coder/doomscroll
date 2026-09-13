@@ -28,7 +28,7 @@ Watch Reels / Shorts / TikTok / YouTube / films **together** inside Minecraft. B
 15. [Safety notes](#safety-notes)
 16. [Development](#development)
 
-> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Most commands have both an English and a Turkish name, and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`. Names that read the same in both languages (`go`, `fps`, `boost`, `pause`, `remote`, `tablet`, ...) have just one.
+> **Language.** The mod ships in English and Turkish and follows your Minecraft language setting. Commands have English names. When your game is set to Turkish, most of them also answer to a Turkish name and the two can be mixed: `/ds screens` and `/ds ekranlar` are the same command, as are `/ds queue clear` and `/ds sira temizle`. Names that read the same in both languages (`go`, `fps`, `boost`, `pause`, `remote`, `tablet`, ...) have just one.
 
 ## Install
 1. Put `fabric-api`, `mcef-codec-0.1.0.jar` and `doomscroll-0.1.0.jar` in your `mods/` folder.

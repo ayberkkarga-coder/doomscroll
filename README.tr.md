@@ -7,7 +7,7 @@
 Minecraft içinde arkadaşlarınla **birlikte** Reels / Shorts / TikTok / YouTube / film izle. Dünyaya dev ekranlar kur, elinde tablet taşı, kumandayla yönet, sinema salonu yap. Şakaydı, gerçek oldu.
 
 - Minecraft **26.2** · Fabric · Java 25
-- Komutların çoğunun bir de İngilizce adı var, ikisi karışık kullanılabilir: `/ds ekranlar` = `/ds screens`, `/ds sira temizle` = `/ds queue clear`. Arayüz dili Minecraft'ın dil ayarını izler.
+- Komutların çoğunun bir de İngilizce adı var, ikisi karışık kullanılabilir: `/ds ekranlar` = `/ds screens`, `/ds sira temizle` = `/ds queue clear`. Türkçe adlar oyun dili Türkçeyken çıkar; başka dilde oynayan yalnızca İngilizce adları görür. Arayüz dili Minecraft'ın dil ayarını izler.
 - Gerçek Chromium (CEF 126, H.264/AAC kodekli) — kardeş proje [`mcef-codec`](https://github.com/menntdev/mcef-codec) sağlar
 - Konumsal ses (panelin sana en yakın noktasından gelir, Sound Physics Remastered ile uyumlu), shader'larda ışık yayan ekran, ekrandaki görüntüye göre renklenen oda (ambilight)
 

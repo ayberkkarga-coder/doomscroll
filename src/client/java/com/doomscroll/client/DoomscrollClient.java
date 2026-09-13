@@ -17,7 +17,7 @@ import net.minecraft.network.chat.Component;
 
 public class DoomscrollClient implements ClientModInitializer {
 	private static int tickCounter = 0;
-	/** Sohbet komutuyla acilacak ekran: ChatScreen komuttan sonra kendini kapatirken bizim ekrani da kapatiyor; bir tick sonra acilir. */
+	/** Screen to open from a chat command: ChatScreen closes our screen too while closing itself after the command; so it is opened one tick later. */
 	@org.jetbrains.annotations.Nullable
 	private static java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> pendingScreen;
 
@@ -26,7 +26,7 @@ public class DoomscrollClient implements ClientModInitializer {
 	}
 	private static final int HELP_LINES = 20;
 
-	/** Yardim metni dil dosyasindan satir satir kurulur: command.doomscroll.help.0 .. help.19 */
+	/** The help text is built line by line from the language file: command.doomscroll.help.0 .. help.19 */
 	private static Component help() {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < HELP_LINES; i++) {
@@ -40,8 +40,8 @@ public class DoomscrollClient implements ClientModInitializer {
 	private static boolean tabletWasHeld = false;
 
 	/**
-	 * Google/YouTube giris modunu acar/kapatir. Yeniden baslatma YOK: istek basliklarindaki kimlik aninda
-	 * Firefox olur ve ekran Google giris sayfasina gider; kapatinca kimlik geri alinir ve YouTube acilir.
+	 * Toggles the Google/YouTube login mode. NO restart: the identity in the request headers instantly
+	 * becomes Firefox and the screen goes to the Google login page; turning it off reverts the identity and opens YouTube.
 	 */
 	public static boolean toggleTvLogin() {
 		boolean on = !DoomscrollConfig.get().tvLogin;
@@ -52,7 +52,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		return on;
 	}
 
-	/** Istek basligi kimligi: giris modunda Firefox, normalde kapali (Chromium kendi kimligi). */
+	/** Request header identity: Firefox in login mode, off otherwise (Chromium's own identity). */
 	public static void applyLoginMode(boolean on) {
 		com.doomscroll.cef.api.CefLaunchOptions.headerUserAgentOverride = on ? DoomscrollConfig.TV_USER_AGENT : null;
 	}
@@ -67,12 +67,12 @@ public class DoomscrollClient implements ClientModInitializer {
 	private static boolean lastTabletPortraitSent = false;
 	private static float lastTabletVolumeSent = -1f;
 
-	/** Kendi tablet durumumu (adres, dik, cihaz sesi) saniyede bir sunucuya bildir. */
+	/** Report my own tablet state (URL, portrait, device volume) to the server once a second. */
 	private static void tickTabletState(Minecraft client) {
 		if (++tabletStateTick % 20 != 0 || client.player == null || Browsers.getTabletIfPresent() == null) {
 			return;
 		}
-		// Konum: her saniye yollanir (izleyenler ayni ana hizalansin)
+		// Position: sent every second (so viewers align to the same moment)
 		double dur = Browsers.tabletDuration();
 		double t = Browsers.tabletNow();
 		if (dur > 0 && t >= 0) {
@@ -92,7 +92,7 @@ public class DoomscrollClient implements ClientModInitializer {
 	}
 	private static int autoTick = 0;
 
-	/** Tablet elde mi? Cebe girince sesi durdur, cikinca devam. */
+	/** Is the tablet held? Stop the audio when it goes into the pocket, resume when it comes out. */
 	private static void tickTabletHeld(Minecraft client) {
 		boolean held = client.player != null
 				&& (client.player.getMainHandItem().getItem() == Doomscroll.TABLET_ITEM
@@ -104,7 +104,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		}
 	}
 
-	/** Tablet eldeyken R: dik/yatay mod. Klavye ekrana bagliyken ve GUI acikken calismaz. */
+	/** R while holding the tablet: portrait/landscape mode. Does not work while the keyboard is captured by a screen or a GUI is open. */
 	private static void tickPortraitKey(Minecraft client) {
 		boolean down = com.mojang.blaze3d.platform.InputConstants.isKeyDown(client.getWindow(), org.lwjgl.glfw.GLFW.GLFW_KEY_R);
 		boolean pressed = down && !portraitKeyWasDown;
@@ -127,17 +127,17 @@ public class DoomscrollClient implements ClientModInitializer {
 		DoomscrollConfig.load();
 		com.doomscroll.cef.api.CefAudioDefaults.sampleRate = DoomscrollConfig.get().audioSampleRate;
 		com.doomscroll.cef.api.CefLaunchOptions.frameRate = DoomscrollConfig.get().browserFps;
-		com.doomscroll.cef.api.CefLaunchOptions.localPages = HomePages::html; // doomscroll://home ana menuler
+		com.doomscroll.cef.api.CefLaunchOptions.localPages = HomePages::html; // doomscroll://home main menus
 		com.doomscroll.cef.api.CefAudioDefaults.targetBacklogMs = DoomscrollConfig.get().audioTargetBacklogMs();
 		com.doomscroll.cef.api.CefLaunchOptions.adBlock = DoomscrollConfig.get().adBlock;
 		com.doomscroll.cef.api.CefLaunchOptions.userAgent = DoomscrollConfig.get().userAgent == null ? "" : DoomscrollConfig.get().userAgent;
-		applyLoginMode(DoomscrollConfig.get().tvLogin); // giris modu acik kaldiysa baslik kimligi de acik baslar
+		applyLoginMode(DoomscrollConfig.get().tvLogin); // if login mode was left on, the header identity starts on as well
 		CefService.initialize();
 
 		BlockEntityRendererRegistry.register(Doomscroll.SCREEN_BE_TYPE, ScreenBlockEntityRenderer::new);
 		SubtitleHud.register();
 
-		// Elde tutulan tablet: ozel item renderer'i kaydet (tarayiciyi item yuzeyine cizer)
+		// Handheld tablet: register the special item renderer (draws the browser onto the item surface)
 		com.doomscroll.client.mixin.SpecialModelRenderersAccessor.doomscroll$idMapper()
 				.put(TabletSpecialRenderer.ID, TabletSpecialRenderer.Unbaked.MAP_CODEC);
 
@@ -146,9 +146,9 @@ public class DoomscrollClient implements ClientModInitializer {
 		Doomscroll.remoteOpener = () -> Minecraft.getInstance().setScreenAndShow(new RemoteScreen());
 		Doomscroll.tabletOpener = () -> Minecraft.getInstance().setScreenAndShow(new TabletScreen());
 
-		// Ekran blogu kirildi YA DA chunk'i bosaldi. Ikisi de ayni kancaya dusuyor, bu yuzden
-		// burada yalnizca o ekrana ait kayitlar birakilir: eskiden burasi butun tarayicilari
-		// kapatip izleme/isik/isaretci onbelleklerini siliyordu, uzaklasinca oynayan video oluyordu.
+		// The screen block was broken OR its chunk was unloaded. Both land on the same hook, so
+		// only the records belonging to that screen are dropped here: this used to close every browser
+		// and wipe the tracking/glow/pointer caches, which left a video playing after walking away.
 		Doomscroll.screenRemoved = pos -> {
 			ScreenTracker.forget(pos);
 			ScreenBrowsers.removed(pos);
@@ -169,18 +169,18 @@ public class DoomscrollClient implements ClientModInitializer {
 				client.player.sendSystemMessage(Component.translatable("message.doomscroll.tv_login_notice"));
 			}
 		});
-		// Kontrolcunun video konumu (izleyiciler hizalanir)
+		// The controller's video position (viewers align to it)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenTimeBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() ->
 				ScreenBrowsers.applyRemoteTime(payload.pos(), payload.time(), payload.duration(), payload.paused())));
-		// Paylasilan sira: sunucudaki liste degistikce gelir
+		// Shared queue: arrives whenever the list on the server changes
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.QueueBroadcast.TYPE, (payload, ctx) ->
 				ctx.client().execute(() -> ScreenQueue.apply(payload)));
-		// Sunucu adres politikasi (girise ve her yonetici degisikligine gelir)
+		// Server URL policy (arrives on join and on every admin change)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ServerPolicyBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
 			ServerPolicy.apply(payload);
 			Browsers.onPolicyChanged();
 		}));
-		// Sunucu bildirimi (kilit reddi vb.)
+		// Server notice (lock denial etc.)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenNoticePayload.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
 			if (ctx.client().player != null && !payload.text().getString().isEmpty()) {
 				ctx.client().player.sendOverlayMessage(payload.text());
@@ -190,10 +190,10 @@ public class DoomscrollClient implements ClientModInitializer {
 				ScreenBrowsers.forceResync(payload.pos());
 			}
 		}));
-		// Yayin parcalari ve yayinci komutlari
+		// Broadcast chunks and broadcaster commands
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.BroadcastChunkBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> Broadcast.onChunk(payload)));
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.BroadcastControlBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> Broadcast.onControl(payload)));
-		// Baskalarinin isaretcisi (ekrandaki imlec)
+		// Other players' pointers (the cursor on the screen)
 		ClientPlayNetworking.registerGlobalReceiver(com.doomscroll.net.ScreenPointerBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
 			if (ctx.client().player == null) {
 				return;
@@ -204,7 +204,7 @@ public class DoomscrollClient implements ClientModInitializer {
 				Pointers.apply(payload);
 			}
 		}));
-		// Baskalarinin tablet durumu
+		// Other players' tablet state
 		ClientPlayNetworking.registerGlobalReceiver(TabletStateBroadcast.TYPE, (payload, ctx) -> ctx.client().execute(() -> {
 			if (ctx.client().player == null || payload.player().equals(ctx.client().player.getUUID())) {
 				return;
@@ -230,17 +230,17 @@ public class DoomscrollClient implements ClientModInitializer {
 			Browsers.close();
 			Browsers.closeTablet();
 			DirectControl.reset();
-			// Sunucu degistiginde "ayni durumu zaten gonderdim" hatirasi kalmasin; yoksa
-			// yeni sunucuda tabletin hic bildirilmiyor ve kimse ekranini goremiyor.
+			// Do not carry the "I already sent this same state" memory over to another server; otherwise
+			// your tablet is never reported on the new server and nobody can see its screen.
 			lastTabletUrlSent = "";
 			lastTabletPortraitSent = false;
 			lastTabletVolumeSent = -1f;
 		});
-		// Oyun kapanirken tarayicilari MCEF'ten once kapat (kapanis takilmasini azaltir) ve videolari sil
+		// On game shutdown close the browsers before MCEF (reduces shutdown hangs) and drop the videos
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			Browsers.close();
 			Browsers.closeTablet();
-			RemoteTablets.clear(); // ayrilma olayi gelmeden cikilirsa acik kalan yardimci surecler
+			RemoteTablets.clear(); // helper processes left open if we quit before the disconnect event arrives
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -270,12 +270,12 @@ public class DoomscrollClient implements ClientModInitializer {
 							c.getSource().sendFeedback(help());
 							return 1;
 						})
-						.then(ClientCommands.literal("yardim").executes(c -> {
+						.then(lit("yardim").executes(c -> {
 							c.getSource().sendFeedback(help());
 							return 1;
 						}))
-						.then(ClientCommands.literal("res").then(ClientCommands.argument("deger", StringArgumentType.greedyString()).executes(c -> {
-							String v = StringArgumentType.getString(c, "deger");
+						.then(ClientCommands.literal("res").then(ClientCommands.argument("value", StringArgumentType.greedyString()).executes(c -> {
+							String v = StringArgumentType.getString(c, "value");
 							if (!DoomscrollConfig.get().setResolution(v)) {
 								c.getSource().sendError(Component.translatable("command.doomscroll.res_invalid"));
 								return 0;
@@ -297,29 +297,29 @@ public class DoomscrollClient implements ClientModInitializer {
 							c.getSource().sendFeedback(Component.translatable("command.doomscroll.fake_tablet", RemoteTablets.FAKE_UUID, u));
 							return 1;
 						})))
-						.then(ClientCommands.literal("ekranlar").executes(c -> {
+						.then(lit("ekranlar").executes(c -> {
 							c.getSource().sendFeedback(Component.literal(screenList()));
 							return 1;
 						}))
-						.then(ClientCommands.literal("kontrol")
-								.then(ClientCommands.literal("al").executes(c -> control(c.getSource(), com.doomscroll.net.ScreenControlPayload.TAKE)))
-								.then(ClientCommands.literal("birak").executes(c -> control(c.getSource(), com.doomscroll.net.ScreenControlPayload.RELEASE)))
-								.then(ClientCommands.literal("kilit").executes(c -> control(c.getSource(), com.doomscroll.net.ScreenControlPayload.TOGGLE_LOCK))))
-						.then(ClientCommands.literal("senkron").executes(c -> {
+						.then(lit("kontrol")
+								.then(lit("al").executes(c -> control(c.getSource(), com.doomscroll.net.ScreenControlPayload.TAKE)))
+								.then(lit("birak").executes(c -> control(c.getSource(), com.doomscroll.net.ScreenControlPayload.RELEASE)))
+								.then(lit("kilit").executes(c -> control(c.getSource(), com.doomscroll.net.ScreenControlPayload.TOGGLE_LOCK))))
+						.then(lit("senkron").executes(c -> {
 							DoomscrollConfig.get().syncPlayback = !DoomscrollConfig.get().syncPlayback;
 							DoomscrollConfig.save();
 							c.getSource().sendFeedback(Component.translatable("command.doomscroll.sync", onOff(DoomscrollConfig.get().syncPlayback)));
 							return 1;
 						}))
-						.then(ClientCommands.literal("kanal")
-								.then(ClientCommands.literal("liste").executes(c -> {
+						.then(lit("kanal")
+								.then(lit("liste").executes(c -> {
 									StringBuilder sb = new StringBuilder("[doomscroll] Kanallar:");
 									for (Channels.Channel ch : Channels.list()) sb.append("\n  ").append(ch.name()).append("  ").append(ch.url());
 									c.getSource().sendFeedback(Component.literal(sb.toString()));
 									return 1;
 								}))
-								.then(ClientCommands.literal("ekle").then(ClientCommands.argument("ad", StringArgumentType.string()).executes(c -> {
-									String ad = StringArgumentType.getString(c, "ad");
+								.then(lit("ekle").then(ClientCommands.argument("name", StringArgumentType.string()).executes(c -> {
+									String ad = StringArgumentType.getString(c, "name");
 									String url = Browsers.currentUrl();
 									if (url.isEmpty() || !Channels.add(ad, url)) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.channel.no_page"));
@@ -328,7 +328,7 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.channel.added_current", ad, url));
 									return 1;
 								}).then(ClientCommands.argument("url", StringArgumentType.greedyString()).executes(c -> {
-									String ad = StringArgumentType.getString(c, "ad");
+									String ad = StringArgumentType.getString(c, "name");
 									String url = StringArgumentType.getString(c, "url").trim();
 									if (!Channels.add(ad, url)) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.invalid_url"));
@@ -337,8 +337,8 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.channel.added", ad, url));
 									return 1;
 								}))))
-								.then(ClientCommands.literal("sil").then(ClientCommands.argument("ad", StringArgumentType.greedyString()).executes(c -> {
-									String ad = StringArgumentType.getString(c, "ad").trim();
+								.then(lit("sil").then(ClientCommands.argument("name", StringArgumentType.greedyString()).executes(c -> {
+									String ad = StringArgumentType.getString(c, "name").trim();
 									if (!Channels.remove(ad)) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.channel.not_found", ad));
 										return 0;
@@ -346,23 +346,23 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.channel.removed", ad));
 									return 1;
 								}))))
-						.then(ClientCommands.literal("fps").then(ClientCommands.argument("deger", com.mojang.brigadier.arguments.IntegerArgumentType.integer(10, 60)).executes(c -> {
-							int f = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "deger");
+						.then(ClientCommands.literal("fps").then(ClientCommands.argument("value", com.mojang.brigadier.arguments.IntegerArgumentType.integer(10, 60)).executes(c -> {
+							int f = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "value");
 							DoomscrollConfig.get().browserFps = f;
 							DoomscrollConfig.save();
 							com.doomscroll.cef.api.CefLaunchOptions.frameRate = f;
 							c.getSource().sendFeedback(Component.translatable("command.doomscroll.fps_set", f));
 							return 1;
 						})))
-						.then(ClientCommands.literal("boost").then(ClientCommands.argument("kazanc", com.mojang.brigadier.arguments.FloatArgumentType.floatArg(0.5f, 6f)).executes(c -> {
-							float g = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(c, "kazanc");
+						.then(ClientCommands.literal("boost").then(ClientCommands.argument("gain", com.mojang.brigadier.arguments.FloatArgumentType.floatArg(0.5f, 6f)).executes(c -> {
+							float g = com.mojang.brigadier.arguments.FloatArgumentType.getFloat(c, "gain");
 							DoomscrollConfig.get().audioBoost = g;
 							DoomscrollConfig.save();
 							c.getSource().sendFeedback(Component.translatable("command.doomscroll.boost_set", String.format(java.util.Locale.ROOT, "%.1f", g)));
 							return 1;
 						})))
-						.then(ClientCommands.literal("gecikme").then(ClientCommands.argument("profil", StringArgumentType.word()).executes(c -> {
-							String p0 = StringArgumentType.getString(c, "profil").toLowerCase(java.util.Locale.ROOT)
+						.then(lit("gecikme").then(ClientCommands.argument("profile", StringArgumentType.word()).executes(c -> {
+							String p0 = StringArgumentType.getString(c, "profile").toLowerCase(java.util.Locale.ROOT)
 									.replace('\u00fc', 'u').replace('\u015f', 's').replace('\u0131', 'i');
 							String p = switch (p0) {
 								case "low" -> "dusuk";
@@ -378,27 +378,27 @@ public class DoomscrollClient implements ClientModInitializer {
 							com.doomscroll.cef.api.CefAudioDefaults.targetBacklogMs = DoomscrollConfig.get().audioTargetBacklogMs();
 							ScreenBrowsers.restartSounds();
 							BrowserAudio.stopAll();
-							c.getSource().sendFeedback(Component.translatable("command.doomscroll.latency_set", p,
+							c.getSource().sendFeedback(Component.translatable("command.doomscroll.latency_set", latencyLabel(p),
 									DoomscrollConfig.get().audioChunkMs(), DoomscrollConfig.get().audioTargetBacklogMs()));
 							return 1;
 						})))
-						.then(ClientCommands.literal("reklam")
+						.then(lit("reklam")
 								.executes(c -> {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.adblock_status", adBlockStatus()));
 									return 1;
 								})
-								.then(ClientCommands.literal("ac").executes(c -> setAdBlock(c.getSource(), true)))
-								.then(ClientCommands.literal("kapat").executes(c -> setAdBlock(c.getSource(), false))))
-						.then(ClientCommands.literal("sira")
+								.then(lit("ac").executes(c -> setAdBlock(c.getSource(), true)))
+								.then(lit("kapat").executes(c -> setAdBlock(c.getSource(), false))))
+						.then(lit("sira")
 								.executes(c -> {
 									c.getSource().sendFeedback(Component.literal(queueList()));
 									return 1;
 								})
-								.then(ClientCommands.literal("liste").executes(c -> {
+								.then(lit("liste").executes(c -> {
 									c.getSource().sendFeedback(Component.literal(queueList()));
 									return 1;
 								}))
-								.then(ClientCommands.literal("ekle").then(ClientCommands.argument("url", StringArgumentType.greedyString()).executes(c -> {
+								.then(lit("ekle").then(ClientCommands.argument("url", StringArgumentType.greedyString()).executes(c -> {
 									net.minecraft.core.BlockPos a = ScreenBrowsers.activeAnchor();
 									if (a == null) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.no_screen_near_short"));
@@ -411,9 +411,9 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.sent"));
 									return 1;
 								})))
-								.then(ClientCommands.literal("sil").then(ClientCommands.argument("no", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 50)).executes(c -> {
+								.then(lit("sil").then(ClientCommands.argument("number", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 50)).executes(c -> {
 									net.minecraft.core.BlockPos qa = ScreenBrowsers.activeAnchor();
-									String qurl = ScreenQueue.urlAt(qa, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "no"));
+									String qurl = ScreenQueue.urlAt(qa, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "number"));
 									if (qurl.isEmpty()) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.queue.no_such"));
 										return 0;
@@ -422,9 +422,9 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.removed"));
 									return 1;
 								})))
-								.then(ClientCommands.literal("oyla").then(ClientCommands.argument("no", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 50)).executes(c -> {
+								.then(lit("oyla").then(ClientCommands.argument("number", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 50)).executes(c -> {
 									net.minecraft.core.BlockPos va = ScreenBrowsers.activeAnchor();
-									String vurl = ScreenQueue.urlAt(va, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "no"));
+									String vurl = ScreenQueue.urlAt(va, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "number"));
 									if (vurl.isEmpty()) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.queue.no_such"));
 										return 0;
@@ -432,12 +432,12 @@ public class DoomscrollClient implements ClientModInitializer {
 									ScreenQueue.vote(va, vurl);
 									return 1;
 								})))
-								.then(ClientCommands.literal("temizle").executes(c -> {
+								.then(lit("temizle").executes(c -> {
 									ScreenQueue.clear(ScreenBrowsers.activeAnchor());
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.cleared"));
 									return 1;
 								}))
-								.then(ClientCommands.literal("atla").executes(c -> {
+								.then(lit("atla").executes(c -> {
 									net.minecraft.core.BlockPos na = ScreenBrowsers.activeAnchor();
 									if (ScreenQueue.size(na) == 0) {
 										c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.is_empty"));
@@ -447,13 +447,13 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.queue.skipping"));
 									return 1;
 								})))
-						.then(ClientCommands.literal("yayin")
+						.then(lit("yayin")
 								.executes(c -> {
 									ScreenBrowsers.Screen s = ScreenBrowsers.get(ScreenBrowsers.activeAnchor());
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.broadcast.status", Broadcast.label(s), Broadcast.debugInfo()));
 									return 1;
 								})
-								.then(ClientCommands.literal("ac").executes(c -> {
+								.then(lit("ac").executes(c -> {
 									net.minecraft.core.BlockPos a = ScreenBrowsers.activeAnchor();
 									if (a == null) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.no_screen_near_short"));
@@ -463,12 +463,12 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.broadcast.requested", DoomscrollConfig.get().broadcastWidth, DoomscrollConfig.get().broadcastKbps));
 									return 1;
 								}))
-								.then(ClientCommands.literal("kapat").executes(c -> {
+								.then(lit("kapat").executes(c -> {
 									Broadcast.requestStop(ScreenBrowsers.activeAnchor());
 									return 1;
 								}))
-								.then(ClientCommands.literal("kalite").then(ClientCommands.argument("seviye", StringArgumentType.word()).executes(c -> {
-									String v = StringArgumentType.getString(c, "seviye");
+								.then(lit("kalite").then(ClientCommands.argument("level", StringArgumentType.word()).executes(c -> {
+									String v = StringArgumentType.getString(c, "level");
 									if (!Broadcast.applyPreset(v)) {
 										c.getSource().sendError(Component.translatable("command.doomscroll.quality_usage"));
 										return 0;
@@ -477,7 +477,7 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.broadcast.quality_set", Broadcast.presetLabel(), cfg.broadcastWidth, cfg.broadcastWidth * 9 / 16, cfg.broadcastFps, cfg.broadcastKbps));
 									return 1;
 								}))))
-						.then(ClientCommands.literal("isaretci").executes(c -> {
+						.then(lit("isaretci").executes(c -> {
 							DoomscrollConfig cfg = DoomscrollConfig.get();
 							cfg.pointer = !cfg.pointer;
 							DoomscrollConfig.save();
@@ -494,13 +494,13 @@ public class DoomscrollClient implements ClientModInitializer {
 							ScreenBrowsers.sendControl(a, com.doomscroll.net.ScreenControlPayload.TOGGLE_REDSTONE);
 							return 1;
 						}))
-						.then(ClientCommands.literal("altyazi").executes(c -> {
+						.then(lit("altyazi").executes(c -> {
 							DoomscrollConfig.get().subtitles = !DoomscrollConfig.get().subtitles;
 							DoomscrollConfig.save();
 							c.getSource().sendFeedback(Component.translatable("command.doomscroll.subtitles_status", onOff(DoomscrollConfig.get().subtitles)));
 							return 1;
 						}))
-						.then(ClientCommands.literal("isik")
+						.then(lit("isik")
 								.executes(c -> {
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.glow_status", DoomscrollConfig.get().glowLabel(),
 									Component.translatable(DoomscrollConfig.get().screenGlowSmooth
@@ -508,19 +508,19 @@ public class DoomscrollClient implements ClientModInitializer {
 									c.getSource().sendFeedback(Component.literal("  " + ScreenGlow.info(ScreenBrowsers.activeAnchor())));
 									return 1;
 								})
-								.then(ClientCommands.literal("kapat").executes(c -> setGlow(c.getSource(), 0f)))
-								.then(ClientCommands.literal("az").executes(c -> setGlow(c.getSource(), 0.5f)))
+								.then(lit("kapat").executes(c -> setGlow(c.getSource(), 0f)))
+								.then(lit("az").executes(c -> setGlow(c.getSource(), 0.5f)))
 								.then(ClientCommands.literal("normal").executes(c -> setGlow(c.getSource(), 1.0f)))
-								.then(ClientCommands.literal("cok").executes(c -> setGlow(c.getSource(), 1.8f)))
-								.then(ClientCommands.literal("menzil").then(ClientCommands.argument("blok", com.mojang.brigadier.arguments.IntegerArgumentType.integer(2, 24)).executes(c -> {
-									int n = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "blok");
+								.then(lit("cok").executes(c -> setGlow(c.getSource(), 1.8f)))
+								.then(lit("menzil").then(ClientCommands.argument("blocks", com.mojang.brigadier.arguments.IntegerArgumentType.integer(2, 24)).executes(c -> {
+									int n = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "blocks");
 									DoomscrollConfig.get().screenGlowRange = n;
 									DoomscrollConfig.save();
 									ScreenGlow.clear();
 									c.getSource().sendFeedback(Component.translatable("command.doomscroll.glow_range_set", n));
 									return 1;
 								})))
-								.then(ClientCommands.literal("yumusak").executes(c -> {
+								.then(lit("yumusak").executes(c -> {
 									DoomscrollConfig cfg = DoomscrollConfig.get();
 									cfg.screenGlowSmooth = !cfg.screenGlowSmooth;
 									DoomscrollConfig.save();
@@ -543,19 +543,19 @@ public class DoomscrollClient implements ClientModInitializer {
 							c.getSource().sendError(Component.translatable("command.doomscroll.popup_none"));
 							return 0;
 						}))
-						.then(ClientCommands.literal("rapor")
+						.then(lit("rapor")
 								.executes(c -> report(c.getSource(), ""))
-								.then(ClientCommands.argument("not", StringArgumentType.greedyString())
-										.executes(c -> report(c.getSource(), StringArgumentType.getString(c, "not")))))
+								.then(ClientCommands.argument("note", StringArgumentType.greedyString())
+										.executes(c -> report(c.getSource(), StringArgumentType.getString(c, "note")))))
 						.then(ClientCommands.literal("perf").executes(c -> {
 							c.getSource().sendFeedback(Component.literal(perfReport()));
 							return 1;
 						}))
-						.then(ClientCommands.literal("sinema").executes(c -> {
+						.then(lit("sinema").executes(c -> {
 							Browsers.toggleCinema();
 							return 1;
 						}))
-						.then(ClientCommands.literal("ytgiris").executes(c -> {
+						.then(lit("ytgiris").executes(c -> {
 							boolean on = toggleTvLogin();
 							c.getSource().sendFeedback(Component.literal(tvLoginMessage(on)));
 							return 1;
@@ -597,16 +597,46 @@ public class DoomscrollClient implements ClientModInitializer {
 						}))
 		)));
 
-		Doomscroll.LOGGER.info("doomscroll client hazir");
+		Doomscroll.LOGGER.info("doomscroll client ready");
+	}
+
+	/** Turkish sub-command names; each has an English alias (see {@link #aliases}). */
+	private static final java.util.Set<String> TURKISH_NAMES = java.util.Set.of(
+			"yardim", "ekranlar", "kontrol", "al", "birak", "kilit", "senkron", "kanal", "liste", "ekle", "sil",
+			"gecikme", "reklam", "ac", "kapat", "sira", "oyla", "temizle", "atla", "yayin", "kalite", "isaretci",
+			"altyazi", "isik", "az", "cok", "menzil", "yumusak", "rapor", "sinema", "ytgiris");
+
+	/**
+	 * A sub-command literal. A Turkish name is only usable, and only suggested, when the game language is Turkish;
+	 * the client command tree is rebuilt on every join, so a language change applies from the next join.
+	 */
+	private static com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> lit(String name) {
+		com.mojang.brigadier.builder.LiteralArgumentBuilder<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> b = ClientCommands.literal(name);
+		return TURKISH_NAMES.contains(name) ? b.requires(source -> turkishGame()) : b;
+	}
+
+	private static boolean turkishGame() {
+		String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+		return lang != null && lang.startsWith("tr");
+	}
+
+	/** Display name of an audio delay profile; the stored values are "dusuk", "normal" and "yuksek". */
+	private static Component latencyLabel(String profile) {
+		return Component.translatable(switch (profile) {
+			case "dusuk" -> "gui.doomscroll.latency.low";
+			case "yuksek" -> "gui.doomscroll.latency.high";
+			default -> "gui.doomscroll.latency.normal";
+		});
 	}
 
 	/**
-	 * Komut agacina Ingilizce takma adlar ekler: /ds screens = /ds ekranlar.
-	 * Takma dugum, kaynak dugumun komutunu ve cocuklarini paylasir (kopya yok).
+	 * Adds English aliases to the command tree: /ds screens = /ds ekranlar.
+	 * The alias node shares the source node's command and children (no copy). The Turkish source nodes are only
+	 * usable when the game language is Turkish (see {@link #lit}), so English players see English names only.
 	 */
 	private static com.mojang.brigadier.tree.LiteralCommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> aliases(
 			com.mojang.brigadier.tree.LiteralCommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> root) {
-		// Once derin dugumler: ust dugum kopyalanirken cocuklarini oldugu gibi paylasir.
+		// Deep nodes first: when the parent node is copied, it shares its children as they are.
 		alias(root, "kontrol", "al", "take");
 		alias(root, "kontrol", "birak", "release");
 		alias(root, "kontrol", "kilit", "lock");
@@ -658,12 +688,12 @@ public class DoomscrollClient implements ClientModInitializer {
 	private static void alias(com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> parent, String from, String to) {
 		com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> src = parent.getChild(from);
 		if (src == null || parent.getChild(to) != null) {
-			Doomscroll.LOGGER.warn("komut takma adi atlandi: {} -> {}", from, to);
+			Doomscroll.LOGGER.warn("command alias skipped: {} -> {}", from, to);
 			return;
 		}
 		com.mojang.brigadier.tree.LiteralCommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> node =
 				com.mojang.brigadier.builder.LiteralArgumentBuilder.<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource>literal(to)
-						.requires(src.getRequirement())
+						// no requires(): the source's only requirement is "game language is Turkish"
 						.executes(src.getCommand())
 						.build();
 		for (com.mojang.brigadier.tree.CommandNode<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> child : src.getChildren()) {
@@ -672,7 +702,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		parent.addChild(node);
 	}
 
-	/** /ds kontrol al|birak|kilit: bakilan / kumandanin sectigi / en yakin ekran icin. */
+	/** /ds kontrol al|birak|kilit: for the screen being looked at / the one selected by the remote / the nearest one. */
 	private static int control(net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource src, int action) {
 		net.minecraft.core.BlockPos anchor = ScreenBrowsers.activeAnchor();
 		if (anchor == null) {
@@ -688,12 +718,12 @@ public class DoomscrollClient implements ClientModInitializer {
 		return 1;
 	}
 
-	/** Komut geri bildirimlerinde acik/kapali. */
+	/** On/off for command feedback. */
 	private static Component onOff(boolean v) {
 		return Component.translatable(v ? "gui.doomscroll.enabled" : "gui.doomscroll.disabled");
 	}
 
-	/** /ds rapor: baktigin ekrani yoneticilere bildir. Adres ve sahip sunucuda okunur. */
+	/** /ds rapor: report the screen you are looking at to the admins. URL and owner are read on the server. */
 	private static int report(net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource src, String note) {
 		net.minecraft.core.BlockPos anchor = ScreenBrowsers.activeAnchor();
 		if (anchor == null) {
@@ -729,7 +759,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		return 1;
 	}
 
-	/** /ds perf: CEF pompa maliyeti + tarayici basina boyama/yukleme istatistigi (son cagridan bu yana). */
+	/** /ds perf: CEF pump cost + per-browser paint/load statistics (since the last call). */
 	private static String perfReport() {
 		StringBuilder sb = new StringBuilder(Lang.tr("command.doomscroll.perf.title"));
 		var init = CefService.initialize();
@@ -751,7 +781,7 @@ public class DoomscrollClient implements ClientModInitializer {
 		return sb.toString();
 	}
 
-	/** /ds ekranlar: yakindaki ekranlar (uzaklik, durum, sahip, kontrol, site). */
+	/** /ds ekranlar: nearby screens (distance, state, owner, control, site). */
 	private static String queueList() {
 		net.minecraft.core.BlockPos a = ScreenBrowsers.activeAnchor();
 		java.util.List<com.doomscroll.net.QueueBroadcast.Row> q = ScreenQueue.list(a);
