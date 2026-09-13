@@ -358,7 +358,7 @@ public final class Browsers {
 	private static final String CINEMA_OFF_JS =
 			"(function(){var TOP;try{TOP=(window===window.top);}catch(e){TOP=false;}var done=false;window.__dsCinBusy=0;"
 			+ "var ov=document.getElementById('__dsFsOv');if(ov)ov.remove();"
-			+ "if(window.__dsCinema){var c=window.__dsCinema;try{c.el.style.cssText=c.css;document.documentElement.style.overflow=c.ov;document.body.style.overflow=c.bov;if(c.inner)c.inner.style.cssText=c.innerCss;}catch(e){}window.__dsCinema=null;done=true;}"
+			+ "if(window.__dsCinema){var c=window.__dsCinema;try{if(c.pop){try{c.el.hidePopover();}catch(e){}c.el.removeAttribute('popover');}c.el.style.cssText=c.css;document.documentElement.style.overflow=c.ov;document.body.style.overflow=c.bov;if(c.inner)c.inner.style.cssText=c.innerCss;}catch(e){}window.__dsCinema=null;done=true;}"
 			+ "if(document.fullscreenElement){try{var p=document.exitFullscreen();if(p&&p.catch)p.catch(function(){});}catch(e){}done=true;}"
 			+ "if(TOP)console.log('__DS__{\"cinema\":\"'+(done?'off':'noop')+'\"}');})();";
 
@@ -387,8 +387,10 @@ public final class Browsers {
 	 * cover's handler presses the site's own fullscreen button when there is one, otherwise calls requestFullscreen
 	 * on the player container. A sub-frame that holds the video claims the job (postMessage to top) and the top
 	 * frame answers with the click point (centre of that iframe); the top frame handles iframes itself only when no
-	 * sub-frame claimed within 300 ms. When fullscreen is refused, the top frame pins the player with CSS. Only the
-	 * top frame reports: {"cinema":"on"|"off"|"none"}, "none" meaning no player was found on the page.
+	 * sub-frame claimed within 300 ms. When fullscreen is refused, the top frame pins the player itself: fixed to the
+	 * viewport and promoted to the top layer as a manual popover, so no site header, transformed ancestor or
+	 * z-index can cover it (plain z-index lost to site headers). Only the top frame reports:
+	 * {"cinema":"on"|"off"|"none"}, "none" meaning no player was found on the page.
 	 */
 	private static final String CINEMA_ON_JS = CINEMA_MSG_JS
 			+ "(function(){var TOP;try{TOP=(window===window.top);}catch(e){TOP=false;}"
@@ -407,8 +409,9 @@ public final class Browsers {
 			+ "function run(el){if(window.__dsCinBusy&&Date.now()-window.__dsCinBusy<3000)return;window.__dsCinBusy=Date.now();"
 			+ "var r=el.getBoundingClientRect();var p=el;while(p.parentElement&&p.parentElement!==document.body){var pr=p.parentElement.getBoundingClientRect();if(pr.width*pr.height>r.width*r.height*1.35)break;p=p.parentElement;}"
 			+ "var pin=function(){if(window.__dsCinema||document.fullscreenElement)return;"
-			+ "window.__dsCinema={el:p,css:p.style.cssText,ov:document.documentElement.style.overflow,bov:document.body.style.overflow,inner:el!==p?el:null,innerCss:el!==p?el.style.cssText:''};"
-			+ "p.style.cssText+=';position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;z-index:2147483647!important;background:#000!important;';"
+			+ "var c={el:p,css:p.style.cssText,ov:document.documentElement.style.overflow,bov:document.body.style.overflow,inner:el!==p?el:null,innerCss:el!==p?el.style.cssText:'',pop:false};window.__dsCinema=c;"
+			+ "p.style.cssText+=';position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;z-index:2147483647!important;background:#000!important;';"
+			+ "try{if(p.showPopover&&!p.hasAttribute('popover')){p.setAttribute('popover','manual');p.showPopover();c.pop=true;}}catch(e){try{p.removeAttribute('popover');}catch(e2){}}"
 			+ "if(el!==p){el.style.width='100%';el.style.height='100%';el.style.objectFit='contain';}"
 			+ "document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';rep('on');};"
 			+ "var fail=function(){window.__dsCinBusy=0;if(TOP)pin();else post('fallback');};"
@@ -418,7 +421,7 @@ public final class Browsers {
 			+ "var fired=false;var go=function(ev){if(fired)return;fired=true;ev.stopPropagation();ev.preventDefault();ov.remove();"
 			+ "var btn=null;try{var b=p.querySelector(FSBTN)||(el.parentElement?el.parentElement.querySelector(FSBTN):null);if(b&&b.offsetWidth)btn=b;}catch(e){}"
 			+ "try{if(btn){btn.click();}else{var pr=fs.call(p,{navigationUI:'hide'});if(pr&&pr.catch)pr.catch(function(){fail();});}}catch(e){fail();}"
-			+ "setTimeout(function(){if(!document.fullscreenElement)fail();},900);};"
+			+ "setTimeout(function(){if(!document.fullscreenElement)fail();},1500);};"
 			+ "ov.addEventListener('mousedown',function(ev){ev.stopPropagation();ev.preventDefault();});"
 			+ "ov.addEventListener('mouseup',go);ov.addEventListener('click',go);"
 			+ "document.documentElement.appendChild(ov);"
